@@ -93,6 +93,7 @@ impl CrewApp {
                 self.panes.push(pane);
                 self.focus_new_pane();
                 self.apply_notify_patterns();
+                self.apply_scrollback();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.
             // An error, not a flash: no pane opened. `{e:#}` keeps the cause
@@ -158,6 +159,7 @@ impl CrewApp {
                 self.panes.push(pane);
                 self.focus_new_pane();
                 self.apply_notify_patterns();
+                self.apply_scrollback();
                 self.redraw();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.

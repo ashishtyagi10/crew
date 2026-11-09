@@ -33,6 +33,8 @@ impl TermCore {
                 self.parser.advance(&mut self.term, rest);
                 return;
             }
+            // Back on the primary: a cap set while it was away lands now.
+            self.fit_history();
             bytes = rest;
         }
         // One byte scrolls at most a screenful (`CSI n S` is clamped to the
@@ -78,12 +80,27 @@ impl TermCore {
         self.evicted + self.term.grid().history_size() as u64
     }
 
-    /// Set how many lines of scrollback the pane keeps.
+    /// Set how many lines of scrollback the pane keeps (the `scrollback`
+    /// setting, live). On the alternate screen the primary is out of reach:
+    /// alacritty keeps it as a private `inactive_grid`, and `grid_mut` would
+    /// hand the ALT screen a history of its own. So there only the cap moves,
+    /// and the primary is cut to it on the byte that brings it back (`parse`).
     pub(crate) fn set_scrollback(&mut self, lines: usize) {
-        let over = self.term.grid().history_size().saturating_sub(lines);
-        self.evicted += over as u64;
         self.history_cap = lines;
-        self.term.grid_mut().update_history(lines);
+        if !self.alt() {
+            self.fit_history();
+        }
+    }
+
+    /// Cut the primary's history to the cap, counting what goes as evicted.
+    fn fit_history(&mut self) {
+        let over = self
+            .term
+            .grid()
+            .history_size()
+            .saturating_sub(self.history_cap);
+        self.evicted += over as u64;
+        self.term.grid_mut().update_history(self.history_cap);
         if over > 0 {
             self.wipe_evicted();
         }

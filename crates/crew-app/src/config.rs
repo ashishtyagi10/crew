@@ -183,6 +183,10 @@ pub struct CrewConfig {
     /// macOS: Option+<key> sends ESC+<key> to a terminal (`altmeta`).
     #[serde(default)]
     pub option_as_meta: bool,
+    /// Lines a terminal pane keeps above its screen; applied at spawn and
+    /// live to open panes (`scrollback`). 100–100 000.
+    #[serde(default = "default_scrollback")]
+    pub scrollback: usize,
 }
 
 impl Default for CrewConfig {
@@ -197,6 +201,7 @@ impl Default for CrewConfig {
             font_random: false,
             todo_reminders: false,
             option_as_meta: false,
+            scrollback: default_scrollback(),
             accent: None,
             maximized: false,
             last_dir: None,

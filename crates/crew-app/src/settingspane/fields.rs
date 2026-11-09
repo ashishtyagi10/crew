@@ -65,6 +65,9 @@ pub(crate) enum Field {
     /// In the Window card beside Launch maximized: both are how crew sits
     /// on this machine rather than how it looks.
     OptionMeta,
+    /// Lines a terminal keeps above its screen (see `scrollback`). Beside
+    /// Nav width: both are a size in the window rather than a look.
+    Scrollback,
     Notify,
     NotifyAgentDone,
     NotifyBell,
@@ -81,7 +84,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 30] = [
+pub(crate) const FIELDS: [Field; 31] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -102,6 +105,7 @@ pub(crate) const FIELDS: [Field; 30] = [
     Field::Gradient,
     Field::Maximized,
     Field::OptionMeta,
+    Field::Scrollback,
     Field::Notify,
     Field::NotifyAgentDone,
     Field::NotifyBell,

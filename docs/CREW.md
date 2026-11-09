@@ -4273,16 +4273,18 @@ value.
   spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
   · lively`), and the on/off switches **Card border marks**, **Reveal
   invisibles** and **Code diagnostics (LSP)**.
-- **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**, **Option key
-  is Meta** (macOS: Option+key sends `ESC`+key to a terminal).
+- **WINDOW** — **Nav width**, **Scrollback** (lines each terminal keeps,
+  100–100 000, default 10 000; a save resizes open panes too), **Show nav**,
+  **Launch maximized**, **Option key is Meta** (macOS: Option+key sends
+  `ESC`+key to a terminal).
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**done** — a command or an agent's turn,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
 - **USAGE** — **5h budget (M)** and **7d budget (M)**: the token budgets, in
   millions, the footer's two rolling usage bars are drawn against.
 
-Number fields (**Font size**, **Nav width**, **Min secs**, the two
-budgets) step with **↑ / ↓** — one notch each (nav width 10), **Shift** for ten — clamped to the same range a
+Number fields (**Font size**, **Nav width**, **Scrollback**, **Min secs**, the two
+budgets) step with **↑ / ↓** — one notch each (nav width 10, scrollback 1000), **Shift** for ten — clamped to the same range a
 typed value is. Typing a number still sets it exactly.
 
 Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
@@ -4725,3 +4727,4 @@ characters, not its columns.
 | `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `purple`, `prism`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
 | `backdrop_3d` | empty = the theme's | the 3D scene behind the panes (`/look 3d`): empty for the theme's own (only `prism` has one), `off`, `orbit` or `prism` |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
+| `scrollback` | `10000` | lines a terminal pane keeps above its screen, 100–100 000; Settings → **Scrollback** applies it to open panes at once (a shrink drops the oldest lines) |

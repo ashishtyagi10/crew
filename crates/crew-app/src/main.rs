@@ -140,6 +140,7 @@ mod popupband;
 #[cfg(test)]
 #[path = "quotestyle_tests.rs"]
 mod quotestyle_tests;
+mod scrollback;
 mod segment;
 mod shellback;
 mod signoutpick;

@@ -902,7 +902,9 @@ configurable property: font family/size, font smoothing (the `/smooth`
 ladder), text gamma
 (the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, card border
-marks, revealed invisibles, launch-maximized, Option as Meta, and the whole
+marks, revealed invisibles, launch-maximized, Option as Meta, scrollback
+length (`scrollback`, default 10 000 lines, 100–100 000 — a save resizes the
+panes already open), and the whole
 notification block (master + per-event toggles, min-secs threshold, watched
 output patterns as a one-per-line text area). Every key in the config file has
 a field here, and a test that parses `config.rs` says so. **Cmd+S / Alt+S**

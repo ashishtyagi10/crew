@@ -31,6 +31,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         // legend wider than its border is a legend the user reads truncated.
         Field::Maximized => "Launch maximized",
         Field::OptionMeta => "Option key is Meta",
+        Field::Scrollback => "Scrollback",
         Field::Notify => "Notifications",
         // Commands AND agent turns since 0.25.32: "cmd done" undersold it.
         Field::NotifyAgentDone => "Notify: done",
@@ -121,6 +122,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::NotifyBell => (onoff(p.draft.notify_bell), false),
         Field::NotifyExit => (onoff(p.draft.notify_exit), false),
         Field::NotifyMinSecs => (p.minsecs_buf.clone(), true),
+        Field::Scrollback => (p.scrollback_buf.clone(), true),
         Field::NotifyPatterns => (p.patterns_buf.clone(), true),
         Field::Budget5h => (p.budget5h_buf.clone(), true),
         Field::Budget7d => (p.budget7d_buf.clone(), true),

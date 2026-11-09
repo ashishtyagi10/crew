@@ -132,6 +132,25 @@ fn every_line_of_back_to_back_screen_scrolls_is_counted() {
     assert_eq!(t.screen_line(), top + 50 * 300 + 1);
 }
 
+/// The `scrollback` setting changed while a TUI holds the alternate screen:
+/// the alt screen must not gain a history of its own (`grid_mut` is ITS
+/// grid there), and the primary is cut to the new length — its lost lines
+/// counted — the moment it comes back.
+#[test]
+fn a_cut_made_on_the_alt_screen_lands_on_the_primary() {
+    let mut t = HeadlessTerm::new(GridSize { cols: 40, rows: 12 });
+    t.feed("x\r\n".repeat(100).as_bytes());
+    let top = t.screen_line();
+    assert_eq!(t.history_lines(), 89);
+    t.feed(b"\x1b[?1049h");
+    t.set_scrollback(20);
+    t.feed("y\n".repeat(30).as_bytes());
+    assert_eq!(t.history_lines(), 0, "the alt screen keeps no history");
+    t.feed(b"\x1b[?1049l");
+    assert_eq!(t.history_lines(), 20, "the primary is cut on return");
+    assert_eq!(t.screen_line(), top, "and every line it lost is counted");
+}
+
 /// Throughput of a full scrollback: 20 MB of lines, plain and with SGR
 /// colours, in 4 KiB reads at 50 rows — counted (`parse`) against the bare
 /// parser that counted nothing (the path before eviction counting), and the

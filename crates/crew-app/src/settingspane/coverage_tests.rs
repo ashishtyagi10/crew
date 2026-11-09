@@ -36,6 +36,7 @@ fn edits(f: Field) -> &'static str {
         Field::NotifyBell => "notify_bell",
         Field::NotifyExit => "notify_exit",
         Field::NotifyMinSecs => "notify_min_secs",
+        Field::Scrollback => "scrollback",
         Field::NotifyPatterns => "notify_patterns",
         Field::Budget5h => "usage_budget_5h",
         Field::Budget7d => "usage_budget_7d",

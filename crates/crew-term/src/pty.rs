@@ -50,6 +50,11 @@ pub struct PtyTerm {
 }
 
 impl PtyTerm {
+    /// Keep `lines` of scrollback (crew-app's `scrollback` setting).
+    pub fn set_scrollback(&mut self, lines: usize) {
+        self.core.set_scrollback(lines);
+    }
+
     /// True once the child process has exited and all its output has been drained
     /// (the reader thread ended and the channel disconnected). Set by `try_read`.
     pub fn exited(&self) -> bool {
