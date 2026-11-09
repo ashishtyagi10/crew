@@ -48,8 +48,8 @@ pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String
 }
 
 /// The same bounded one-shot with a caller-chosen output ceiling — the shared
-/// plumbing behind election, skill and tool picks, and `compact`'s
-/// summarizer. One set of gates (`CREW_INTENT=0`, keyless, mock), one escape
+/// plumbing behind election and skill and tool picks (`compact`'s
+/// summarizer shares the provider and bound, not the low effort). One set of gates (`CREW_INTENT=0`, keyless, mock), one escape
 /// hatch.
 pub(crate) fn live_call(max_tokens: u32) -> Option<impl Fn(&str) -> Result<String, String>> {
     let call = live_call_at(max_tokens, crew_hive::ModelTier::Cheap)?;
@@ -94,11 +94,16 @@ fn live_bounded(
 ) -> Option<impl Fn(&str) -> Result<(String, Spent), String>> {
     let (provider, model) = live_provider_at(tier)?;
     Some(move |p: &str| {
-        let c = complete_once(&provider, &model, p, max_tokens, timeout)?;
+        let c = complete_once(&provider, &model, p, max_tokens, timeout, ONESHOT_EFFORT)?;
         let spent = Spent::billed(&model, tier, &c);
         Ok((c.text, spent))
     })
 }
+
+/// The effort every one-shot here asks for: a verdict, a route or a pick
+/// earns none of the work turn's thinking (`crew_hive::provider::effort`).
+/// `compact`'s summarizer is the one bounded call that does not take it.
+pub(crate) const ONESHOT_EFFORT: Option<crew_hive::Effort> = Some(crew_hive::Effort::Low);
 
 /// One bounded completion on the discovered provider — same block-on pattern
 /// as `ask::suggest_far_command` (a small one-shot needs its own max_tokens,
@@ -117,10 +122,11 @@ pub(crate) fn complete_once(
     prompt: &str,
     max_tokens: u32,
     timeout: Duration,
+    effort: Option<crew_hive::Effort>,
 ) -> Result<crew_hive::Completion, String> {
     if tokio::runtime::Handle::try_current().is_ok() {
         return std::thread::scope(|s| {
-            s.spawn(|| complete_once(provider, model, prompt, max_tokens, timeout))
+            s.spawn(|| complete_once(provider, model, prompt, max_tokens, timeout, effort))
                 .join()
                 .unwrap_or_else(|_| Err("the completion panicked".into()))
         });
@@ -130,9 +136,7 @@ pub(crate) fn complete_once(
         system: None,
         prompt: prompt.to_string(),
         max_tokens,
-        // A verdict, a route, a pick or a summary: none earns the work
-        // turn's thinking (`crew_hive::provider::effort`).
-        effort: Some(crew_hive::Effort::Low),
+        effort,
         ..Default::default()
     };
     let rt = tokio::runtime::Builder::new_current_thread()

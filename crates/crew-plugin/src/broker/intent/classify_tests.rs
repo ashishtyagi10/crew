@@ -11,7 +11,16 @@ fn a_completion_asked_for_inside_a_runtime_answers_instead_of_panicking() {
     let provider: Arc<dyn crew_hive::Provider> = Arc::new(crew_hive::MockProvider {
         reply: "folded".into(),
     });
-    let ask = || complete_once(&provider, "m", "fold this", 16, Duration::from_secs(5));
+    let ask = || {
+        complete_once(
+            &provider,
+            "m",
+            "fold this",
+            16,
+            Duration::from_secs(5),
+            None,
+        )
+    };
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -24,9 +33,8 @@ fn a_completion_asked_for_inside_a_runtime_answers_instead_of_panicking() {
     assert_eq!(ask().map(|c| c.text), Ok("folded".to_string()));
 }
 
-/// Every one-shot (the reply judge, the router, the classifiers, the log
-/// summary) goes through `complete_once`, so it is where they ask for low
-/// effort; `crew_hive`'s `effort_tests` prove what that puts on the wire.
+/// Every one-shot but the summary (the reply judge, the router, the
+/// classifiers) goes through `live_bounded`, which asks for low effort; `crew_hive`'s `effort_tests` prove what that puts on the wire.
 #[test]
 fn a_one_shot_asks_for_low_effort() {
     use std::sync::Mutex;
@@ -54,6 +62,7 @@ fn a_one_shot_asks_for_low_effort() {
         "judge",
         16,
         Duration::from_secs(5),
+        super::ONESHOT_EFFORT,
     )
     .unwrap();
     let req = seen

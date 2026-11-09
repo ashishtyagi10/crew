@@ -5,8 +5,9 @@
 //! dial left is `output_config.effort`. Left unset, a one-shot judge asking
 //! "did this reply answer the question?" pays the same thinking as the work
 //! turn that wrote the reply. The one-shots (the reply judge, the router,
-//! the classifiers, tool and skill choice, the log summary) ask for `Low`;
-//! the work turn asks for nothing and keeps the model's own default.
+//! the classifiers, tool and skill choice) ask for `Low`; the work turn and
+//! the compaction summary, which every later hop works from, ask for nothing
+//! and keep the model's own default.
 //!
 //! Only the Anthropic wire sends it. DashScope's one-shots already go
 //! unstreamed and are told `enable_thinking: false` (`thinking`), and crew

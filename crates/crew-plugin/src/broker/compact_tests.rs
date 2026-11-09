@@ -52,13 +52,15 @@ impl Adapter for Capturing {
 /// An accumulate-and-echo summarizer: honest about the mechanism under test
 /// (retention + prepending), deterministic, and keyless. The head of its
 /// accumulated input — which contains the FIRST overflow entries — is what
-/// it returns, so an early token survives iterated re-summarization.
+/// it returns, so an early token survives iterated re-summarization. It
+/// echoes from the messages on, past the instructions, as a model would.
 fn echo_summarizer() -> Summarize {
     let acc = Arc::new(Mutex::new(String::new()));
     Arc::new(move |req: &str| {
         let mut a = acc.lock().unwrap();
         if a.is_empty() {
-            a.push_str(req);
+            let at = req.find("New messages:").unwrap_or(0);
+            a.push_str(&req[at..]);
         }
         Ok(clip(&a, 400))
     })
