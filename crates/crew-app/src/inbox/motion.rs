@@ -133,8 +133,19 @@ impl InboxPane {
         };
         self.failed = None;
         self.checked_ms = Some(chrono::Utc::now().timestamp_millis());
+        // A fresh list goes on to the next page by itself, so a list opens
+        // [`WARM`] threads deep, not one page; `j` takes it on from there.
+        if !more && self.more && self.rows.len() < WARM {
+            self.ask(super::worker::Ask::More);
+        }
     }
 }
+
+/// Threads a fresh list holds before it waits for `j` to ask for more.
+pub(crate) const WARM: usize = 100;
+/// Rows from the end at which `j` already asks for the next page, so it
+/// lands before the selection gets there.
+pub(crate) const AHEAD: usize = 10;
 
 /// A first page `page` listed again over the rows held before (`old`): the
 /// page, then the held threads older than its oldest that it does not carry,
@@ -158,3 +169,7 @@ pub(crate) fn refreshed(old: &[Thread], page: Vec<Thread>, whole: bool) -> Vec<T
 #[cfg(test)]
 #[path = "motion_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "warm_tests.rs"]
+mod warm_tests;

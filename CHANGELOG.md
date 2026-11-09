@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.3
+
+**The inbox loads more: about 100 threads when it opens, not 25.**
+- A page asks Gmail for 50 threads, and a fresh list or search fetches the next page by itself, so the list opens about 100 deep.
+- Moving down (`j`, ↓, the wheel) asks for the next page 10 rows before the end, so it lands before you get there.
+
 ## 0.30.2
 
 **Tabs: groups of panes, one on screen at a time, a bordered card each in the nav.**

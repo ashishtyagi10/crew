@@ -111,7 +111,7 @@ impl InboxPane {
             self.select(self.sel.saturating_sub(1));
         } else if named(NamedKey::ArrowDown) || ch == "j" {
             self.select((self.sel + 1).min(self.rows.len().saturating_sub(1)));
-            if self.sel + 1 >= self.rows.len() && self.more && !self.busy {
+            if self.sel + super::motion::AHEAD >= self.rows.len() && self.more && !self.busy {
                 self.ask(Ask::More);
             }
         } else if named(NamedKey::Enter) {
