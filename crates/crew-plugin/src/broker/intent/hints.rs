@@ -40,6 +40,10 @@ pub(crate) struct Hints {
     /// leaves the choice to the skill decider. Read against the skill roster,
     /// so it is filled by the router (`skillhint::parse`), not by [`Self::parse`].
     pub(crate) skills: Option<Vec<String>>,
+    /// What the message rules out, in the router's few words, when it
+    /// corrects earlier work ("no, don't touch X", "use Y instead"). Kept
+    /// for every shape: it is not a size, it is memory (`correction`).
+    pub(crate) corrects: Option<String>,
 }
 
 impl Hints {
@@ -57,6 +61,7 @@ impl Hints {
                 "agents" => hints.agents = parse_agents(tail, roster),
                 "verify" => hints.verify = parse_yes(tail),
                 "tier" => hints.tier = parse_tier(tail),
+                "corrects" => hints.corrects = parse_clause(tail),
                 _ => {}
             }
         }
@@ -91,6 +96,7 @@ impl Hints {
                     Shape::Reply | Shape::Swarm | Shape::Loop | Shape::Goal
                 )
             }),
+            corrects: self.corrects,
         }
     }
 
@@ -125,6 +131,19 @@ fn parse_yes(tail: &str) -> bool {
         .map(|t| t.trim_matches(|c: char| !c.is_ascii_alphabetic()))
         .is_some_and(|t| t.eq_ignore_ascii_case("yes"))
 }
+
+/// The clause, clipped, or `None` for an empty or a hedged one (`none`,
+/// `no`, `n/a`): a router that fills the line in to say "nothing" has not
+/// reported a correction.
+fn parse_clause(tail: &str) -> Option<String> {
+    let clause = tail.trim().trim_end_matches('.');
+    let bare = clause.to_ascii_lowercase();
+    let nothing = matches!(bare.as_str(), "" | "none" | "no" | "n/a" | "nothing" | "-");
+    (!nothing).then(|| crate::broker::route::clip(clause, CLAUSE_MAX))
+}
+
+/// Chars of a `CORRECTS:` clause kept: one remembered line, not a paragraph.
+const CLAUSE_MAX: usize = 160;
 
 /// `cheap` and nothing else — the one direction the model may move the
 /// spend. A `TIER: standard` is not an error; it simply says the default,

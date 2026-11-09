@@ -3096,6 +3096,14 @@ and a typo gets a **did-you-mean** suggestion):
   what the answer actually stood on, not every page a run opened and
   discarded. Four per turn at most, and a project that has never sent crew to
   the web says nothing about pages anywhere.
+  It also remembers **what was ruled out**. When you correct crew ("no,
+  don't touch the lockfile", "use the lexer instead"), the router names what
+  you ruled out on an optional `CORRECTS:` line. If no router read the
+  message (a signed-in CLI leads, or the router is off), a short list of
+  openings decides. That correction is joined to the files of the turn it
+  corrects. When a long turn compacts, its summary's `ruled out:` lines are
+  kept too. The next task on those files carries them first in the block, as
+  `- ruled out before (2d ago): …`. Unrelated work never sees them.
   The log compacts itself (the oldest turns past 400 are dropped with their
   orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
   write; `/doctor` reports `recall: 12 turns, 30 topics, 8 files, 2 pages in the

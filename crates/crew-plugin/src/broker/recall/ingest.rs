@@ -100,12 +100,19 @@ const CHANGED_MAX: usize = 6;
 
 /// The lines one `record` will append, collected as it touches the graph.
 #[derive(Default)]
-struct Writer {
+pub(super) struct Writer {
     lines: Vec<String>,
 }
 
 impl Writer {
-    fn node(&mut self, r: &mut Recall, kind: Kind, key: &str, text: &str, ms: u64) -> NodeId {
+    pub(super) fn node(
+        &mut self,
+        r: &mut Recall,
+        kind: Kind,
+        key: &str,
+        text: &str,
+        ms: u64,
+    ) -> NodeId {
         let id = r.g.touch(kind, key, text, ms);
         if let Some(n) = r.g.node(id) {
             self.lines.push(node_line(n));
@@ -113,7 +120,7 @@ impl Writer {
         id
     }
 
-    fn edge(&mut self, r: &mut Recall, from: NodeId, to: NodeId, rel: Rel) {
+    pub(super) fn edge(&mut self, r: &mut Recall, from: NodeId, to: NodeId, rel: Rel) {
         let Some(e) = r.g.link(from, to, rel) else {
             return;
         };
@@ -126,7 +133,7 @@ impl Writer {
         }
     }
 
-    fn flush(self, r: &mut Recall) {
+    pub(super) fn flush(self, r: &mut Recall) {
         super::store::append(&r.path, &self.lines);
         super::store::compact_if_needed(&r.path, &mut r.g);
     }

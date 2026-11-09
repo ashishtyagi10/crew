@@ -9,6 +9,7 @@ use crate::broker::thread::clip_chars;
 
 use super::graph::Graph;
 use super::query;
+use super::ruled::RULED;
 
 /// Chars the block may take in front of a task. Half the thread's cap: a
 /// recollection is a prompt, not the record.
@@ -61,11 +62,16 @@ pub(crate) fn block(
         if room < 48 {
             break;
         }
-        let line = format!(
-            "- {} — {}",
-            ago(n.last_ms, now_ms),
-            clip_chars(&body, room - 24)
-        );
+        let when = ago(n.last_ms, now_ms);
+        let line = match n.text.strip_prefix(RULED) {
+            // Labelled, so it reads as a constraint (the user said no, or an
+            // approach failed) and not as an answer crew gave once.
+            Some(what) => format!(
+                "- ruled out before ({when}): {}",
+                clip_chars(&flatten(what), room - 24)
+            ),
+            None => format!("- {when} — {}", clip_chars(&body, room - 24)),
+        };
         left = left.saturating_sub(line.chars().count() + 1);
         oldest_ms = oldest_ms.min(n.last_ms);
         quoted += 1;

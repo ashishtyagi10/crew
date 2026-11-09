@@ -19,6 +19,7 @@ use crate::broker::testenv;
 mod announce;
 mod capability;
 mod context;
+mod corrects;
 mod fallback;
 mod grammar;
 mod hints;

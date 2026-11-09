@@ -209,11 +209,22 @@ impl Session {
         let b = Broker::new(reg, max_hops(), call_timeout())
             .with_budget(token_budget())
             .with_cancel_flag(Arc::clone(&self.cancel))
-            .with_summarizer(super::compact::live_summarizer());
+            .with_summarizer(self.summarizer());
         match self.tools() {
             Some(t) => b.with_tools(t),
             None => b,
         }
+    }
+
+    /// The transcript summarizer, when one may run, with what each summary
+    /// rules out remembered in this session's graph (`correction`): a
+    /// compaction is where a long turn writes down what did not work.
+    fn summarizer(&self) -> Option<super::compact::Summarize> {
+        let call = super::compact::live_summarizer()?;
+        Some(super::correction::remembering(
+            call,
+            Arc::clone(&self.recall),
+        ))
     }
 
     /// This session's tool surface, or `None` when there is nothing to call.

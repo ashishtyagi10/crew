@@ -8,6 +8,7 @@
 //! the reason this is a graph at all.
 use super::graph::Graph;
 use super::node::{Kind, NodeId};
+use super::ruled::{is_ruled, quotes};
 use super::score;
 
 /// A hit: the node and how strongly the request activated it.
@@ -28,15 +29,31 @@ pub(crate) fn turns(g: &Graph, text: &str, skip: &[String], max: usize) -> Vec<H
         .filter(|(_, s)| *s >= floor)
         .filter(|(id, _)| g.node(*id).is_some_and(|n| n.kind == Kind::Turn))
         .filter(|(id, _)| {
-            let text = &g.node(*id).expect("filtered above").text;
-            !skip.iter().any(|s| asked_of(text) == s.trim())
+            let stored = &g.node(*id).expect("filtered above").text;
+            match is_ruled(stored) {
+                // A correction quoting the request itself (noted as this very
+                // turn was routed) or a message the thread already quotes.
+                true => !skip
+                    .iter()
+                    .chain([&text.to_string()])
+                    .any(|s| quotes(stored, s)),
+                false => !skip.iter().any(|s| asked_of(stored) == s.trim()),
+            }
         })
         .map(|(id, score)| Hit { id, score })
         .collect();
+    // Corrections first, then by score: the cut below and a tight budget
+    // both drop from the end, and what was ruled out is the one recollection
+    // that changes what the model does next.
+    let ruled = |id: NodeId| g.node(id).is_some_and(|n| is_ruled(&n.text));
     hits.sort_by(|a, b| {
-        b.score
-            .partial_cmp(&a.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        ruled(b.id)
+            .cmp(&ruled(a.id))
+            .then_with(|| {
+                b.score
+                    .partial_cmp(&a.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .then_with(|| recency(g, b.id).cmp(&recency(g, a.id)))
     });
     hits.truncate(max);
@@ -75,10 +92,11 @@ fn named(g: &Graph, text: &str, kind: Kind, max: usize) -> Vec<String> {
 /// The newest turn whose request starts with `prefix` (empty matches any):
 /// `(text, when)`. Time order, not relevance — this is what a pane opening
 /// asks ("what were we doing?"), which is the one question memory answers
-/// chronologically.
+/// chronologically. A correction is not something that was being done, so
+/// it is never the answer.
 pub(crate) fn latest(g: &Graph, prefix: &str) -> Option<(String, u64)> {
     g.nodes()
-        .filter(|(_, n)| n.kind == Kind::Turn)
+        .filter(|(_, n)| n.kind == Kind::Turn && !is_ruled(&n.text))
         .filter(|(_, n)| asked_of(&n.text).starts_with(prefix))
         .max_by_key(|(_, n)| n.last_ms)
         .map(|(_, n)| (n.text.clone(), n.last_ms))

@@ -32,6 +32,7 @@ mod clistop;
 mod commands;
 mod compact;
 mod constructs;
+mod correction;
 mod danger;
 mod diff;
 mod directs;

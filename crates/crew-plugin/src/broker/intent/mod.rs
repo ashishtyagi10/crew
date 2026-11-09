@@ -168,7 +168,8 @@ pub(crate) fn routed(
     let world = World::gather_about(session, task);
     // Plan-first skips the classifier entirely: the shape is already decided,
     // and asking a model to choose one it cannot have is a call for nothing.
-    let (routing, spent) = match super::planfirst::on(session) {
+    let forced = super::planfirst::on(session);
+    let (routing, spent) = match forced {
         true => (
             decision::forced(Shape::Plan, super::planfirst::WHY),
             Spent::default(),
@@ -176,6 +177,11 @@ pub(crate) fn routed(
         false => decision::classify_live(task, &world, classifier, emit)?,
     };
     let d = routing.decision();
+    // The router's `CORRECTS:` line when it read the message; the openings
+    // when it did not (off, failed, off-grammar, or plan-first's forced shape).
+    let read = matches!(routing, decision::Routing::Chosen(_)) && !forced;
+    let clause = read.then(|| d.hints.corrects.as_deref());
+    super::correction::note(&session.recall, clause, task);
     if let Some(names) = &d.hints.skills {
         skillhint::seed(task, names);
     }
