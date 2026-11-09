@@ -11,6 +11,8 @@ pub(crate) struct Head<'a> {
     pub total: Option<(usize, usize)>,
     pub named: Vec<(&'a str, &'a str)>,
     pub hint: Option<&'a str>,
+    /// `(callers, files)` that use what the turn changed.
+    pub reach: Option<(usize, usize)>,
 }
 
 /// `None` for a line that is not a receipt's head in the form
@@ -29,6 +31,7 @@ pub(crate) fn parse(line: &str) -> Option<Head<'_>> {
         Some((a, h)) => (a, Some(h)),
         None => (rest, None),
     };
+    let (rest, reach) = crate::chatreceiptreach::split(rest);
     let (count, list) = rest.split_once(": ")?;
     let (count, total) = match count.split_once(" (+") {
         Some((c, t)) => {
@@ -53,6 +56,7 @@ pub(crate) fn parse(line: &str) -> Option<Head<'_>> {
         total,
         named,
         hint,
+        reach,
     })
 }
 

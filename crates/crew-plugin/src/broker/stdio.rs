@@ -619,9 +619,15 @@ fn report_changes(session: &Session, id: u64, out: &Out, ending: Option<&str>) -
     // make of it as its own note, which the pane files into the receipt
     // (`receipt`): the diff must not wait on a server still indexing, and
     // the budget is a deadline on the asks (`taskdiag`).
-    let counts = super::changed::patch(&dir, &base).map_or((0, 0), |p| super::receipt::totals(&p));
-    let mut head = super::changed::summary(&changes, hint)
-        .map(|line| super::receipt::headline(id, ending, &line, counts));
+    // How far the change reaches and whom it left behind, from the same
+    // patch (`receiptreach`, `stalecallers`).
+    let patch = super::changed::patch(&dir, &base).unwrap_or_default();
+    let counts = super::receipt::totals(&patch);
+    let reach = super::receiptreach::reach(&dir, &patch);
+    let mut head = super::changed::summary(&changes, hint).map(|line| {
+        let line = super::receiptreach::reached(&line, reach);
+        super::receipt::headline(id, ending, &line, counts)
+    });
     let diagnostics = |files: &[String]| {
         super::taskdiag::lsp_diagnostics(&session.lsp, files, super::taskdiff::DIAG_BUDGET)
     };
@@ -634,6 +640,9 @@ fn report_changes(session: &Session, id: u64, out: &Out, ending: Option<&str>) -
     });
     if let Some(head) = head {
         let _ = emit(out, &msg("agent smith", head));
+    }
+    if let Some(stale) = super::stalecallers::note(&dir, &patch) {
+        let _ = emit(out, &msg("agent smith", stale));
     }
     // …and last, the project's own check, if it declared one: the diff says
     // what changed and the language server what is malformed; this is the

@@ -108,6 +108,7 @@ mod chatreceipt;
 mod chatreceiptcells;
 mod chatreceipthead;
 mod chatreceiptparse;
+mod chatreceiptreach;
 mod chatrepro;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
@@ -568,6 +569,9 @@ mod procname;
 #[path = "proofshot_tests.rs"]
 mod proofshot_tests;
 mod quit;
+#[cfg(test)]
+#[path = "reachshot_tests.rs"]
+mod reachshot_tests;
 mod readout;
 mod reducemotion;
 mod relay;

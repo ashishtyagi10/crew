@@ -96,6 +96,9 @@ pub(crate) fn rows(text: &str, cols: usize, fg: Color) -> Option<Vec<CardLine>> 
         }
         out.push(row.into_iter().take(width + 1).collect());
     }
+    if let Some(reach) = head.reach {
+        crate::chatreceiptreach::reach_on(&mut out, reach, cols, fg);
+    }
     if let Some(h) = head.hint.map(tip) {
         tip_on(&mut out, h, cols, fg);
     }
