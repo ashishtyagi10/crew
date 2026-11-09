@@ -5,7 +5,7 @@ use crate::tools::ToolCall;
 
 /// The heading the advice rides under in the follow-up: whose words they are,
 /// and that the agent is not bound by them.
-pub const HEAD: &str = "ADVICE (a second model read the failure; you decide):";
+pub const HEAD: &str = "ADVICE (a second model read your calls; you decide):";
 
 /// Lines of advice kept, and chars of each.
 const LINES: usize = 3;
@@ -46,6 +46,24 @@ pub(super) fn brief(request: &str, calls: &[String], call: &ToolCall, output: &s
         clip_middle(request, REQUEST_CAP),
         calls.join("\n"),
         clip_middle(&crate::failexcerpt::excerpt(output), FAILURE_CAP)
+    )
+}
+
+/// What the advisor is shown when a round told the agent nothing new
+/// (`stall`): the request and the turn's calls, the last of them the repeats.
+/// It is asked for the step that is missing, not for a re-read of what the
+/// agent already has.
+pub(super) fn stalled(request: &str, calls: &[String]) -> String {
+    format!(
+        "You advise a coding agent. Its last round of calls told it nothing new: each \
+         repeated a call it had already made this turn and came back the same. You only \
+         read: you run nothing, and the agent decides what to do with what you say.\n\n\
+         THE REQUEST:\n{}\n\nITS CALLS THIS TURN, IN ORDER:\n{}\n\n\
+         In at most three short lines, say what the agent most likely still lacks and \
+         the one next step that would get it: a different call, an edit, or answering \
+         with what it has. Plain lines: no preamble, no code fences.",
+        clip_middle(request, REQUEST_CAP),
+        calls.join("\n"),
     )
 }
 

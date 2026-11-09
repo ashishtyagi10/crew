@@ -87,6 +87,13 @@ impl Seen {
 }
 
 impl Seen {
+    /// Whether `result` is one of this type's answers to a call made before
+    /// ([`Seen::pointer`], [`Seen::again`]): a round of nothing new.
+    pub fn answered_before(result: &str) -> bool {
+        result.starts_with("(same call as round ")
+            || result.starts_with("ERROR: the same edit failed in round ")
+    }
+
     /// The round an edit failed in, and why, when `call` is that same edit
     /// sent again with nothing written since. It can only fail the same way:
     /// an edit is all or nothing, so a miss changed no file. 24 of 28 edits
@@ -128,8 +135,9 @@ fn all_or_nothing(call: &ToolCall) -> bool {
 /// written `{"path": "a.rs"}` and one written `{"path":"a.rs"}` are the same
 /// call. Models vary spacing and key order between rounds for no reason;
 /// comparing the raw text would let every one of those through. Arguments that
-/// are not JSON are compared as written, trimmed.
-fn key(call: &ToolCall) -> String {
+/// are not JSON are compared as written, trimmed. The advisor's stall check
+/// (`advisor::stall`) asks the same question, so it uses the same key.
+pub(crate) fn key(call: &ToolCall) -> String {
     let args = match serde_json::from_str::<Value>(&call.args) {
         Ok(v) => sorted(v).to_string(),
         Err(_) => call.args.trim().to_string(),

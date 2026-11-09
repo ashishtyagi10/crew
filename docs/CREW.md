@@ -744,12 +744,17 @@ The docked command bar supports:
   next follow-up after the tool exchanges, and every one after it until a
   later failure's replaces it —
 
-      ADVICE (a second model read the failure; you decide):
+      ADVICE (a second model read your calls; you decide):
       - E0308 at src/a.rs:3: the caller wants &str — fix the call site, then rerun cargo build
 
-  — and the pane says `advised · <its first line>`. The agent decides what to
+  — and the pane says `advised · <its first line>`. A round that told the agent
+  nothing new is read the same way: when every call in it repeated one already
+  made this turn and came back the same (a re-read answered with a pointer to
+  its first result, the same edit failing again, the same output twice), the
+  advisor gets the calls list and names the step that is missing, once per
+  such stall. The agent decides what to
   do with it: nothing is run, and the request is not changed. At most two reads
-  a turn; a read that fails or times out adds nothing and says nothing, and a
+  a turn, failures and stalls together; a read that fails or times out adds nothing and says nothing, and a
   `/stop` pressed while the check ran or while it is read ends the turn before
   the next dial, as it always has.
   `CREW_ADVISOR=0` turns it off, `CREW_ADVISOR_MODEL` picks the model. Swarm
