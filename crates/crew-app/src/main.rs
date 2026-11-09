@@ -357,6 +357,7 @@ mod helptable;
 mod hintact;
 mod hintlegend;
 mod hints;
+mod hintslot;
 mod history;
 mod histsearch;
 mod hit;

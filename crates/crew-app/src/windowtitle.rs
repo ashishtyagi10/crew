@@ -7,33 +7,55 @@ impl CrewApp {
     /// falling back to "Crew". A pane that has a name — agent smith, or one
     /// you gave with `/name` — is called that: the smith pane read `Chat —
     /// Crew`, a word its own legend never uses.
+    ///
+    /// With more than one tab the active tab is named too, with where it
+    /// sits (`zsh — web (2/3) — Crew`): with the nav hidden nothing else on
+    /// screen says which tab you are in. One tab keeps the plain title.
     pub(crate) fn focused_title(&self) -> String {
-        match self.panes.get(self.focused) {
-            Some(p) if p.name.is_some() && !matches!(p.content, PaneContent::Terminal(_)) => {
-                format!("{} — Crew", p.title_text())
-            }
-            Some(p) => match &p.content {
-                PaneContent::Terminal(t) => {
-                    let ti = t.pty.title();
-                    if ti.is_empty() {
-                        "Crew".into()
-                    } else {
-                        format!("{ti} — Crew")
-                    }
-                }
-                PaneContent::Chat(_) => "Chat — Crew".into(),
-                PaneContent::Settings(_) => "Settings — Crew".into(),
-                PaneContent::Far(_) => "Far — Crew".into(),
-                PaneContent::Swarm(_) => "Swarm — Crew".into(),
-                PaneContent::View(_) => format!("{} — Crew", p.title_text()),
-                PaneContent::Todo(_) => "Todo — Crew".into(),
-                PaneContent::Usage(_) => "Usage — Crew".into(),
-                PaneContent::Disk(_) => "Disk — Crew".into(),
-                PaneContent::Dash(_) => "Dashboard — Crew".into(),
-                PaneContent::Inbox(_) => "Inbox — Crew".into(),
-            },
-            None => "Crew".into(),
+        let pane = self.focused_label();
+        let n = self.tabs.list.len();
+        let tab = (n > 1)
+            .then(|| {
+                let at = self.tabs.pos(self.tabs.active)? + 1;
+                let name = self.tab_title(self.tabs.active);
+                // An unnamed tab is called after its first pane; when that
+                // is the focused one, saying it twice tells nothing.
+                Some(if pane.as_deref() == Some(name.as_str()) {
+                    format!("({at}/{n})")
+                } else {
+                    format!("{name} ({at}/{n})")
+                })
+            })
+            .flatten();
+        let mut parts: Vec<String> = pane.into_iter().chain(tab).collect();
+        parts.push("Crew".into());
+        parts.join(" — ")
+    }
+
+    /// What the focused pane is called in the title, `None` when it has
+    /// nothing to say (no pane, or a shell that never set a title).
+    fn focused_label(&self) -> Option<String> {
+        let p = self.panes.get(self.focused)?;
+        if p.name.is_some() && !matches!(p.content, PaneContent::Terminal(_)) {
+            return Some(p.title_text());
         }
+        let s = match &p.content {
+            PaneContent::Terminal(t) => {
+                let ti = t.pty.title();
+                return (!ti.is_empty()).then(|| ti.to_string());
+            }
+            PaneContent::View(_) => return Some(p.title_text()),
+            PaneContent::Chat(_) => "Chat",
+            PaneContent::Settings(_) => "Settings",
+            PaneContent::Far(_) => "Far",
+            PaneContent::Swarm(_) => "Swarm",
+            PaneContent::Todo(_) => "Todo",
+            PaneContent::Usage(_) => "Usage",
+            PaneContent::Disk(_) => "Disk",
+            PaneContent::Dash(_) => "Dashboard",
+            PaneContent::Inbox(_) => "Inbox",
+        };
+        Some(s.into())
     }
 
     /// Update the OS window title when the focused pane's title changes.
