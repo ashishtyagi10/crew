@@ -81,7 +81,7 @@ fn centre_pixel(device: &wgpu::Device, queue: &wgpu::Queue, tex: &wgpu::Texture)
             timeout: None,
         })
         .expect("poll failed");
-    let data = buf.slice(..).get_mapped_range().to_vec();
+    let data = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     let i = ((SIZE / 2) * SIZE + SIZE / 2) as usize * 4;
     [data[i], data[i + 1], data[i + 2], data[i + 3]]
@@ -94,6 +94,7 @@ fn fade_headless_crossfades_the_captured_frame() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) {
         Ok(a) => a,
         Err(_) => {
@@ -167,6 +168,7 @@ fn fade_headless_hands_a_premultiplied_frame_back_as_it_was() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("fade_headless: no GPU adapter, skipping");
         return;

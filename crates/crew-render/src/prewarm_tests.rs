@@ -143,6 +143,7 @@ fn cellgrid_prepare_prewarms_before_any_scene() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) {
         Ok(a) => a,
         Err(_) => {
@@ -215,6 +216,7 @@ fn set_leading_moves_the_cell_height_and_only_the_height() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) {
         Ok(a) => a,
         Err(_) => {

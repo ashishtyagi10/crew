@@ -54,6 +54,7 @@ pub(crate) fn draw_with(
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     }))
     .ok()?;
     let (device, queue) =
@@ -161,7 +162,11 @@ pub(crate) fn draw_with(
     device.poll(wait()).ok()?;
     readback.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     device.poll(wait()).ok()?;
-    let mapped = readback.slice(..).get_mapped_range().to_vec();
+    let mapped = readback
+        .slice(..)
+        .get_mapped_range()
+        .expect("mapped")
+        .to_vec();
     readback.unmap();
 
     let unpadded = (w * BPP) as usize;

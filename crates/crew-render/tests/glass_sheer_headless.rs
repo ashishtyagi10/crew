@@ -153,7 +153,7 @@ fn at(
     wait();
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     wait();
-    let data = buf.slice(..).get_mapped_range().to_vec();
+    let data = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     let o = y * STRIDE + x * 4;
     [data[o], data[o + 1], data[o + 2], data[o + 3]]
 }
@@ -165,6 +165,7 @@ fn glass_sheer_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("glass_sheer_headless: no GPU adapter, skipping");
         return;
@@ -213,6 +214,7 @@ fn legend_veil_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("legend_veil_headless: no GPU adapter, skipping");
         return;

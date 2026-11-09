@@ -106,7 +106,7 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, chain: &CrtChain) -> Vec<u
     wait();
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     wait();
-    let data = buf.slice(..).get_mapped_range().to_vec();
+    let data = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     data
 }
@@ -118,6 +118,7 @@ fn crt_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) {
         Ok(a) => a,
         Err(_) => {
@@ -328,6 +329,7 @@ fn crt_dark_type_on_a_bright_bar_stays_readable() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("crt_dark_type_on_a_bright_bar_stays_readable: no GPU adapter, skipping");
         return;
@@ -383,6 +385,7 @@ fn crt_thin_strokes_burn_white_and_fills_do_not() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("crt_thin_strokes_burn_white_and_fills_do_not: no GPU adapter, skipping");
         return;
@@ -447,6 +450,7 @@ fn crt_shade_dims_the_desktop_behind_text_only() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("crt_shade_dims_the_desktop_behind_text_only: no GPU adapter, skipping");
         return;
@@ -531,6 +535,7 @@ fn crt_premultiplies_for_glass_headless() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("crt_premultiplies_for_glass_headless: no GPU adapter, skipping");
         return;

@@ -68,6 +68,7 @@ fn shared_for(surface: Option<&wgpu::Surface<'static>>) -> anyhow::Result<Arc<Gp
         power_preference: wgpu::PowerPreference::HighPerformance,
         compatible_surface: surface,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     }))?;
     let (device, queue) =
         pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))?;
@@ -137,6 +138,8 @@ impl Gpu {
             alpha_mode: pick_alpha_mode(&caps.alpha_modes),
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
+            // wgpu 30's default: sRGB, never HDR — the colours crew has always shown.
+            color_space: wgpu::SurfaceColorSpace::Auto,
         };
         surface.configure(&shared.device, &config);
 

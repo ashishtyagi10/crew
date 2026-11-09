@@ -90,11 +90,11 @@ impl RoundBorderLayer {
                 module: &shader,
                 entry_point: Some("vs"),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: 20 * 4,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &inst_attrs,
-                }],
+                })],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,

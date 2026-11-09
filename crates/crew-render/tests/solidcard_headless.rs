@@ -116,7 +116,7 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, rects: &[[f32; 4]]) -> Vec
             timeout: None,
         })
         .expect("poll failed");
-    let data = buf.slice(..).get_mapped_range().to_vec();
+    let data = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     data
 }
@@ -128,6 +128,7 @@ fn solid_card_lifts_alpha_and_touches_no_colour() {
         power_preference: wgpu::PowerPreference::None,
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("solid_card_lifts_alpha_and_touches_no_colour: no GPU adapter, skipping");
         return;

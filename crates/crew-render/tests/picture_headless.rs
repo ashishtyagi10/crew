@@ -114,7 +114,7 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, scenes: &[PaneScene]) -> V
     device.poll(wait()).expect("poll failed");
     buf.slice(..).map_async(wgpu::MapMode::Read, |_| {});
     device.poll(wait()).expect("poll failed");
-    let out = buf.slice(..).get_mapped_range().to_vec();
+    let out = buf.slice(..).get_mapped_range().expect("mapped").to_vec();
     buf.unmap();
     out
 }
@@ -126,6 +126,7 @@ fn a_picture_is_drawn_as_a_texture_in_its_box_and_cut_at_its_clip() {
         power_preference: wgpu::PowerPreference::default(),
         compatible_surface: None,
         force_fallback_adapter: false,
+        apply_limit_buckets: false,
     })) else {
         eprintln!("no GPU adapter, skipping");
         return;
