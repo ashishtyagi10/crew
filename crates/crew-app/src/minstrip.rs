@@ -177,7 +177,7 @@ pub fn push_min_strip(
         let marker = strip_marker(p.activity, p.attention, crate::paneview::pane_busy(p), now);
         let unread = match &p.content {
             crate::pane::PaneContent::Terminal(t) => {
-                crate::unread::count(t.pty.scrollable_lines(), t.read_at)
+                crate::unread::count(t.pty.lines_seen(), t.read_at)
             }
             _ => 0,
         };

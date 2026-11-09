@@ -172,7 +172,7 @@ impl CrewApp {
                 busy: crate::paneview::pane_busy(p),
                 unread: match &p.content {
                     crate::pane::PaneContent::Terminal(t) => {
-                        crate::unread::count(t.pty.scrollable_lines(), t.read_at)
+                        crate::unread::count(t.pty.lines_seen(), t.read_at)
                     }
                     _ => 0,
                 },

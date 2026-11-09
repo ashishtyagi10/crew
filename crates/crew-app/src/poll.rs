@@ -212,7 +212,7 @@ impl CrewApp {
                     // exact, and a second of slack would put the boundary
                     // back where polling already had it.
                     for mark in t.pty.take_shell() {
-                        let at = t.pty.scrollable_lines();
+                        let at = t.pty.lines_seen();
                         let ms = crate::anim::now_ms();
                         match mark {
                             crew_term::ShellMark::Done(code) => t.spans.finished(code, at, ms),
@@ -450,7 +450,7 @@ impl CrewApp {
                         );
                         // The two edges of a command's output, as buffer
                         // lines: what `/out` slices later.
-                        let at = t.pty.scrollable_lines();
+                        let at = t.pty.lines_seen();
                         let ms = crate::anim::now_ms();
                         match &cmd {
                             Some(name) => t.spans.started(name.clone(), at, ms),

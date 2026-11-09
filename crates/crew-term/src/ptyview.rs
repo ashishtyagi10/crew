@@ -42,6 +42,14 @@ impl PtyTerm {
         self.core.screen_line()
     }
 
+    /// Every line this pane's buffer has ever held — `scrollable_lines` plus
+    /// what the scrollback has thrown away. Command marks and the unread
+    /// count are kept in these numbers: `scrollable_lines` stops growing once
+    /// the scrollback is full, which froze both.
+    pub fn lines_seen(&self) -> usize {
+        self.core.lines_seen() as usize
+    }
+
     /// Lines currently scrolled back from the live bottom (0 = at the bottom).
     pub fn display_offset(&self) -> usize {
         self.core.display_offset()

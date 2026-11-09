@@ -52,7 +52,7 @@ impl CrewApp {
         let PaneContent::Terminal(t) = &mut pane.content else {
             return Err("not a terminal pane".into());
         };
-        let now = t.pty.scrollable_lines();
+        let now = t.pty.lines_seen();
         let Some((name, from, to)) = t.spans.nth_back(n, now).map(|s| {
             let (from, to) = Spans::range(s, now);
             (s.name.clone(), from, to)

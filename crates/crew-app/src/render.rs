@@ -55,7 +55,7 @@ impl CrewApp {
                 t.read_at,
                 true,
                 t.pty.display_offset() == 0,
-                t.pty.scrollable_lines(),
+                t.pty.lines_seen(),
             );
         }
         let focus_t = self.focus_fx(now);

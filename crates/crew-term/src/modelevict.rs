@@ -80,6 +80,13 @@ impl TermCore {
         self.evicted + self.term.grid().history_size() as u64
     }
 
+    /// Every line the buffer has ever held: thrown away, in the history, or
+    /// on the live screen. The line-count clock for marks that must outlive a
+    /// full scrollback (`scrollable_lines` stops at the cap).
+    pub(crate) fn lines_seen(&self) -> u64 {
+        self.screen_line() + self.term.grid().screen_lines() as u64
+    }
+
     /// Set how many lines of scrollback the pane keeps (the `scrollback`
     /// setting, live). On the alternate screen the primary is out of reach:
     /// alacritty keeps it as a private `inactive_grid`, and `grid_mut` would

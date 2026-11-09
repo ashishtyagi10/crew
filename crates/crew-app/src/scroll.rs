@@ -63,7 +63,7 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
             // scrolling THROUGH the new lines is what you are doing when the
             // mark is still useful.
             if t.pty.display_offset() == 0 {
-                t.read_at = t.pty.scrollable_lines();
+                t.read_at = t.pty.lines_seen();
             }
         }
         PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
