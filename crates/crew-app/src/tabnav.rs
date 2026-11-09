@@ -33,6 +33,14 @@ pub(crate) struct TabBlock {
     pub rows: Vec<PaneRow>,
 }
 
+impl TabBlock {
+    /// A pane in this tab is asking for you: the card (and the rail's
+    /// divider) takes the bell's colour when the tab is not on screen.
+    pub(crate) fn needs_you(&self) -> bool {
+        self.rows.iter().any(|r| r.attention.is_some())
+    }
+}
+
 /// The PANES list, as the nav draws it.
 pub(crate) enum NavList {
     Flat(Vec<PaneRow>),
@@ -66,7 +74,14 @@ impl NavList {
         };
         let t = crew_theme::theme();
         let total: usize = blocks.iter().map(|b| b.rows.len()).sum();
-        let key = format!("{} tabs \u{b7} {total}", blocks.len());
+        // `shown/total` when a short nav cuts the list, as the flat list's
+        // key says, so a hidden pane is never counted as on view.
+        let shown = shown(blocks, limit);
+        let key = format!(
+            "{} tabs \u{b7} {}",
+            blocks.len(),
+            crate::navtext::depth_key(shown, total)
+        );
         let (accent, muted) = (crate::palette::accent(), t.text_muted);
         let mut out = crate::boxdraw::section_header_key(
             "PANES",
@@ -80,8 +95,7 @@ impl NavList {
         let mut row = 1u16;
         let end = 1 + limit.min(usize::from(u16::MAX - 1)) as u16;
         for b in blocks {
-            let attention = b.rows.iter().any(|r| r.attention.is_some());
-            let frame = match (b.active, attention) {
+            let frame = match (b.active, b.needs_you()) {
                 (true, _) => accent,
                 (false, true) => t.bell,
                 (false, false) => t.border_normal,
@@ -148,6 +162,19 @@ impl NavList {
             NavList::Tabs(b) => b.iter().map(|b| b.rows.len() + 1).sum(),
         }
     }
+}
+
+/// Panes whose rows land within the first `limit` lines: each card spends a
+/// line on its top edge before its rows.
+fn shown(blocks: &[TabBlock], limit: usize) -> usize {
+    let mut line = 0;
+    let mut n = 0;
+    for b in blocks {
+        line += 1;
+        n += b.rows.len().min(limit.saturating_sub(line));
+        line += b.rows.len() + 1;
+    }
+    n
 }
 
 #[cfg(test)]
