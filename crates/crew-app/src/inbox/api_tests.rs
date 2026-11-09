@@ -98,7 +98,7 @@ fn a_page_is_the_list_then_every_thread_at_once_in_the_lists_order() {
     let log = log.lock().unwrap().clone();
     assert!(
         log.iter()
-            .any(|p| p.contains("q=in%3Ainbox") && p.contains("maxResults=25")),
+            .any(|p| p.contains("q=in%3Ainbox") && p.contains("maxResults=50")),
         "{log:?}"
     );
     assert!(

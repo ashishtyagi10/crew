@@ -16,8 +16,8 @@ use serde_json::Value;
 mod peek;
 
 pub(crate) const API: &str = "https://gmail.googleapis.com/gmail/v1/users/me";
-/// Rows a page asks for.
-pub(crate) const PAGE: u32 = 25;
+/// Rows a page asks for (25 looked like a list of 20-odd threads).
+pub(crate) const PAGE: u32 = 50;
 
 /// One message of an opened thread, as the reader shows it.
 #[derive(Debug, Clone, PartialEq, Default)]

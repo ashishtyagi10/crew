@@ -72,7 +72,8 @@ fn enter_reads_the_thread_and_esc_steps_back_then_closes() {
     p.poll();
     p.press(&Key::Named(NamedKey::ArrowDown), 80, 24);
     p.press(&Key::Named(NamedKey::Enter), 80, 24);
-    assert!(matches!(asks.try_recv(), Ok(Ask::Open(id)) if id == "b"));
+    let open = |a: Ask| matches!(a, Ask::Open(id) if id == "b"); // past the fill's More
+    assert!(asks.try_iter().any(open));
     assert_eq!(p.reading.as_ref().map(|r| r.thread.id.as_str()), Some("b"));
     answer.send(Got::Opened("b".into(), vec![])).unwrap();
     p.poll();
