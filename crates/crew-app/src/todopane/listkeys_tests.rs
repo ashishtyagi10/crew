@@ -18,6 +18,7 @@ fn item(id: u64, who: Option<&str>) -> TodoItem {
         created_ms: id,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 

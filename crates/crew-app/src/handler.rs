@@ -246,6 +246,7 @@ pub fn run() -> anyhow::Result<()> {
     if config.todo_reminders {
         crate::reminders::start(applog.sender());
     }
+    crate::ghissues::start(applog.sender());
     let mut app = CrewApp {
         config,
         font_rotate,

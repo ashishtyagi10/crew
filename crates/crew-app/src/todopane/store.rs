@@ -3,8 +3,10 @@
 //! A process-wide singleton (the `usageledger` pattern): every pane and the
 //! due-toast ticker read and write through it, so two open todo panes can
 //! never diverge in one process. Disk writes are small synchronous
-//! rewrite-on-save TOML (the `session.toml` precedent); concurrent crew
-//! *processes* are last-write-wins, documented in the goal.
+//! rewrite-on-save TOML (the `session.toml` precedent). Other processes
+//! write it too — `crew todo` from an agent's pane — so a change on disk is
+//! read back before the next write and within a second when idle
+//! ([`watch`]); without that, the app's next save would undo theirs.
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -80,28 +82,51 @@ pub(crate) fn save_at(p: Option<&Path>, items: &[TodoItem]) {
     }
 }
 
+#[path = "storewatch.rs"]
+mod watch;
+
 static STORE: Mutex<Option<Vec<TodoItem>>> = Mutex::new(None);
 /// Bumped on every mutation; panes resync their snapshot when it moves.
 static REV: AtomicU64 = AtomicU64::new(1);
 
+/// The list's revision. Every todo pane asks each frame, so this is also
+/// where a write from another process is noticed (at most once a second).
 pub(crate) fn revision() -> u64 {
+    if watch::due() {
+        let mut g = STORE.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(items) = g.as_mut() {
+            if watch::reload(items) {
+                REV.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    }
     REV.load(Ordering::Relaxed)
+}
+
+/// The list on disk, noting what was read so a later change is seen.
+fn load_live() -> Vec<TodoItem> {
+    let items = load_at(path().as_deref());
+    watch::seen();
+    items
 }
 
 /// A clone of the current list (loading the file on first touch).
 pub(crate) fn snapshot() -> Vec<TodoItem> {
     let mut g = STORE.lock().unwrap_or_else(|e| e.into_inner());
-    g.get_or_insert_with(|| load_at(path().as_deref())).clone()
+    g.get_or_insert_with(load_live).clone()
 }
 
 /// Apply `f` to the list, persist, and bump the revision. Never writes the
 /// real file from the test harness (the `CrewConfig::save` rule).
 pub(crate) fn mutate<R>(f: impl FnOnce(&mut Vec<TodoItem>) -> R) -> R {
     let mut g = STORE.lock().unwrap_or_else(|e| e.into_inner());
-    let items = g.get_or_insert_with(|| load_at(path().as_deref()));
+    let items = g.get_or_insert_with(load_live);
+    // Another process wrote since: build on its list, not over it.
+    watch::reload(items);
     let r = f(items);
     if !cfg!(test) {
         save_at(path().as_deref(), items);
+        watch::seen();
     }
     REV.fetch_add(1, Ordering::Relaxed);
     r
@@ -114,7 +139,7 @@ pub(crate) fn mutate<R>(f: impl FnOnce(&mut Vec<TodoItem>) -> R) -> R {
 pub(crate) fn take_due(now_ms: u64) -> Vec<String> {
     let any_due = {
         let mut g = STORE.lock().unwrap_or_else(|e| e.into_inner());
-        g.get_or_insert_with(|| load_at(path().as_deref()))
+        g.get_or_insert_with(load_live)
             .iter()
             .any(|it| due_now(it, now_ms))
     };

@@ -46,6 +46,7 @@ fn item(
         created_ms: 1_700_000_000_000 + id,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 

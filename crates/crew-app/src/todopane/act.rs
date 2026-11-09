@@ -69,21 +69,16 @@ impl TodoPane {
             // acted, anything else must not mint an item out of the log.
             return None;
         }
-        // Parse the RAW input so what was highlighted is exactly what is
-        // stripped (find/strip share char indices with the composer tint).
-        let hit = super::duedate::find(draft, super::duedate::now_local());
-        let rest = match &hit {
-            Some(h) => super::duedate::strip(draft, h.start, h.end),
-            None => trimmed.split_whitespace().collect::<Vec<_>>().join(" "),
-        };
-        let (title, project, assignee) = parse::extract_tags(&rest);
-        if title.is_empty() {
+        let Some(crate::todoentry::Entry {
+            title,
+            project,
+            assignee,
+            due_ms,
+            has_time,
+        }) = crate::todoentry::parse(draft)
+        else {
             return None; // a due date or tag alone is not an item
-        }
-        let due_ms = hit
-            .as_ref()
-            .and_then(|h| super::duedate::to_epoch_ms(h.due));
-        let has_time = hit.as_ref().is_some_and(|h| h.has_time);
+        };
         let now_ms = crate::chattime::unix_now_ms();
         // Deleted while it was open here (on the phone, by the Reminders
         // sync, or in another pane): the edit was dropped without a word.
@@ -121,6 +116,7 @@ impl TodoPane {
                     // it renders overdue — a toast on top would be noise.
                     notified: due_ms.is_some_and(|d| d <= now_ms),
                     run: None,
+                    issue: None,
                 });
                 id
             }),

@@ -1,210 +1,242 @@
-# Crew Enhancement Agent
+# Crew loop — one change per round, merged; one release per day
 
-You are an autonomous enhancement agent for **Crew**. Crew is a from-scratch,
-native **GPU terminal** written in Rust (`winit` + `wgpu` + `glyphon`) — an
-AI-oriented terminal where everything renders as tiles, no overlays. Panes
-auto-tile into a near-square grid; coding agents and shells live as panes. Your
-job is to analyze, research, plan, implement, and document improvements **that
-advance this direction**.
+Autonomous enhancement loop for **crew**, the native GPU terminal (Rust,
+`winit` + `wgpu` + `glyphon`) with agent smith built in. Each round ships
+**one** improvement end to end and ends **committed and merged into main**.
+Rounds never release: crew cuts at most ONE release per calendar day (see
+"Releases").
 
-Mode: $ARGUMENTS
+Mode: $ARGUMENTS — `[lanes] [loop N | loop Nh | one]`
+- **lanes** (comma-separated, default all three, rotated round by round):
+  - `ai` — the harness, models, routing, memory (was `/improve`). Charter:
+    `.superpowers/sdd/ai-loop-2026-09-14.md`.
+  - `smith` — agent smith's depth and its pane (was `/smith-loop`). Charter:
+    `.superpowers/sdd/smith-loop-2026-10-16.md`.
+  - `ui` — the terminal, panes, rendering, themes, terminal emulation (was
+    the old `/crew`). Charter: the newest `.superpowers/sdd/ui-loop-*.md`, or
+    start a new one.
+- `loop N` = N rounds (default 3, cap 12); `loop Nh` ≈ N hours; `one` = a
+  single round; empty = propose the top three rows per chosen lane and ask.
 
-Supported modes:
-- (empty or "interactive") — show top 10 ideas, ask user to pick
-- "auto" — pick top 3 automatically, implement, release (one cycle)
-- "loop" — alias for "loop 3" (3 iterations)
-- "loop N" — run N iterations (e.g. "loop 5" = 5 cycles = ~15 features)
-- "loop Nh" — run for approximately N hours (e.g. "loop 2h" = ~2 hours)
+Read `MEMORY.md` and the linked notes first: they outrank this file. Then
+read the lane's charter — it is the loop's memory, it holds the ranked
+backlog and the shipped table, and each round writes its row there.
 
-Parse the argument: if it starts with "loop", extract the count or duration after it. Default to 3 iterations if just "loop" with no number.
+## Guardrails (these outrank any idea)
 
-## Guardrail guidelines (read FIRST — these override any idea)
+- Crew is a native GPU terminal, not a TUI. In-pane UI only — laid into a
+  `ratatui` `Buffer` and drawn as GPU cells; no overlays.
+- Panes auto-tile into a near-square grid; no layout switcher (tried, failed).
+- Panels are rounded cards with a fieldset legend, never a title bar.
+- Keys pass through inside a focused terminal pane, except crew's own chords.
+- Every `.rs` file ≤ 200 lines, total. Split along responsibility before you
+  cross it. A file in `crates/crew-app/line-cap-debt.txt` may not GROW.
+- No new dependency without checking the workspace lacks it.
+- New capability arrives as behaviour, not a new slash command, unless no
+  other door exists. Fold spellings; never break one (`/look` is the pattern).
+- Durable learning goes into the recall graph
+  (`crew-plugin/src/broker/recall/`), not a second store.
+- Bring-your-own-provider; default to the latest, most capable models.
+- Never force-push. Never commit a red gate. If the same idea fails the gate
+  three times, drop it and take the next row.
 
-These are durable, user-confirmed rules. Never propose or implement anything that
-violates them. If project memory exists (`MEMORY.md` and the linked notes), read it
-first — it is the source of truth and may supersede this list.
+## What every round must serve
 
-- **Product identity:** Crew is a native GPU terminal, NOT a TUI and NOT a file
-  manager. Everything renders on the GPU as cells; panes are tiles. Do not add
-  overlay-based UI — in-pane UI is laid into a `ratatui` `Buffer` and converted to
-  GPU cells.
-- **Hard 200-line cap per `.rs` file**, total — including imports, whitespace, and
-  doc comments. No exceptions, no soft cap. As a file approaches the limit, split
-  along responsibility boundaries (keys / render / state) into submodules and
-  re-export via `mod.rs`. Never let an edit push a file past 200.
-- **Auto-tiling grid only.** Panes pack into a near-square grid
-  (`cols = ceil(sqrt(n))`); cap full tiles and demote the least-recently-active
-  tile to a minimized strip (LRU). Do not add a layout-switching system — that was
-  tried and failed.
-- **Panels are rounded cards with a fieldset-style legend** on the top border (see
-  `feedback_panel_titled_card` in memory).
-- **Terminal keys pass through.** Inside a focused terminal pane, all keys except
-  Crew's own chords (mostly `Cmd+…`) pass through to the program. Do not steal keys
-  from running programs.
-- **Bring-your-own-provider:** AI agents can each use a different LLM
-  provider/model. Default to the latest, most capable models when adding provider
-  integrations.
-- **No new dependencies** without first checking the functionality isn't already
-  available in current deps.
+1. **Intuitive, responsive UI** — nothing new on screen without a shot; motion
+   off costs no frames and is a still frame that says the same thing; it
+   holds in every palette, including glass over a light desktop (bright white
+   words on glass is the user's taste).
+2. **Autonomous, agentic** — smith decides and acts; the model drives tools,
+   plan, verification and memory; constants are backstops. Asking is the
+   exception, and every ask is one keystroke.
+3. **Depth, not breadth** (smith) — what would a staff engineer do here that
+   smith doesn't? Understand before changing, reproduce before fixing, root
+   cause, smallest change, evidence, self-review, name the uncertainty.
+4. **Feedback that earns trust** — outcome first, then what changed, why,
+   how it was verified (the command and its result), what is left or risky.
+5. **Everything needed, nothing more** — a round that adds rows to a turn
+   removes or folds others; no walls of tool calls; numbers beat adjectives.
+   A round may RETIRE or FOLD commands.
 
-## Phase 1: Understand Current Capabilities
+Steal shamelessly from Claude Code, Codex, Cursor, Amp, Gemini CLI, Kiro,
+Cline, Grok Build, Ghostty, WezTerm, Kitty, Warp, zellij — and say in the
+changelog line which tool the idea came from.
 
-Read and analyze the codebase to build a capability map. Several files are module
-directories — read the `mod.rs` plus the relevant submodules:
 
-1. Read `README.md` and `docs/CREW.md` for the public feature set
-2. Read `src/main.rs` and `src/lib.rs` (where present) across all crates (`crew-app`, `crew-render`, `crew-term`, `crew-plugin`)
-3. Read `crates/crew-app/src/` for window/pane layout, input routing, and in-pane UI (input bar, settings, sidebar, chat)
-4. Read `crates/crew-render/src/` for the GPU pipeline (cells → draws, SDF borders)
-5. Read `crates/crew-term/src/` for the PTY + terminal grid (scrollback, OSC titles)
-6. Read `crates/crew-plugin/src/` for chat/agent plugins
-7. Skim `docs/superpowers/specs/2026-06-20-crew-terminal-design.md` for the design rationale and open questions
+## What is current (refreshed 2026-10-20 — re-read the sources, this rots)
 
-Produce a concise internal summary of what Crew can and cannot do today. Do NOT output this to the user — keep it as working context.
+Refresh this section at the start of every AI loop: a web sweep of the tools'
+changelogs (code.claude.com/docs/en/changelog — the weekly what's-new digest
+lags by a month — learn.chatgpt.com/docs/changelog, cursor.com/changelog,
+ampcode.com/news, geminicli.com/docs/changelogs, kiro.dev/changelog,
+github.com/cline/cline/releases) and the vendors' model/pricing/deprecation
+pages (platform.claude.com release notes + model-deprecations,
+developers.openai.com/api/docs/models + /deprecations, ai.google.dev changelog
++ pricing, Model Studio newly-released-models + model-pricing +
+model-depreciation, api-docs.deepseek.com pricing), plus the bundled
+`claude-api` skill for Anthropic ids and request rules. Mark what could not be
+read from a primary source as unverified and do not ship on it.
 
-## Phase 2: Research Enhancements
+**Models crew should default to.** Anthropic: `claude-opus-5-5` ($4/$20, the
+default), `claude-sonnet-5-5` ($2/$10), **`claude-haiku-5-5`** (released
+2026-10-07; $0.10/$0.50 for prompts ≤100K tokens, $0.50/$2.50 above — keep
+cheap-tier prompts under 100K; replaces `claude-haiku-4-5` as the Cheap tier),
+`claude-fable-5-1` ($10/$50) — all 1M context, 128K output. `claude-haiku-4-5`
+is Legacy: still active, no deprecation notice yet (≥60 days' notice, so no
+retirement before mid-December 2026); `claude-sonnet-4-5-20250929` retires
+2026-11-30. Cache reads are 5% of input on Opus 5.5 / Sonnet 5.5, 2.5% on
+Fable 5.1, 10% elsewhere. OpenAI: `gpt-6.1-sol` ($2/$10, the default — it
+replaced `gpt-6-sol` on 2026-09-29), `gpt-6-astra` ($10/$50), `gpt-6-luna`
+($0.10/$0.50, the only one with effort `none`); GPT-6 takes
+`max_completion_tokens`. Google: `gemini-3.8-flash` (free tier; $0.75/$3.75,
+doubling 2027-01-01) as executor, **`gemini-4-argon`** (GA 2026-10-13, $2/$10
+until 2026-11-30 then $4/$20, no free tier) as the hard-task model in place of
+`gemini-3.1-pro-preview`; 2.5 is closed to new users, 3.7-flash and 3.5-flash
+auto-route to 3.8 / 3.6. Qwen (DashScope intl): `qwen3.8-max` ($2/$6, 1M) /
+`qwen3.8-max-0902`, `qwen3.7-plus` (there is no 3.8-plus), `qwen3.8-flash`
+($0.15/$0.47, 1M), `qwen-flash` for one-line Cheap calls; `qwen-max` is 32K;
+`qwen-turbo` was decommissioned 2026-10-10 (live call 2026-10-20: HTTP 429 on
+every try; dropped from crew's chain) and `qwen3-max` on 2026-09-08. DeepSeek: `deepseek-flash`
+(now V4.1-Flash-1017, since 2026-10-17; off-peak half price) and
+`deepseek-v4-pro`. NVIDIA: `nemotron-3.5-lightning` as the free executor (no
+newer Nemotron found — unverified).
 
-Research ideas that strengthen Crew as a **native GPU terminal for AI workflows**. Focus on:
+**Request rules the Claude 5.x family enforces** (a 400 otherwise): no
+`budget_tokens`, no `temperature`/`top_p`/`top_k`, no assistant prefill (Haiku
+5.5 included), no forced `tool_choice` (`any`/`tool`) on Opus 5.5 / Sonnet 5.5
+/ Fable 5.1 — use `auto` with strict tool use. Opus 5.5 and Fable 5.1 think
+always: `thinking: {type: "disabled"}` and `{type: "enabled"}` are both a 400;
+depth is `output_config.effort` (`low`…`max`; defaults Opus 5.5 `medium`,
+Sonnet 5.5 `high`, Haiku 5.5 `medium`, Fable 5.1 `high`). Sonnet 5.5 rejects
+`disabled` but takes `thinking: {type: "between_tools"}` (no up-front thinking,
+at effort `high` or below). Do not hard-code these: the Models API reports
+`capabilities.thinking.types.disabled|between_tools`, `server_tools` and
+`line` per model. Thinking counts against `max_tokens`, its text is empty
+unless `display: "summarized"`, and a thinking block is bound to the exact
+prefix, model, conversation and account that produced it — a harness that
+edits earlier turns, `system` or `tools` must strip them (crew does) rather
+than replay them edited. Prompt-cache misses are explained by the GA
+`diagnostics` request object; tools can be added mid-conversation without
+busting the cache via `tool_addition` blocks (beta `inline-tools-2026-09-15`).
+DashScope Qwen: `enable_thinking` (+ `thinking_budget`) ride the streaming
+body only.
 
-- "GPU terminal rendering" — what do Ghostty, Alacritty, WezTerm, Kitty do that Crew could adopt (ligatures, damage tracking, glyph caching, sixel/kitty graphics)?
-- "terminal multiplexer UX" — pane management, broadcast input, session restore (tmux/zellij/Warp).
-- "AI coding agent UX" — orchestrating multiple agent panes, diff review, follow-up turns, context indexing.
-- "multi-provider LLM integration" — provider/model switching, streaming, tool use, prompt caching, token/cost surfacing.
-- "winit / wgpu / glyphon patterns" — capabilities Crew isn't using yet.
+**Harness techniques that shipped this year, not yet in crew** (the backlog's
+source; strike a row when it ships):
+- ~~prompt caching on the tool loop~~ (shipped v0.25.x)
+- ~~long tool output written to a file the agent can read back~~ (shipped)
+- ~~steer, don't queue~~ (shipped; Codex made it the default 2026-10-15)
+- a completion judge after each turn that starts another turn until a stated
+  condition holds, with a no-progress stop (Claude Code `/goal` + LLM-judged
+  `Stop` hooks, Codex goals' no-activity limit, Grok Build `/goal`); crew's
+  judge covers swarms only (`swarmverify.rs`)
+- a read-only advisor model consulted before committing to an approach, when
+  stuck, and before declaring done — advice text only, ~2–3 calls a task
+  (Anthropic `advisor_20260301`, Claude Code `/advisor`, Amp oracle, Codex
+  Guardian, Claude Code's "You should know" side agent)
+- hooks with a JSON contract — PreToolUse / PostToolUse / Stop, a block
+  reason fed back without ending the turn, fail-closed when the hook can't run
+  (Claude Code `continueOnBlock`, `onFailure: "block"`; Codex; Kiro)
+- continue a reply that died mid-stream from its partial text, retry
+  thinking-only / empty replies, cap 3 (Claude Code 2.1.288, Cline 4.1.25)
+- an ordered fallback model list on 429 / 529 / refusal / retired id, with a
+  visible "fell back to X" line (Claude Code `fallbackModel`, Kiro V3 notices)
+- effort / thinking per route and per subagent, not one global budget (Claude
+  Code Agent-tool `effort`, `output_config.effort`, Sonnet `between_tools`,
+  DashScope `enable_thinking`, DeepSeek `reasoning_effort`)
+- review in levels (Quick / Standard / Deep), each finding verified before it
+  is reported, with the blast radius (callers of a changed pub item) in front
+  of the reviewer (Claude Code Code Review levels, ultrareview, Cursor
+  Security Review)
+- memory of corrections and RULED-OUT approaches, proposed for the user to
+  accept (Kiro 1.4.0 Memory, Codex, Gemini CLI)
+- compaction that keeps tool names and finished work in the summary (no
+  re-doing pre-compaction work), per-subagent compaction windows, idle
+  compaction before the 1-hour cache expires (Claude Code 2.1.293–2.1.304);
+  crew's relay keeps 8 entries verbatim already
+- MCP 2026-07-28 — per-request `_meta` protocol version, `server/discover`,
+  `ttlMs` / `resultType` / `cacheScope` (Claude Code defaults stdio servers to
+  it since 2.1.292; crew's client still speaks 2024-11-05)
+- tool search / deferred tools once the tool list grows (Claude Code default
+  behind gateways, Codex ranked tool search, Kiro on-demand MCP tools)
+- parallel read-only tool calls in every loop (Codex default 2026-10-15; crew's
+  relay batches ≤4 reads already — check the native tool-use loops)
+- ~~a budget reminder ("3 calls left") in the last rounds~~ (`toolround::next_step`)
 
-Compile a ranked list of **10 enhancement ideas**, each with:
-- Title (short)
-- Description (1-2 sentences)
-- Complexity estimate (small / medium / large)
-- Impact estimate (low / medium / high)
+**Measure before and after.** An AI iteration is judged on a live probe, not
+on green tests alone: drive `crew --broker-plugin` over stdio JSON lines in a
+scratch clone (never `~/code/crew/.crew` — probes pollute the recall graph)
+and time routing, first token and the answer's grounding. DashScope is the API
+engine for probes; the Anthropic API org has no credit (Max plans now include
+monthly API credits per the 2026-10-07 release note — check the Console before
+assuming), so an Anthropic-only feature is checked through `claude -p` or
+DashScope's Anthropic-compatible endpoint, or marked unverified.
 
-Sort by impact DESC, then complexity ASC (high-impact, low-effort first).
+**Pane and terminal work** is judged on shots: before/after with the chat,
+work or tab shot harnesses, composited over black and lavender; dump the
+cells before believing your eye. Bloat: count the rows a fixture turn takes
+on screen, before and after. The `verify` skill drives the live GUI.
 
-## Phase 3: Plan and Confirm
+## The round
 
-Present the ranked list to the user in a clean markdown table.
+1. **Pick one** — the top unshipped row of the lane's backlog, re-ranked
+   against what the tree does today (`ui`: research Ghostty / Alacritty /
+   WezTerm / Kitty / tmux / zellij / Warp when the backlog runs dry). Write a
+   five-line design note in the charter: the behaviour, what the user will
+   see, how it is measured, rows added and removed. Say what it is before
+   building it.
+2. **Branch** `feat/<slug>` in the main checkout. If another session holds
+   the checkout, use a worktree with an APFS-cloned target: `cp -cR
+   target/debug target-<br>/debug` and `CARGO_TARGET_DIR=target-<br>`; remove
+   the worktree and `target-<br>` together once the branch merges. A
+   multi-round loop may run TWO lanes — main checkout plus one worktree, an
+   implementer subagent each — merging strictly one at a time.
+3. **Build the smallest honest version.** Module boundaries: window/pane/
+   input in `crew-app`, GPU in `crew-render`, PTY/grid in `crew-term`, agents
+   and the broker in `crew-plugin` / `crew-hive`. Tests in a sibling
+   `*_tests.rs`; mutation-check them (break the code, watch them fail). A
+   test that reads the theme takes `theme_test_guard()`. Doc comments say WHY.
+4. **Gate, in the foreground, all green:**
+   - `cargo fmt --all --check`
+   - `cargo check --workspace --all-targets` — ZERO warnings (the Windows job
+     builds with `-D warnings`)
+   - `cargo test --workspace --no-fail-fast` — 0 failed (the broker's e2e
+     tests are not in `--lib`); the `linecap` ratchet runs inside them
+5. **Verify** with the probe and/or shot, and write the numbers into the
+   charter row.
+6. **Docs** — `README.md` and `docs/CREW.md` when a command, key or `CREW_*`
+   knob changes (doc guards fail the build otherwise). Add, don't rewrite.
+7. **Changelog line** — do NOT edit `CHANGELOG.md` or bump `Cargo.toml` (a
+   test asserts the top entry names the current version). Write the round's
+   changelog paragraph into the charter's "Pending release" list: what was
+   wrong, what it does now, what it costs when it has nothing to say, which
+   tool the idea came from.
+8. **Commit and merge** — commit on the branch, merge `--no-ff` into main,
+   `git push origin main`. No version bump, no tag. Delete the branch. Read
+   `gh run list` for the main push: a red CI job stops the loop.
+9. **Record the row** (version: "unreleased", lane, pillars, before → after)
+   and print `--- Round N/M (lane): merged <sha> — <title> ---`. Keep going.
 
-If mode is "interactive":
-- Ask the user which enhancements to implement (suggest top 3)
-- Wait for their response before proceeding
+## Releases — at most one per day
 
-If mode is "auto":
-- Select the top 3 by default
-- Announce what you're implementing and proceed immediately
+Rounds never tag. At the end of the day's loop (or when the user asks), and
+only if nothing was released today, cut ONE release with
+`scripts/release.sh <branch> entry.md msg.txt "subject"`, where `entry.md`
+folds every lane's "Pending release" list into one CHANGELOG entry (the bold
+headline is UI text the welcome card shows — under ~70 chars, project voice).
+The script picks the version (patch 0..99, then the minor rolls) and fills
+`{V}` in the message; set `EXTRA="crew-plugin crew-hive"` for the crates
+touched since the last release. The tag triggers
+`.github/workflows/release.yml`; never `gh release create`. Watch the Release
+and Windows runs until the release is published (not a draft, all assets),
+then fill the version into the rows it covers and empty the pending lists.
+If a release already went out today, leave the lists pending for tomorrow
+unless the user explicitly asks for another.
 
-## Phase 4: Implement
+## Unattended operation
 
-For each selected enhancement, one at a time:
-
-1. **Plan**: Identify exactly which files need changes. List them. Confirm the
-   change respects every guardrail guideline above.
-2. **Implement**: Write the code. Follow existing patterns and module boundaries:
-   - Window/pane/input logic goes in `crew-app`
-   - GPU rendering goes in `crew-render`
-   - PTY/terminal-grid logic goes in `crew-term`
-   - Chat/agent plugins go in `crew-plugin`
-   - **Keep every `.rs` file ≤ 200 lines** — split into submodules before you cross it.
-3. **Format**: Run `cargo fmt`
-4. **Check**: Run `cargo check --workspace`. If errors, fix them. Repeat until clean.
-5. **Clippy**: Run `cargo clippy --workspace --all-targets`. The whole workspace must
-   be **warning-free** — not just your new code. Fix every warning.
-6. **Test**: Run `cargo test --workspace`. Fix any failures.
-7. **Review**: Re-read your changes. Look for:
-   - Dead code, unused imports, or stale `#[allow(dead_code)]` (remove them — don't suppress)
-   - Any `.rs` file now over 200 lines (split it)
-   - Inconsistent naming vs existing code
-   - Missing edge cases
-   - Anything that breaks the auto-tiling grid, pass-through keys, or in-pane (no-overlay) UI rule
-   Fix any issues found.
-
-After each enhancement, briefly report what was done.
-
-## Phase 5: Update Documentation
-
-After all enhancements are implemented:
-
-1. Read the current `README.md` and `docs/CREW.md`
-2. Update them to reflect new capabilities (keyboard shortcuts, features, config)
-3. Do NOT remove or rewrite existing content — only add what's new
-4. Keep the existing style and formatting
-5. Run `cargo fmt` and `cargo check --workspace` one final time
-
-## Phase 6: Release New Version
-
-After all enhancements are implemented and documentation is updated:
-
-1. Read the current version from `Cargo.toml` (`[workspace.package] version`)
-2. Increment the version following the project's scheme (gradual, semver-format but
-   not semver-strict — never jump versions):
-   - Increment the lowest segment by 1
-   - If a segment reaches 10, reset it to 0 and bump the next segment up
-   - Examples: 0.4.0 → 0.4.1, 0.4.9 → 0.5.0, 0.9.9 → 1.0.0
-3. Update the version in `Cargo.toml` (`[workspace.package] version = "X.Y.Z"`)
-4. Run `cargo check` to regenerate `Cargo.lock`
-5. Commit: `git add Cargo.toml Cargo.lock && git commit -m "Bump version to X.Y.Z"`
-6. Push: `git push origin main`
-7. Create and push a git tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
-   - This triggers the `.github/workflows/release.yml` CI which builds cross-platform binaries and creates the GitHub release with assets attached.
-   - Do NOT use `gh release create` — that would create a release without binaries and conflict with the CI workflow.
-8. Verify the CI was triggered: `gh run list --limit 1`
-
-## Phase 7: Loop (if mode starts with "loop")
-
-After completing Phase 6 (release), check whether to loop again.
-
-### Iteration control
-
-Parse the loop argument to determine the limit:
-- `loop` or `loop 3` → run exactly 3 iterations total
-- `loop N` (e.g. `loop 5`) → run exactly N iterations total
-- `loop Nh` (e.g. `loop 2h`) → run for approximately N hours (estimate ~20-30 min per iteration)
-- Maximum cap: 10 iterations per invocation (safety limit)
-
-Track the current iteration number starting at 1.
-
-### Each iteration
-
-1. Re-read the codebase to understand what was added in prior iterations
-2. Research fresh enhancement ideas (excluding everything already implemented)
-3. Pick the top 3 unimplemented enhancements automatically
-4. Implement, document, and release a new version
-5. Output a status line:
-   ```
-   --- Iteration N/M complete: released vX.Y.Z with [feature1, feature2, feature3] ---
-   ```
-6. If iterations remain, continue to next iteration from Phase 1
-7. If iterations are exhausted, output a final summary and stop
-
-### Final summary (after all iterations complete)
-
-Output a summary table showing all iterations:
-```
-## /crew loop complete
-| Iteration | Version | Features |
-|-----------|---------|----------|
-| 1 | v0.4.1 | feature1, feature2, feature3 |
-| 2 | v0.4.2 | feature4, feature5, feature6 |
-...
-Total: N versions released, M features added.
-```
-
-### Safety guardrails (unattended operation)
-
-Since the user may walk away or sleep while this runs:
-- If `cargo check` fails 3 times in a row on the same enhancement, **skip it** and move to the next. Do not get stuck in a fix loop.
-- If an entire iteration fails to produce any working enhancement, **stop the loop** and output what happened.
-- Never force-push or run destructive git commands.
-- If `git push` fails (e.g. network issue), commit locally, report the failure, and stop the loop gracefully.
-
-## Rules
-
-- NEVER break existing functionality. If unsure, don't change it.
-- NEVER violate a guardrail guideline above (200-line cap, auto-tiling grid, no
-  overlay UI, pass-through keys, titled-card panels).
-- NEVER add dependencies without checking if the functionality already exists in current deps.
-- Keep code consistent with existing patterns — match the style, naming, and structure.
-- Every `.rs` file stays ≤ 200 lines; split into submodules instead of growing files.
-- `cargo clippy --workspace --all-targets` stays warning-free; remove dead code rather than suppressing it.
-- One enhancement at a time. Compile and verify between each.
-- If an enhancement turns out to be too complex mid-implementation, skip it and move to the next.
-- Commit after each enhancement with a clear message.
+- If `git push` fails, keep the commit local, report it, and stop.
+- If a whole round produces nothing that passes the gate, stop the loop and
+  say what happened.
+- Final summary: a table of rounds (lane, merge sha, title, before → after)
+  and whether they were released (version) or are pending.

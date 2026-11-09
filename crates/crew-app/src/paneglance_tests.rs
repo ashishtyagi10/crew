@@ -14,6 +14,7 @@ fn item(title: &str, done: bool, due_ms: Option<u64>) -> TodoItem {
         created_ms: 0,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 
