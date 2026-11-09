@@ -9,7 +9,7 @@ use super::TermCore;
 impl TermCore {
     /// Record where a picture goes, and move the cursor past it.
     ///
-    /// The anchor is an ABSOLUTE line — history plus the cursor's screen row —
+    /// The anchor is an ABSOLUTE line — `screen_line` plus the cursor's row —
     /// so the picture scrolls with the text it arrived in instead of staying
     /// at a screen position the output has long since left.
     pub(super) fn place_image(&mut self, cmd: crate::graphicscmd::ImageCmd) {
@@ -48,7 +48,7 @@ impl TermCore {
             return;
         }
         let point = self.term.grid().cursor.point;
-        let line = self.term.grid().history_size() as u64 + point.line.0.max(0) as u64;
+        let line = self.screen_line() + point.line.0.max(0) as u64;
         // How much of the grid the picture claims. The sender may say (`c`,
         // `r`); otherwise it is the picture's own pixel size over the cell's,
         // which is why the header is read before the bytes are decoded.
@@ -80,9 +80,7 @@ impl TermCore {
         if stay {
             return;
         }
-        for _ in 0..rows {
-            self.parser.advance(&mut self.term, b"\n");
-        }
+        self.parse(&vec![b'\n'; usize::from(rows)]);
     }
 
     /// Reply to a graphics command, unless its `q=` asked for silence: 1
@@ -108,8 +106,8 @@ impl TermCore {
         std::mem::take(&mut self.images)
     }
 
-    /// Lines of scrollback above the screen, for mapping an image's absolute
-    /// anchor back to the row it is on now.
+    /// Lines of scrollback above the screen. Not a picture's base: it stops
+    /// growing once the scrollback is full (`screen_line` does not).
     pub(crate) fn history_lines(&self) -> usize {
         self.term.grid().history_size()
     }

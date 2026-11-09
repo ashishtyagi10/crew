@@ -25,6 +25,9 @@ pub enum ImageWipe {
     /// The alternate screen was entered (`true`) or left: every picture
     /// placed on it goes, and the primary's show again only on the primary.
     Alt(bool),
+    /// Every line before this absolute one has been thrown off the top of a
+    /// full scrollback: a picture anchored there has no text left to sit on.
+    Evicted(u64),
 }
 
 impl ImageWipe {
@@ -35,6 +38,7 @@ impl ImageWipe {
             Self::Screen { line: top, alt: on } => alt != on || line < top,
             Self::All => false,
             Self::Alt(_) => !alt,
+            Self::Evicted(top) => alt || line >= top,
         }
     }
 }

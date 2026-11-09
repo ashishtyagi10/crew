@@ -44,7 +44,7 @@ pub(crate) fn push_pane_scenes(
     // arrived on and clipped to the pane (see `termimg`).
     if let PaneContent::Terminal(t) = &p.content {
         paint.extend(t.images.paint(
-            t.pty.history_lines(),
+            t.pty.screen_line(),
             t.pty.display_offset(),
             p.grid.cols,
             p.grid.rows,

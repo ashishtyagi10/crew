@@ -35,9 +35,20 @@ impl HeadlessTerm {
         self.core.take_image_wipes()
     }
 
-    /// Scrollback above the screen, for placing those pictures.
+    /// Scrollback above the screen.
     pub fn history_lines(&self) -> usize {
         self.core.history_lines()
+    }
+
+    /// The absolute line of the screen's top row, for placing those pictures
+    /// (see [`crate::PlacedImage::line`]).
+    pub fn screen_line(&self) -> u64 {
+        self.core.screen_line()
+    }
+
+    /// Keep `lines` of scrollback (alacritty's default is 10 000).
+    pub fn set_scrollback(&mut self, lines: usize) {
+        self.core.set_scrollback(lines);
     }
 
     /// Publish the frame's cell size, as the app does on resize.

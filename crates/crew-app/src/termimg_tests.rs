@@ -21,7 +21,7 @@ fn at(line: u64, col: u16, cells: (u16, u16)) -> TermImages {
 }
 
 /// The rows a store's paint covers, or `None` when it drew nothing.
-fn rows_of(t: &TermImages, history: usize, offset: usize, rows: u16) -> Option<(f32, f32)> {
+fn rows_of(t: &TermImages, history: u64, offset: usize, rows: u16) -> Option<(f32, f32)> {
     let ps = t.paint(history, offset, 40, rows, 2.0);
     let first = ps.first()?;
     Some(ps.iter().fold((first.y, first.y + first.h), |a, p| {

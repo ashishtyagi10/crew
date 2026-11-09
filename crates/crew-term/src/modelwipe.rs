@@ -1,6 +1,5 @@
 //! Running the parser in pieces cut at the sequences that drop pictures
 //! (see `crate::wipescan`). Child module of `model`, split for the 200-line cap.
-use alacritty_terminal::grid::Dimensions;
 use alacritty_terminal::term::TermMode;
 
 use super::TermCore;
@@ -20,12 +19,12 @@ impl TermCore {
     pub(super) fn advance(&mut self, bytes: &[u8]) {
         let mut at = 0;
         for (end, hit) in self.wipes.scan.feed(bytes) {
-            self.parser.advance(&mut self.term, &bytes[at..end]);
+            self.parse(&bytes[at..end]);
             at = end;
             let alt = self.term.mode().contains(TermMode::ALT_SCREEN);
             match hit {
                 Hit::EraseScreen => self.wipe(ImageWipe::Screen {
-                    line: self.term.grid().history_size() as u64,
+                    line: self.screen_line(),
                     alt,
                 }),
                 Hit::EraseSaved => self.wipe(ImageWipe::All),
@@ -36,7 +35,7 @@ impl TermCore {
                 }
             }
         }
-        self.parser.advance(&mut self.term, &bytes[at..]);
+        self.parse(&bytes[at..]);
     }
 
     /// Drop the matching pictures not yet collected, and keep the wipe for
@@ -44,6 +43,17 @@ impl TermCore {
     pub(super) fn wipe(&mut self, w: ImageWipe) {
         self.images.retain(|p| w.keeps(p.line, p.alt));
         self.wipes.pending.push(w);
+    }
+
+    /// Drop the pictures whose anchor line has left the scrollback. One
+    /// pending wipe of this kind is enough: a later count covers an earlier.
+    pub(super) fn wipe_evicted(&mut self) {
+        let w = ImageWipe::Evicted(self.evicted);
+        self.images.retain(|p| w.keeps(p.line, p.alt));
+        match self.wipes.pending.last_mut() {
+            Some(last @ ImageWipe::Evicted(_)) => *last = w,
+            _ => self.wipes.pending.push(w),
+        }
     }
 
     /// Take the wipes since the last call. Apply them BEFORE the pictures

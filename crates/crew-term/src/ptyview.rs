@@ -29,10 +29,17 @@ impl PtyTerm {
         }
     }
 
-    /// Lines of scrollback above the screen — the offset that maps an image's
-    /// absolute anchor line onto the row it is drawn at now.
+    /// Lines of scrollback above the screen.
     pub fn history_lines(&self) -> usize {
         self.core.history_lines()
+    }
+
+    /// The absolute line of the live screen's top row — what maps a
+    /// picture's anchor (see [`crate::PlacedImage::line`]) onto the row it
+    /// is drawn at now. Unlike `history_lines`, it keeps counting once the
+    /// scrollback is full.
+    pub fn screen_line(&self) -> u64 {
+        self.core.screen_line()
     }
 
     /// Lines currently scrolled back from the live bottom (0 = at the bottom).
