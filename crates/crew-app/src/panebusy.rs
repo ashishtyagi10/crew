@@ -54,20 +54,29 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
 /// alone decides the card's busy sweep so a fade never reads as "working".
 /// Every arm is bounded: the typewriter finishes within
 /// `chatreveal::CATCHUP_MS` of the last delta, the chrome within its timelines.
+///
+/// Work itself ([`pane_working`]) only counts while motion is on: at Off its
+/// sweep, sheen, spinner and shimmer all hold still, so the frames it asked
+/// for at 15 fps were identical. What still changes is its clocks, which
+/// [`crate::app::CrewApp::clock_tick`] serves once a second instead.
 pub(crate) fn pane_animating(p: &Pane) -> bool {
-    pane_busy(p)
+    (pane_working(p) && crate::motion::level() != crate::motion::MotionLevel::Off)
         || match &p.content {
             PaneContent::Chat(c) => {
-                c.is_fading()
-                    || c.is_revealing()
-                    || c.tools_running()
-                    || c.thinking_live()
-                    || c.chrome_animating(crate::anim::now_ms())
+                c.is_fading() || c.is_revealing() || c.chrome_animating(crate::anim::now_ms())
             }
             // A glide, a fold or new mail's glow (`inbox::motion`).
             PaneContent::Inbox(i) => i.motion.live(crate::anim::now_ms()),
             _ => false,
         }
+}
+
+/// Work in flight: busy, a tool call running or reasoning arriving. Each one
+/// draws a clock counting whole seconds (the header's, a tool line's, a
+/// thought's) beside motion that Off holds still.
+pub(crate) fn pane_working(p: &Pane) -> bool {
+    pane_busy(p)
+        || matches!(&p.content, PaneContent::Chat(c) if c.tools_running() || c.thinking_live())
 }
 
 /// A connected, idle crew pane: its header's connection dot breathes
@@ -87,6 +96,20 @@ impl crate::app::CrewApp {
     /// repainting a window nobody is looking at is the whole cost.
     pub(crate) fn ambient_breath(&self) -> bool {
         self.win_focus.unwrap_or(true) && self.panes.iter().any(pane_breathing)
+    }
+
+    /// At Motion Off, whether a working pane's clocks owe a frame: once per
+    /// wall second, the only thing on it that still changes. At any other
+    /// level [`pane_animating`] already draws them, so this stays quiet.
+    pub(crate) fn clock_tick(&mut self, now: u64) -> bool {
+        let sec = now / 1000;
+        let due = crate::motion::level() == crate::motion::MotionLevel::Off
+            && sec != self.clock_sec
+            && self.panes.iter().any(pane_working);
+        if due {
+            self.clock_sec = sec;
+        }
+        due
     }
 }
 

@@ -91,11 +91,13 @@ impl ChatPane {
     }
 
     /// Whether the newest message is still fading in — keeps redraw frames
-    /// flowing for the fade's few hundred ms after a reply lands.
+    /// flowing for the fade's few hundred ms after a reply lands. Never at
+    /// Off, where the card is simply drawn (`chatmsgs`).
     pub(crate) fn is_fading(&self) -> bool {
-        self.messages
-            .last()
-            .is_some_and(|m| crate::chatmsgs::fade_t(&m.ts, crate::chattime::unix_now_ms()) < 1.0)
+        crate::motion::level() != crate::motion::MotionLevel::Off
+            && self.messages.last().is_some_and(|m| {
+                crate::chatmsgs::fade_t(&m.ts, crate::chattime::unix_now_ms()) < 1.0
+            })
     }
 }
 

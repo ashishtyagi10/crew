@@ -123,3 +123,30 @@ fn frame_shot_welcome() {
         }
     }
 }
+
+/// A crew pane awaiting a reply at Motion Off (U8): the spinner holds its
+/// first frame and the sweep stands centred — the frame Off now draws once a
+/// second, for the clock — set beside the same pane at Full.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn frame_shot_busy_motion_off() {
+    use crate::motion::{set_level, MotionLevel};
+    let _g = crate::app::theme_test_guard();
+    for (name, level) in [("off", MotionLevel::Off), ("full", MotionLevel::Full)] {
+        set_level(level);
+        let shot = frame_shot(&format!("frame-busy-{name}"), ThemeId::PaperDark, |app| {
+            app.submit_input("/crew".to_string());
+            for p in &mut app.panes {
+                if let crate::pane::PaneContent::Chat(c) = &mut p.content {
+                    c.connected = true;
+                    c.awaiting = true;
+                }
+            }
+            app.input.focused = false;
+        });
+        if shot.is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        }
+    }
+    set_level(MotionLevel::Full);
+}

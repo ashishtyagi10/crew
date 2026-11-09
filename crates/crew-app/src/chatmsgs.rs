@@ -218,6 +218,7 @@ pub(crate) fn card_lines_spanned(
         // unless it was on screen typing itself out before it landed.
         let t = match reveal {
             Some((r, _)) if r.settled => 1.0,
+            _ if crate::motion::level() == crate::motion::MotionLevel::Off => 1.0,
             _ => fade_t(&m.ts, now_ms),
         };
         if t < 1.0 {

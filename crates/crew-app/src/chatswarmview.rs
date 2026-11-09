@@ -229,7 +229,11 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
     let mut v = Vec::new();
 
     // Spinner in the accent, at the left margin.
-    let f = (now_ms / 120) as usize % crate::update::SPINNER.len();
+    let f = match crate::motion::level() {
+        // Held at Off: the block still redraws once a second for its clock.
+        crate::motion::MotionLevel::Off => 0,
+        _ => (now_ms / 120) as usize % crate::update::SPINNER.len(),
+    };
     let mut col = 1u16;
     push_str(
         &mut v,

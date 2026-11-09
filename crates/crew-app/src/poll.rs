@@ -62,8 +62,10 @@ impl CrewApp {
     /// a method rather than an inline condition so it can be asserted directly:
     /// every animation added since 0.8.0 has to appear here to be drawn a
     /// second time, and every one of them has to be *bounded* or this never
-    /// returns false again. At `Motion = off` each timeline is born settled, so
-    /// the whole thing collapses to "is a pane busy".
+    /// returns false again. At `Motion = off` each timeline is born settled and
+    /// a busy pane's motion holds still, so the whole thing collapses to "is
+    /// something genuinely arriving" (a picture, a theme's last frame); the
+    /// busy panes' clocks tick on their own once a second (`clock_tick`).
     pub(crate) fn wants_animation_frame(&self, now: u64) -> bool {
         self.panes.iter().any(crate::paneview::pane_animating)
             || crate::attention::any_pulsing(&self.panes, now)
@@ -570,6 +572,8 @@ impl CrewApp {
             if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
                 any_changed = true;
             }
+        } else if self.clock_tick(crate::anim::now_ms()) {
+            any_changed = true; // Off: a working pane's clocks, once a second
         } else if self.ambient_breath() {
             // Nothing transient wants a frame, but an idle crew pane's dot
             // breathes (`panebusy::pane_breathing`). Its own branch rather
