@@ -89,6 +89,7 @@ mod review;
 mod reviewask;
 mod reviewcallers;
 pub(crate) mod reviewfindings;
+mod reviewguard;
 mod rosterev;
 mod roundloop;
 mod route;

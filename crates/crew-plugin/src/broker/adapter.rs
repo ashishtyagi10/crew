@@ -145,6 +145,12 @@ pub trait Adapter: Send + Sync {
     fn call_read_only(&self, body: &str, timeout: Duration) -> Result<String, String> {
         self.call(body, timeout)
     }
+    /// Whether [`Adapter::call_read_only`] really keeps the agent's hands
+    /// off. False for a CLI crew has no read-only mode for, whose review
+    /// `reviewguard` snapshots and puts back instead.
+    fn hands_off(&self) -> bool {
+        true
+    }
 }
 
 /// An agent driven by one CLI command. `args` may contain the placeholder
@@ -186,6 +192,10 @@ impl Adapter for CliAdapter {
         let args = super::handsoff::cli_args(&self.program, self.build_args(body));
         let raw = run_cli(&self.program, &args, timeout)?;
         Ok(self.normalize.apply(&raw))
+    }
+
+    fn hands_off(&self) -> bool {
+        super::handsoff::known(&self.program)
     }
 }
 
