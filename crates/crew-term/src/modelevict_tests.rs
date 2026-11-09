@@ -64,8 +64,11 @@ fn a_picture_whose_text_was_thrown_away_is_dropped() {
     t.feed("y\r\n".repeat(40).as_bytes());
     let wipes = t.take_image_wipes();
     assert_eq!(wipes.len(), 1, "one wipe for the read: {wipes:?}");
-    assert!(!wipes[0].keeps(img.line, false), "{wipes:?}");
-    assert!(wipes[0].keeps(t.screen_line(), false), "the screen's stay");
+    assert!(!wipes[0].keeps(img.line, false, 0), "{wipes:?}");
+    assert!(
+        wipes[0].keeps(t.screen_line(), false, 0),
+        "the screen's stay"
+    );
     // One not yet handed over goes in the core.
     t.feed(picture().as_bytes());
     t.feed("y\r\n".repeat(40).as_bytes());
@@ -94,7 +97,10 @@ fn clear_on_a_full_scrollback_keeps_the_pictures_above_the_screen() {
             alt: false
         }
     );
-    assert!(wipes.iter().all(|w| w.keeps(img.line, false)), "{wipes:?}");
+    assert!(
+        wipes.iter().all(|w| w.keeps(img.line, false, 0)),
+        "{wipes:?}"
+    );
 }
 
 /// The spare room the counting borrows is the primary's only: the

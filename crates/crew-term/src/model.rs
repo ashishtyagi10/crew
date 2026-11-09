@@ -244,6 +244,8 @@ mod cursorpos;
 mod headless;
 #[path = "modelcells.rs"]
 mod modelcells;
+#[path = "modelcolor.rs"]
+mod modelcolor;
 #[path = "modelevict.rs"]
 mod modelevict;
 #[path = "modelimage.rs"]

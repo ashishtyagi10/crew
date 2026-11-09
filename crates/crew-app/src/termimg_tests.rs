@@ -7,6 +7,7 @@ fn at(line: u64, col: u16, cells: (u16, u16)) -> TermImages {
         shown: vec![Shown {
             line,
             alt: false,
+            id: 0,
             col,
             cells,
             art: Art::Ready(Bitmap {

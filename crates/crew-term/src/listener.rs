@@ -4,6 +4,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use alacritty_terminal::event::{Event, EventListener, WindowSize};
+use alacritty_terminal::vte::ansi::Rgb;
+
+/// A colour query waiting for its answer: where in [`TermEvents::replies`]
+/// it was asked, the palette slot, and alacritty's reply formatter.
+pub(crate) type ColorAsk = (usize, usize, Arc<dyn Fn(Rgb) -> String + Sync + Send>);
 
 /// alacritty's DECRPM for a mode it doesn't know, asked about 2031.
 const UNKNOWN_2031: &str = "\x1b[?2031;0$y";
@@ -20,6 +25,10 @@ pub(crate) struct TermEvents {
     /// The grid and cell size, kept by `TermCore` for `CSI 14 t` (`modelsize`);
     /// set from its first moment (`TermCore::new`).
     pub size: Arc<Mutex<Option<WindowSize>>>,
+    /// Colour queries (OSC 4/10/11/12) not answered yet. The listener can't
+    /// see the palette a program set, so `TermCore` answers these after the
+    /// parser runs, from `term.colors()` (see `modelcolor`).
+    pub color_asks: Arc<Mutex<Vec<ColorAsk>>>,
 }
 
 impl TermEvents {
@@ -44,13 +53,11 @@ impl EventListener for TermEvents {
             // last answer would turn its notifications off.
             Event::PtyWrite(text) if text == UNKNOWN_2031 => {}
             Event::PtyWrite(text) => self.replies.lock().unwrap().push_str(&text),
-            // Color queries (OSC 4/10/11/12): answer from the active theme so
-            // agent CLIs probing the background pick the matching light/dark
-            // palette instead of assuming a dark terminal.
+            // Color queries (OSC 4/10/11/12): held, with their place among
+            // the other replies, for `TermCore` to answer from the palette.
             Event::ColorRequest(index, format) => {
-                if let Some(rgb) = crate::color::query_color(index) {
-                    self.replies.lock().unwrap().push_str(&format(rgb));
-                }
+                let at = self.replies.lock().unwrap().len();
+                self.color_asks.lock().unwrap().push((at, index, format));
             }
             Event::TextAreaSizeRequest(format) => {
                 if let Some(size) = *self.size.lock().unwrap() {

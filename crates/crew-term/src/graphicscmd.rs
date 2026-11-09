@@ -28,6 +28,10 @@ pub struct ImageCmd {
     pub cells: (u16, u16),
     /// `i=`: the sender's id for this image, used to place or delete it later.
     pub id: u32,
+    /// `d=`: which pictures a delete (`a=d`) takes — `a` all (the default),
+    /// `i` the one named by `i=`; upper case also frees the data, which crew
+    /// keeps none of.
+    pub delete: u8,
     /// `m=1`: more chunks follow, and this payload is a fragment.
     pub more: bool,
     /// `C=1` (iTerm2: `doNotMoveCursor=1`): leave the cursor where it is. A
@@ -51,6 +55,7 @@ impl Default for ImageCmd {
             px: (0, 0),
             cells: (0, 0),
             id: 0,
+            delete: b'a',
             more: false,
             stay: false,
             quiet: 0,
@@ -132,6 +137,7 @@ impl ImageCmd {
                 b"c" => cmd.cells.0 = num()?.min(u16::MAX.into()) as u16,
                 b"r" => cmd.cells.1 = num()?.min(u16::MAX.into()) as u16,
                 b"i" => cmd.id = num()?,
+                b"d" => cmd.delete = *v.first()?,
                 b"m" => cmd.more = num()? == 1,
                 b"C" => cmd.stay = num()? == 1,
                 b"q" => cmd.quiet = num()?.min(2) as u8,

@@ -25,10 +25,14 @@ impl TermCore {
             self.answer(&cmd, body);
             return;
         }
-        // Any delete drops them all, the ones the app holds too: the
-        // narrower kinds (by id, by cell) are not told apart yet.
+        // A delete reaches the pictures the app holds too. By id (`d=i`/`I`)
+        // takes that picture alone; every other kind (by cell, by z-index…)
+        // is not told apart yet and still drops them all, as `d=a` does.
         if cmd.deletes() {
-            self.wipe(crate::wipescan::ImageWipe::All);
+            self.wipe(match cmd.delete.to_ascii_lowercase() {
+                b'i' => crate::wipescan::ImageWipe::Id(cmd.id),
+                _ => crate::wipescan::ImageWipe::All,
+            });
             return;
         }
         if !cmd.displays() {

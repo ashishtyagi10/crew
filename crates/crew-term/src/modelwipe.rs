@@ -36,12 +36,13 @@ impl TermCore {
             }
         }
         self.parse(&bytes[at..]);
+        self.answer_colors();
     }
 
     /// Drop the matching pictures not yet collected, and keep the wipe for
     /// the ones the app already holds.
     pub(super) fn wipe(&mut self, w: ImageWipe) {
-        self.images.retain(|p| w.keeps(p.line, p.alt));
+        self.images.retain(|p| w.keeps(p.line, p.alt, p.cmd.id));
         self.wipes.pending.push(w);
     }
 
@@ -49,7 +50,7 @@ impl TermCore {
     /// pending wipe of this kind is enough: a later count covers an earlier.
     pub(super) fn wipe_evicted(&mut self) {
         let w = ImageWipe::Evicted(self.evicted);
-        self.images.retain(|p| w.keeps(p.line, p.alt));
+        self.images.retain(|p| w.keeps(p.line, p.alt, p.cmd.id));
         match self.wipes.pending.last_mut() {
             Some(last @ ImageWipe::Evicted(_)) => *last = w,
             _ => self.wipes.pending.push(w),
