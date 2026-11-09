@@ -15,7 +15,7 @@ impl CrewApp {
     /// list) dispatches directly and never reaches here.
     pub(crate) fn todo_command(&mut self, arg: &str) {
         let mut words = arg.split_whitespace();
-        let usage = "usage: /todo [done [@project|#who] | show | hide | by who|flat | run [@project] | project <name> <dir> | reminders [on|off]]";
+        let usage = "usage: /todo [done [@project|#who] | show | hide | by who|flat | run [@project] | project <name> <dir> | reminders [on|off] | issues [on|off]]";
         match (words.next(), words.next(), words.next()) {
             (Some(verb @ ("show" | "hide")), None, None) => self.todo_show_done(verb == "show"),
             // The two that DO a task rather than show the list: `todorun`.
@@ -24,6 +24,9 @@ impl CrewApp {
             (Some("by"), Some(how @ ("who" | "flat")), None) => self.todo_group(how == "who"),
             (Some("reminders"), how @ (None | Some("on" | "off")), None) => {
                 self.todo_reminders(how != Some("off"))
+            }
+            (Some("issues"), how @ (None | Some("on" | "off")), None) => {
+                self.todo_issues(how != Some("off"))
             }
             (Some("done"), tag, None) => {
                 let filter = match tag {

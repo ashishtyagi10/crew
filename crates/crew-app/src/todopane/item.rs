@@ -49,6 +49,27 @@ pub(crate) struct TodoItem {
     /// until the user ticks the item or runs it again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub run: Option<TodoRun>,
+    /// The GitHub issue this `@project` todo was filed as (`ghissues`), with
+    /// what both sides last agreed — the two-way sync's memory.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issue: Option<TodoIssue>,
+}
+
+/// A todo's GitHub issue, and the title and state both sides last agreed:
+/// a side that differs from these has changed, and the change goes across.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+pub(crate) struct TodoIssue {
+    /// `owner/name`.
+    #[serde(default)]
+    pub repo: String,
+    #[serde(default)]
+    pub number: u64,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub open: bool,
 }
 
 /// One hand-off of a todo to an agent (see [`super::agentpick`]).

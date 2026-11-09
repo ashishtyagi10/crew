@@ -429,7 +429,11 @@ overdue items surface to the top, a toast fires when an item comes due, and
 smith) in a new pane in the `@project`'s directory — or end the line with `&`
 and it runs the moment it is added. On macOS, `/todo reminders` keeps the list
 and a `crew` list in Apple Reminders in step both ways: add or tick a todo on
-your phone and it is added or done here, and the other way round.
+your phone and it is added or done here, and the other way round. A todo tagged
+`@project`, where the project is a GitHub checkout, is filed as an issue in that
+repo through `gh`, and the two stay in step: tick one and the other closes
+(`/todo issues off` stops it). Agents in other panes reach the same list with
+`crew todo` (`list`, `add`, `done`, `undone`).
 
 ## The left nav
 

@@ -112,6 +112,7 @@ fn todos() -> TodoPane {
             created_ms: now - 3 * day,
             notified: false,
             run: None,
+            issue: None,
         };
     p.items = vec![
         item(

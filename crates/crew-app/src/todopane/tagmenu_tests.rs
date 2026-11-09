@@ -13,6 +13,7 @@ fn tagged(project: Option<&str>) -> TodoItem {
         created_ms: 0,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 

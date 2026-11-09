@@ -325,6 +325,7 @@ mod formshot_tests;
 mod framegeo;
 mod gammalvl;
 mod gauges;
+mod ghissues;
 mod ghost;
 mod git;
 mod gitbadge;
@@ -405,6 +406,8 @@ mod mdshot_tests;
 #[cfg(test)]
 #[path = "shotfont_tests.rs"]
 mod shotfont_tests;
+mod todocli;
+mod todoentry;
 mod todorun;
 mod todoruncmd;
 
@@ -781,6 +784,7 @@ usage:
   crew --no-detach         open it attached to this shell
   crew ask <agent> <task>  ask a RUNNING crew, print the reply
   crew panes               list a running crew's panes
+  crew todo                the /todo list: list, add, done, undone (crew todo help)
   crew daemon run          run the resident daemon (crew daemon status to check)
   crew ledger              print what crew did (--limit N)
   crew install-app         add the OS app-menu entry (--remove deletes it)

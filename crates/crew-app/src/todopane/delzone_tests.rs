@@ -23,6 +23,7 @@ fn item(id: u64, title: &str) -> TodoItem {
         created_ms: id,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 

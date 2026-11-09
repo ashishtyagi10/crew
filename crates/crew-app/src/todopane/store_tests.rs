@@ -13,6 +13,7 @@ fn item(id: u64, title: &str) -> TodoItem {
         created_ms: id,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 
@@ -35,6 +36,7 @@ fn save_and_load_round_trip_every_field() {
             created_ms: 2,
             notified: true,
             run: None,
+            issue: None,
         },
     ];
     save_at(Some(&p), &items);

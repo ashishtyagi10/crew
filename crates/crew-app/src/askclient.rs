@@ -170,6 +170,7 @@ pub(crate) fn dispatch_cli() -> Option<i32> {
             Some(64)
         }
         Some("panes") => Some(run_panes()),
+        Some("todo") => Some(crate::todocli::run(&args[1..])),
         Some("instances") => Some(run_instances()),
         Some("federate") => Some(run_federate()),
         _ => None,

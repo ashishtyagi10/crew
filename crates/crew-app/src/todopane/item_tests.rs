@@ -21,6 +21,7 @@ fn item(id: u64, due: Option<u64>, done: bool, project: Option<&str>, created: u
         created_ms: created,
         notified: false,
         run: None,
+        issue: None,
     }
 }
 

@@ -63,6 +63,7 @@ Crew runs as a GUI by default; these command-line modes offer headless operation
 - `crew install-app` — create or refresh the OS app menu entry (macOS ~/Applications, Spotlight, Windows Start menu, Linux applications menu)
 - `crew install-app --remove` — remove the OS app menu entry
 - `crew panes` — list the running instance's addressable panes (for inter-pane ask)
+- `crew todo [list|add|done|undone]` — the /todo list from any shell or agent pane (see /todo)
 - `crew ask <id|label> "<question>"` — ask the agent in another pane (see below)
 - `crew ask --all|--any "<question>"` — broadcast to every pane (see below)
 - `crew ask <pane>@<instance> "<question>"` — ask a pane in another crew instance
@@ -2098,6 +2099,28 @@ longer aim at.
   at the next pass, not brought back as a new one. A change arriving from the phone re-sorts the list
   under you, and the highlight goes with the todo it was on, so `d` never
   lands on the one that slid into its row.
+  **GitHub issues.** A todo tagged `@project`, where the project resolves to
+  a checkout whose `origin` is on github.com (the way `r` finds it: a
+  `/todo project` binding, a pane in it, or a folder of that name under
+  `~/code` and its siblings), is filed as an issue in that repo, and the two
+  stay in step both ways: tick the todo and the issue closes, close the
+  issue and the todo ticks, rename either and the other follows (when both
+  changed, crew's word stands). On by default; **`/todo issues off`** stops
+  it (kept in `ghissues.toml`, beside `todos.toml`) and `/todo issues on`
+  starts it again. It goes through the `gh` CLI, so it needs `gh auth login`
+  once and crew holds no token. A pass runs at launch, a few seconds after
+  the list changes, and every 5 minutes for changes made on GitHub. A done
+  todo whose issue is closed is settled and not asked about again; deleting
+  a todo leaves its issue alone. Only open todos are filed, and a project
+  that is not a GitHub checkout keeps its todos to crew.
+  **From other panes.** `crew todo` reads and writes the same list from any
+  shell, so Claude Code, Codex or smith (through `sys:run`) in another pane
+  can pick up a todo and tick it off: `crew todo` / `crew todo list [--all]
+  [@project] [#who] [--json]`, `crew todo add <text>` (read as the composer
+  reads it: due, `@project`, `#who`), `crew todo done <id>` and
+  `crew todo undone <id>`, where `<id>` is any unique tail of the id the
+  list prints. A running crew sees the change within a second, and the
+  GitHub sync carries it to the issue.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
   work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.
