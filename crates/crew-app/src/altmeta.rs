@@ -11,9 +11,13 @@
 //! default), as in Terminal.app and iTerm2. With it on, the key is the one
 //! printed on the keycap (`key_without_modifiers`), since what Option
 //! composed (`∫` for b) is not the letter the program binds.
+//!
+//! The named keys get Meta too ([`meta_named`]). Alt+Enter sent a bare CR,
+//! so with Option as Meta on, Option+Enter — Claude Code's newline key —
+//! submitted the prompt instead.
 use crate::keyenc::Mods;
 use winit::event::KeyEvent;
-use winit::keyboard::Key;
+use winit::keyboard::{Key, NamedKey};
 
 /// The bytes Alt+<key> sends when Alt is Meta, or `None` to type the key as
 /// it is. `typed`: the text the key gave with its modifiers; `bare`: the
@@ -51,18 +55,45 @@ pub(crate) fn meta(
     Some(out)
 }
 
+/// Alt+<named key> as xterm's metaSendsEscape sends it: `ESC` then the plain
+/// key. Enter is the one that matters — `ESC CR` is the newline Claude Code,
+/// codex and readline (M-RET) bind, where a bare CR submits. Tab, Escape and
+/// Space follow (emacs M-TAB, M-SPC). Backspace and the arrows are not here:
+/// `keyenc` gives them word motion and word delete. Shift is left out so
+/// Shift+Enter keeps its line feed. Same gates as [`meta`]: Ctrl+Alt is
+/// AltGr, and a Mac's Option is Meta only when asked.
+pub(crate) fn meta_named(n: NamedKey, m: Mods, mac: bool, option_as_meta: bool) -> Option<Vec<u8>> {
+    if !m.alt || m.ctrl || m.shift || (mac && !option_as_meta) {
+        return None;
+    }
+    let key: &[u8] = match n {
+        NamedKey::Enter => b"\r",
+        NamedKey::Tab => b"\t",
+        NamedKey::Escape => b"\x1b",
+        NamedKey::Space => b" ",
+        _ => return None,
+    };
+    let mut out = vec![0x1b];
+    out.extend_from_slice(key);
+    Some(out)
+}
+
 /// [`meta`] for a winit key press.
 pub(crate) fn meta_key(event: &KeyEvent, m: Mods, option_as_meta: bool) -> Option<Vec<u8>> {
     use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
     if !event.state.is_pressed() {
         return None;
     }
+    let mac = cfg!(target_os = "macos");
+    if let Key::Named(n) = &event.logical_key {
+        return meta_named(*n, m, mac, option_as_meta);
+    }
     let (Key::Character(typed), Key::Character(bare)) =
         (&event.logical_key, &event.key_without_modifiers())
     else {
         return None;
     };
-    meta(typed, bare, m, cfg!(target_os = "macos"), option_as_meta)
+    meta(typed, bare, m, mac, option_as_meta)
 }
 
 #[cfg(test)]
