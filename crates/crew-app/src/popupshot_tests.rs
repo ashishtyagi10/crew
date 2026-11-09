@@ -8,7 +8,6 @@
 use crate::chat::ChatPane;
 use crate::goalshot_tests::dump;
 use crate::layout::Rect;
-use crate::popupplace::Popup;
 use crew_render::PaneScene;
 
 pub(crate) const W: u32 = 900;
@@ -23,46 +22,33 @@ fn rect(w: u32) -> Rect {
     }
 }
 
-/// The frame: the pane, then the pop-up as `popupplace::scene` places it.
-/// Returns the scenes and the overlay's rect.
-pub(crate) fn frame(
-    p: &ChatPane,
-    w: u32,
-    cw: f32,
-    ch: f32,
-    popup: Popup,
-    now: u64,
-) -> (Vec<PaneScene>, Rect) {
+/// The frame the app draws: the pane as a card whose content is
+/// `popupband::art` (the rows the pop-up stands on cleared beside it, as
+/// `pane.rs` draws a chat pane), then the pop-up OPEN ON THE PANE
+/// (`ChatPane::popup`, as `render.rs` asks for it) placed by
+/// `popupplace::scene`. Returns the scenes, the overlay's rect and the card.
+///
+/// It drew `p.cells` and a free-standing pop-up until survey UI #16: every
+/// shot showed transcript beside the card that the live app clears.
+pub(crate) fn frame(p: &ChatPane, w: u32, cw: f32, ch: f32, now: u64) -> (Vec<PaneScene>, Rect) {
     let r = rect(w);
-    let cols = (r.w / cw).floor() as u16;
-    let rows = (r.h / ch).floor() as u16;
-    let over = crate::popupplace::scene(p, r, cw, ch, popup, now);
+    let pop = p
+        .popup((r.w / cw).floor() as u16)
+        .expect("the shot opens a pop-up on the pane");
+    let mut scenes = Vec::new();
+    let ink = crew_theme::theme().legend_off;
+    crate::panelcard::push_card_art(&mut scenes, r, cw, ch, "1 crew", ink, |cols, rows| {
+        let g = crew_term::GridSize { cols, rows };
+        crate::popupband::art(p, true, g, ch / cw)
+    });
+    let over = crate::popupplace::scene(p, r, cw, ch, pop, now);
     let at = Rect {
         x: over.x,
         y: over.y,
         w: over.w,
         h: over.h,
     };
-    let scenes = vec![
-        PaneScene {
-            cells: p.cells(cols, rows),
-            x: r.x,
-            y: r.y,
-            w: r.w,
-            h: r.h,
-            focused: true,
-            bordered: false,
-            glass: false,
-            scan: -1.0,
-            lift: 0.0,
-            glint: -1.0,
-            pictures: Vec::new(),
-            stretch: false,
-            overlay: false,
-            paint: Vec::new(),
-        },
-        over,
-    ];
+    scenes.push(over);
     (scenes, at)
 }
 
@@ -78,22 +64,16 @@ fn inked(px: &[u8], w: u32, x0: u32, x1: u32, y0: u32, y1: u32) -> bool {
     })
 }
 
-/// Shoot `popup` over `p` at width `w`, dump its rows, and check the two
+/// Shoot the pop-up open on `p` at width `w`, dump its rows, and check the
 /// placement rules on the pixels: the composer's `❯` still shows under the
-/// card, and the pane to the RIGHT of the card is bare page (no band).
-pub(crate) fn shot(name: &str, p: &ChatPane, w: u32, popup: impl Fn(u16) -> Popup) -> Option<()> {
-    shot_at(name, p, w, popup, 0)
+/// card, and the rows RIGHT of the card are bare (no band, no transcript).
+pub(crate) fn shot(name: &str, p: &ChatPane, w: u32) -> Option<()> {
+    shot_at(name, p, w, 0)
 }
 
 /// [`shot`] with the frame's clock at `now` — a rising card is shot
 /// mid-rise, so the placement checks below allow for its drop.
-pub(crate) fn shot_at(
-    name: &str,
-    p: &ChatPane,
-    w: u32,
-    popup: impl Fn(u16) -> Popup,
-    now: u64,
-) -> Option<()> {
+pub(crate) fn shot_at(name: &str, p: &ChatPane, w: u32, now: u64) -> Option<()> {
     let mut at = rect(w);
     let (mut cw_px, mut ch_px) = (0.0, 0.0);
     let mut card_cols = 0u16;
@@ -105,13 +85,15 @@ pub(crate) fn shot_at(
     };
     let px = draw(w, H, 13.0, |cw, ch| {
         (cw_px, ch_px) = (cw, ch);
-        let pop = popup((w as f32 / cw).floor() as u16);
+        let pop = p
+            .popup((w as f32 / cw).floor() as u16)
+            .expect("the shot opens a pop-up on the pane");
         card_cols = pop.cols;
         eprintln!("--- {name} {}x{}", pop.cols, pop.rows);
         for l in dump(&pop.cells, pop.cols, pop.rows) {
             eprintln!("|{l}");
         }
-        let (scenes, r) = frame(p, w, cw, ch, pop, now);
+        let (scenes, r) = frame(p, w, cw, ch, now);
         at = r;
         scenes
     })?;
@@ -139,12 +121,16 @@ pub(crate) fn shot_at(
         inked(&px, w, edge - cw, edge + 2, top, top + ch),
         "{name}: the card's corner is drawn at its hugged edge"
     );
-    // ...and NOT at the pane's edge: the old full-width band put a corner
-    // there, on every pop-up, with nothing but page between.
-    if edge + 2 * cw < w {
+    // ...and the rows it stands on are bare from past its edge to inside
+    // the pane's own border: no band of card (the old full-width band put a
+    // corner at the pane's edge) and no transcript tail (`popupband` clears
+    // it; `p.cells` drew it). A row short at the bottom for a rising card.
+    if edge + 3 * cw < w {
+        let (x0, x1) = (edge + 2 * cw, w - 2 * cw);
+        let (y0, y1) = (top + ch / 2, (at.y + at.h) as u32 - ch);
         assert!(
-            !inked(&px, w, w - cw, w, top, top + ch),
-            "{name}: a band of card runs to the pane's edge"
+            !inked(&px, w, x0, x1, y0, y1),
+            "{name}: something is drawn beside the pop-up on the rows it stands on"
         );
     }
     Some(())

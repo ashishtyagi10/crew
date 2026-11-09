@@ -30,7 +30,11 @@ pub(crate) fn of(content: &PaneContent) -> Option<String> {
 }
 
 /// The list's own roll-up, minus the part a strip has no room for: what is
-/// open and what is late is the reason you would go back to it.
+/// late and what is open is the reason you would go back to it.
+///
+/// The late count LEADS. `chatwidth::clip_words` cuts a thumbnail's line from
+/// the end, and with the open count first (`4 open items · 1 overdue`) the one
+/// alarming number was the part a narrow thumb dropped — survey UI #17.
 fn todo(t: &crate::todopane::TodoPane) -> Option<String> {
     let now = crate::chattime::unix_now_ms();
     let (mut open, mut overdue) = (0u32, 0u32);
@@ -40,11 +44,30 @@ fn todo(t: &crate::todopane::TodoPane) -> Option<String> {
     }
     match (open, overdue) {
         (0, _) => Some("nothing open".into()),
-        (n, 0) => Some(crate::wording::count(n as usize, "open item")),
-        (n, late) => Some(format!(
-            "{} \u{b7} {late} overdue",
-            crate::wording::count(n as usize, "open item")
-        )),
+        (n, 0) => Some(format!("{n} open")),
+        (n, late) => Some(format!("{late}{LATE} \u{b7} {n} open")),
+    }
+}
+
+/// The word that marks the late count, shared with [`alarm`] so the line
+/// built and the line inked cannot drift apart.
+const LATE: &str = " overdue";
+
+/// How many leading characters of a thumbnail line are an alarm (`3
+/// overdue`), to be inked in the attention colour; 0 when there is none.
+///
+/// The strip carries each pane's line as one string, so the alarm is found by
+/// the exact shape [`todo`] writes — digits, then [`LATE`], then the end or
+/// the separator — rather than threading a second value through every row.
+pub(crate) fn alarm(line: &str) -> usize {
+    let digits = line.chars().take_while(char::is_ascii_digit).count();
+    let rest = &line[digits..];
+    let after = rest.strip_prefix(LATE);
+    match after {
+        Some(tail) if digits > 0 && (tail.is_empty() || tail.starts_with(" \u{b7} ")) => {
+            digits + LATE.len()
+        }
+        _ => 0,
     }
 }
 
