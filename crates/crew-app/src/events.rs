@@ -255,6 +255,7 @@ impl CrewApp {
                     .wash
                     .advance(crate::anim::now_ms(), pace, crate::motion::level());
                 crew_render::holo::set_phase(phase); // neon's sparks ride it
+                self.publish_stage_3d(busy);
                 crew_theme::poleshift::set_shift(
                     self.wash.hue_deg(crate::gradientlvl::level().span_deg()),
                 );

@@ -101,6 +101,7 @@ impl CrewApp {
             "font" => self.set_font_cmd(""),
             "theme" => self.set_theme_cmd(""),
             "crt" => self.crt_command(""),
+            "3d" => self.backdrop_3d_command(""),
             "weight" => self.weight_command(""),
             "smooth" => self.smooth_command(""),
             "gamma" => self.gamma_command(""),

@@ -62,6 +62,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "the default \u{2014} tabs are still expanded, just not marked".to_string(),
             ),
         ]),
+        "/3d" => Some(crate::look3d::ladder()),
         "/crt" => Some(vec![
             ("on".to_string(), "force the CRT tube look on".to_string()),
             ("off".to_string(), "force the CRT tube look off".to_string()),
@@ -248,6 +249,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
         cmd,
         "/theme"
             | "/crt"
+            | "/3d"
             | "/weight"
             | "/smooth"
             | "/gamma"

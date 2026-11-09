@@ -45,7 +45,8 @@ fn edits(f: Field) -> &'static str {
 
 /// Keys the form deliberately does not carry, each with the reason — "we
 /// forgot" is not a third option.
-const NOT_IN_FORM: [(&str, &str); 15] = [
+const NOT_IN_FORM: [(&str, &str); 16] = [
+    ("backdrop_3d", "set live by /look 3d"),
     (
         "approval_default",
         "set live by /approvals default <mode> in an agent pane",

@@ -44,6 +44,7 @@ impl CrewConfig {
             theme: self.theme.filter(|s| !s.is_empty()),
             crt: self.crt,
             glass: self.glass,
+            backdrop_3d: crate::look3d::clean(self.backdrop_3d),
             motion: self.motion,
             density: self.density,
             nav_card: self.nav_card,

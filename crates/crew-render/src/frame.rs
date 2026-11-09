@@ -9,6 +9,7 @@ use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
 use crate::scene::PaneScene;
 use crate::solidcard::SolidCardPass;
+use crate::stage3d::Stage3dPass;
 
 /// Upload the scene, render, and present. Skips the frame on surface errors
 /// (Outdated/Lost). `fade` is the theme-crossfade strength: while `None` the
@@ -24,6 +25,7 @@ pub(crate) fn render(
     solid_card: &mut SolidCardPass,
     solid_chrome: &[[f32; 4]],
     window_opacity: f32,
+    stage: &mut Stage3dPass,
     panes: &[PaneScene],
 ) {
     // The surface is asked FIRST, before a single byte is uploaded.
@@ -62,6 +64,13 @@ pub(crate) fn render(
         gpu.config.height,
     );
 
+    // The 3D backdrop draws first, in submissions of its own, so its
+    // picture is there when the frame's pass lays it under the panes.
+    stage.prepare(
+        gpu.device(),
+        gpu.queue(),
+        (gpu.config.width, gpu.config.height),
+    );
     let view = frame.texture.create_view(&Default::default());
     let mut enc = gpu
         .device()
@@ -103,7 +112,7 @@ pub(crate) fn render(
     // page's share of the desktop back (`GlassLayer::set_page`).
     cell_grid.set_page(gpu.queue(), bg_f32);
     let scene_view = if use_crt { crt.scene_view() } else { &view };
-    encode_scene(&mut enc, scene_view, bg_f32, cell_grid, solid_card);
+    encode_scene(&mut enc, scene_view, bg_f32, cell_grid, solid_card, stage);
     if use_crt {
         crt.encode(&mut enc, &view);
     }
@@ -144,6 +153,7 @@ fn encode_scene(
     bg_f32: [f32; 4],
     cell_grid: &CellGrid,
     solid_card: Option<&SolidCardPass>,
+    stage: &Stage3dPass,
 ) {
     let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("crew frame"),
@@ -164,6 +174,7 @@ fn encode_scene(
         occlusion_query_set: None,
         multiview_mask: None,
     });
+    stage.draw(&mut pass);
     cell_grid.draw(&mut pass);
     // Last, and only in the alpha channel: everything above has finished
     // writing colour, so solidifying the focused card cannot change any of it

@@ -135,6 +135,7 @@ fn round_trip() {
         theme: Some("paper-light".to_string()),
         crt: Some(true),
         glass: "high".to_string(),
+        backdrop_3d: "orbit".to_string(),
         motion: "full".to_string(),
         font_weight: 700,
         font_smooth: 120,

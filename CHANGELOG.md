@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.5
+
+**A 3D scene behind the panes: `/look 3d orbit`.**
+- A lit 3D scene, drawn with threers on crew's own GPU, sits under the panes' glass: a metal torus knot low on the right with a ring of crystals going round it. Its lights are the theme's accent and activity colours, so it changes with every theme.
+- It turns while a pane works and holds still when nothing does, or at Motion off, so an idle window costs nothing for it.
+- `/look 3d orbit` turns it on, `/look 3d off` turns it off (`/3d` works too). It shows through every glass theme; the two paper themes have solid panes, and the command says so.
+- The first frame after turning it on is slow while the 3D pipelines build.
+
 ## 0.30.4
 
 **Under the hood: crew draws with wgpu 30.**

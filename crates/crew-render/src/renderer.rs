@@ -39,6 +39,7 @@ pub struct Renderer {
     // theme's frames at `theme_fade` strength while a switch settles.
     fade: FadePass,
     theme_fade: Option<f32>,
+    stage: crate::stage3d::Stage3dPass,
 }
 
 impl Renderer {
@@ -59,6 +60,7 @@ impl Renderer {
             gpu.config.height,
             gpu.surface_copy,
         );
+        let stage = crate::stage3d::Stage3dPass::new(gpu.device(), gpu.format);
         Ok(Self {
             gpu,
             cell_grid,
@@ -66,6 +68,7 @@ impl Renderer {
             solid_card,
             solid_chrome: Vec::new(),
             crt,
+            stage,
             fade,
             theme_fade: None,
         })
@@ -203,6 +206,7 @@ impl Renderer {
             &mut self.solid_card,
             &self.solid_chrome,
             self.window_opacity,
+            &mut self.stage,
             panes,
         );
     }

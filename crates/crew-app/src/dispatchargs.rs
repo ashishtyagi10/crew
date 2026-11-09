@@ -85,6 +85,8 @@ impl CrewApp {
             self.set_theme_cmd(t.trim());
         } else if let Some(a) = other.strip_prefix("crt ") {
             self.crt_command(a.trim());
+        } else if let Some(a) = other.strip_prefix("3d ") {
+            self.backdrop_3d_command(a.trim());
         } else if let Some(w) = other.strip_prefix("weight ") {
             self.weight_command(w.trim());
         } else if let Some(s) = other.strip_prefix("smooth ") {

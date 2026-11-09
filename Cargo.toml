@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.30.4"
+version = "0.30.5"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -85,6 +85,8 @@ vt100 = "0.15"
 # Crew dependencies
 winit = "=0.30.13"
 wgpu = "=30.0.1"
+# The 3D backdrop (`crew-render` stage3d): three.js on crew's own device.
+threers = { version = "=0.0.10", default-features = false }
 glyphon = "=0.11.0"
 alacritty_terminal = "=0.26.0"
 

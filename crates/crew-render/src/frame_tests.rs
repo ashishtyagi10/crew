@@ -33,6 +33,10 @@ fn the_surface_is_acquired_before_anything_is_uploaded() {
         body.find("cell_grid.prepare").is_some_and(|p| acquire < p),
         "glyphon's prepare runs before the surface is acquired"
     );
+    assert!(
+        body.find("stage.prepare").is_some_and(|p| acquire < p),
+        "the 3D backdrop draws before the surface is acquired"
+    );
 }
 
 #[test]
