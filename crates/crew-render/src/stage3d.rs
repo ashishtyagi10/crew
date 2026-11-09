@@ -63,6 +63,35 @@ pub fn stage() -> Option<Stage> {
     }
 }
 
+/// The key light the app hands over, packed with bit 24 set, or 0 for
+/// none (the theme's own accent).
+static KEY: AtomicU32 = AtomicU32::new(0);
+
+/// Hand over the accent the app draws with, to light the scene in. Without
+/// it the knot took the theme's `accent_default`, so a user who set an
+/// accent got a ring in one colour and a knot lit in another.
+pub fn set_key(rgb: Option<(u8, u8, u8)>) {
+    let packed = rgb.map_or(0, |(r, g, b)| {
+        1 << 24 | u32::from(r) << 16 | u32::from(g) << 8 | u32::from(b)
+    });
+    KEY.store(packed, Ordering::Relaxed);
+}
+
+pub fn key() -> Option<(u8, u8, u8)> {
+    match KEY.load(Ordering::Relaxed) {
+        0 => None,
+        v => Some(((v >> 16) as u8, (v >> 8) as u8, v as u8)),
+    }
+}
+
+/// The palette this frame's scene is lit in: the live theme's, keyed by the
+/// app's accent. `prepare` rebuilds the scene when it changes, so a new
+/// accent relights it on the next frame.
+pub(crate) fn wanted_palette() -> Palette {
+    let t = crew_theme::theme();
+    Palette::lit(t, key().unwrap_or(t.accent_default))
+}
+
 /// Hand over this frame's clock (turns).
 pub fn set_phase(turns: f32) {
     PHASE.store(turns.to_bits(), Ordering::Relaxed);
@@ -202,11 +231,11 @@ impl Stage3dPass {
 
     /// Draw this frame's scene into the texture (threers submits its own
     /// work, ahead of the frame's), or let the scene go when the stage is
-    /// off. Only a new stage or palette builds the scene again, only a size
-    /// past a [`SIZE_STEP`] makes a new texture, only the first scene ever
-    /// builds the renderer, and the scene is drawn only when its clock or the
-    /// window's size moved: most frames are a keystroke's, and those cost
-    /// the backdrop nothing.
+    /// off. Only a new stage or palette (theme or accent) builds the scene
+    /// again, only a size past a [`SIZE_STEP`] makes a new texture, only the
+    /// first scene ever builds the renderer, and the scene is drawn only when
+    /// its clock or the window's size moved: most frames are a keystroke's,
+    /// and those cost the backdrop nothing.
     pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, size: (u32, u32)) {
         let Some(want) = stage() else {
             self.live = None;
@@ -215,7 +244,7 @@ impl Stage3dPass {
         };
         let (w, h) = (size.0.max(1), size.1.max(1));
         let tex = stepped((w, h));
-        let palette = Palette::of(crew_theme::theme());
+        let palette = wanted_palette();
         let aspect = w as f32 / h as f32;
         if self.renderer.is_none() {
             #[cfg(test)]

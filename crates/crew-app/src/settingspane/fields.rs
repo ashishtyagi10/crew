@@ -60,6 +60,9 @@ pub(crate) enum Field {
     /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
     /// much the canvas is allowed to do on its own.
     Gradient,
+    /// The 3D scene behind the panes (`look3d`): the theme's own, off, or a
+    /// named one. Beside Gradient: both are the canvas moving on its own.
+    Backdrop3d,
     Maximized,
     /// macOS: Option+<key> sends ESC+<key> to a terminal (see `altmeta`).
     /// In the Window card beside Launch maximized: both are how crew sits
@@ -84,7 +87,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 31] = [
+pub(crate) const FIELDS: [Field; 32] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -103,6 +106,7 @@ pub(crate) const FIELDS: [Field; 31] = [
     Field::Contrast,
     Field::ShapeCues,
     Field::Gradient,
+    Field::Backdrop3d,
     Field::Maximized,
     Field::OptionMeta,
     Field::Scrollback,

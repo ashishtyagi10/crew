@@ -27,6 +27,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Contrast => "Contrast",
         Field::ShapeCues => "Shape cues",
         Field::Gradient => "Gradient colour",
+        Field::Backdrop3d => "3D backdrop",
         // Kept short: this sits in a half-width box beside Nav width, and a
         // legend wider than its border is a legend the user reads truncated.
         Field::Maximized => "Launch maximized",
@@ -113,6 +114,13 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::ShapeCues => (format!("\u{2039} {} \u{203a}", p.draft.shape_cues), false),
         Field::Gradient => (
             format!("\u{2039} {} \u{203a}", p.draft.gradient_level().as_str()),
+            false,
+        ),
+        Field::Backdrop3d => (
+            format!(
+                "\u{2039} {} \u{203a}",
+                crate::look3d::label(&p.draft.backdrop_3d)
+            ),
             false,
         ),
         Field::Maximized => (onoff(p.draft.maximized), false),

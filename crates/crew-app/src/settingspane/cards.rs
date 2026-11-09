@@ -65,10 +65,9 @@ pub(super) fn canvas(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> 
     cy += pair(rects, ix, iw, cy, Field::Glass, Field::Motion);
     cy += pair(rects, ix, iw, cy, Field::Density, Field::Leading);
     cy += pair(rects, ix, iw, cy, Field::Contrast, Field::ShapeCues);
-    // Full width: its legend is longer than a half-width border can carry,
-    // and its values are words rather than numbers.
-    rects.push((Field::Gradient, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
+    // Paired when both fit half the card, stacked when they do not: the
+    // gradient's values are words, which `pair` measures rather than guesses.
+    cy += pair(rects, ix, iw, cy, Field::Gradient, Field::Backdrop3d);
     for f in [Field::BorderMarks, Field::Invisibles, Field::Lsp] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));
         cy += 1;

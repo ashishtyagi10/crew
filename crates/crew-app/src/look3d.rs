@@ -45,6 +45,37 @@ pub(crate) fn resolve(setting: &str, theme: crew_theme::ThemeId) -> Option<Stage
     }
 }
 
+/// The saved settings in the order the settings form steps through them:
+/// the theme's own (empty), `off`, then every scene, as `ladder` lists them.
+fn choices() -> Vec<&'static str> {
+    let mut v = vec!["", "off"];
+    v.extend(Stage::ALL.map(Stage::name));
+    v
+}
+
+/// The setting after (or before) `setting` in the form's picker.
+pub(crate) fn step(setting: &str, back: bool) -> String {
+    let all = choices();
+    let cur = all.iter().position(|v| *v == setting).unwrap_or(0);
+    let n = all.len();
+    all[if back {
+        (cur + n - 1) % n
+    } else {
+        (cur + 1) % n
+    }]
+    .to_string()
+}
+
+/// What the form shows for a setting: `theme` for the empty default, the
+/// word `/look 3d theme` takes.
+pub(crate) fn label(setting: &str) -> &str {
+    if setting.is_empty() {
+        "theme"
+    } else {
+        setting
+    }
+}
+
 /// The picker's rows for `/look 3d `.
 pub(crate) fn ladder() -> Vec<(String, String)> {
     let mut rows = vec![
@@ -125,6 +156,9 @@ impl CrewApp {
         let s = resolve(&self.config.backdrop_3d, crew_theme::current_id());
         stage3d::set_stage(s);
         if s.is_some() {
+            // Lit in the accent as drawn, so the user's `accent` reaches the
+            // knot as it reaches the ring; a change relights it next frame.
+            stage3d::set_key(Some(crate::palette::accent()));
             let pace = busy.then_some(TURN_MS);
             let now = crate::anim::now_ms();
             stage3d::set_phase(self.stage_clock.advance(now, pace, crate::motion::level()));

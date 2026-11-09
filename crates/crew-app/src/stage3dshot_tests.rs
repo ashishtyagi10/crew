@@ -116,3 +116,45 @@ fn stage3d_shot_orbit_tall_and_wide() {
         assert!(changed > 5_000, "{n}: the orbit shows: {changed} px");
     }
 }
+
+/// The orbit under a user's own accent, beside the same window at the theme's
+/// accent: the knot's key light is the accent the app draws with, so a red
+/// accent relights the scene (it took the theme's `accent_default` and the
+/// two shots were the same picture).
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn stage3d_shot_orbit_custom_accent() {
+    let _g = crate::app::theme_test_guard();
+    let id = ThemeId::GlassNight;
+    let opacity = crate::tubesheer::sheer(id.theme());
+    let at = |name: &str, accent: Option<(u8, u8, u8)>| {
+        stage3d::set_phase(0.1);
+        let px =
+            crate::crtglassshot_tests::window_with(name, id, opacity, &["/far", "/dash"], &|app| {
+                if let Some(rgb) = accent {
+                    crate::palette::set_accent(rgb);
+                }
+                app.config.backdrop_3d = "orbit".to_string();
+                app.publish_stage_3d(false);
+            });
+        stage3d::set_stage(None);
+        px
+    };
+    let red = at("stage3d-orbit-red-accent", Some((230, 40, 60)));
+    let own = at("stage3d-orbit-theme-accent", None);
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    let (Some(red), Some(own)) = (red, own) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    // Only the knot's box, low in the empty dash pane: the chrome wears the
+    // accent anyway, and the dash's live numbers move between shots.
+    let changed = (330..580u32)
+        .flat_map(|y| (830..1100u32).map(move |x| ((y * 1280 + x) * 4) as usize))
+        .filter(|&i| red[i..i + 3] != own[i..i + 3])
+        .count();
+    assert!(
+        changed > 5_000,
+        "the accent relights the knot: {changed} px"
+    );
+}

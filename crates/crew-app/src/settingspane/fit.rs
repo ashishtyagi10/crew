@@ -67,6 +67,11 @@ fn widest_value(f: Field) -> Option<usize> {
                 .map(|g| g.as_str())
                 .collect::<Vec<_>>(),
         ),
+        Field::Backdrop3d => crate::look3d::ladder()
+            .iter()
+            .map(|(n, _)| n.chars().count())
+            .max()
+            .unwrap_or(0),
         Field::Glass => longest(&["off", "low", "medium", "high"]),
         Field::Contrast => longest(&["auto", "normal", "high"]),
         Field::ShapeCues => longest(&["auto", "off", "on"]),

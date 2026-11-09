@@ -47,14 +47,21 @@ pub(crate) struct Palette {
 }
 
 impl Palette {
+    /// The theme's colours with its own accent as the key light.
+    #[cfg(test)]
     pub fn of(t: &crew_theme::Theme) -> Self {
+        Self::lit(t, t.accent_default)
+    }
+
+    /// The theme's colours with `key` as the key light: the accent as the
+    /// app draws it (the user's `accent` setting, floored for the page), so
+    /// the knot is lit in the colour the ring, the nav and the cursor wear.
+    pub fn lit(t: &crew_theme::Theme, key: (u8, u8, u8)) -> Self {
         Self {
-            key: t.accent_default,
+            key,
             fill: t.activity,
             page: t.page_bg,
-            ring: t
-                .modern
-                .map_or((t.accent_default, t.activity), |m| (m.pole_a, m.pole_b)),
+            ring: t.modern.map_or((key, t.activity), |m| (m.pole_a, m.pole_b)),
             dark: t.dark,
         }
     }
