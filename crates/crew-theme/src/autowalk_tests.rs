@@ -20,7 +20,8 @@ fn a_lap_is_every_look_once_and_every_classic() {
     assert_eq!(auto_steps(RandomMode::Classic), 5);
     assert_eq!(auto_steps(RandomMode::Glass), 1);
     assert_eq!(auto_steps(RandomMode::Purple), 1);
-    assert_eq!(lap(), 11);
+    assert_eq!(auto_steps(RandomMode::Prism), 1);
+    assert_eq!(lap(), 12);
 }
 
 /// `auto` steps every rotation, light and dark pages alike, whatever the
@@ -81,6 +82,10 @@ fn classic_opens_on_tokyo_night_and_hands_over_after_monokai() {
     }
     assert_eq!(auto_next(ThemeId::Monokai), RandomMode::Purple);
     assert_eq!(auto_next_palette(ThemeId::Monokai), Some(ThemeId::Amethyst));
+    // Purple hands over to prism, and prism, the last look, wraps to dark.
+    assert_eq!(auto_next(ThemeId::Amethyst), RandomMode::Prism);
+    assert_eq!(auto_next_palette(ThemeId::Amethyst), Some(ThemeId::Prism));
+    assert_eq!(auto_next(ThemeId::Prism), RandomMode::Dark);
     // The looks `auto` still picks from at random (crt, glass) have no next
     // palette set.
     assert_eq!(auto_next_palette(ThemeId::PaperLight), None);

@@ -110,6 +110,7 @@ fn glass_window_shot() {
         ThemeId::GlassNight,
         ThemeId::NeonDark,
         ThemeId::Amethyst,
+        ThemeId::Prism,
     ]
     .into_iter()
     .chain(

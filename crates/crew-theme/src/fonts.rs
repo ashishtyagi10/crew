@@ -164,6 +164,11 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Purple: amethyst is nebula's sibling on a purple page, so it wears
         // the same contemporary face, with Geist Mono behind it.
         ThemeId::Amethyst => &["JetBrains Mono", "Geist Mono", "SF Mono", "Menlo", "Lilex"],
+        // Prism: glass again, so the glass's face, SF Mono, with Geist Mono
+        // behind. Its `auto` neighbours lead with other faces (amethyst
+        // JetBrains Mono before, the Ink Reader's MonoLisa after), so the
+        // step into and out of it changes the font as well as the colours.
+        ThemeId::Prism => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

@@ -3,7 +3,8 @@ use super::*;
 use crate::{ThemeId, ALL_THEMES};
 
 /// Every palette with a map of its own: all but the tubes.
-const OWN_MAP: [ThemeId; 13] = [
+const OWN_MAP: [ThemeId; 14] = [
+    ThemeId::Prism,
     ThemeId::TokyoNight,
     ThemeId::Solarized,
     ThemeId::Everforest,

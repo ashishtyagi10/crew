@@ -23,8 +23,8 @@
 //! apart half a degree at a time until every slot cleared it with a margin —
 //! 5.5° at most, short of anything that reads as a different colour.
 //!
-//! Six of crew's own palettes have hues of their own too: `neon`,
-//! `amethyst` and `blossom`, whose characters are colours (a neon sign, a
+//! Seven of crew's own palettes have hues of their own too: `neon`,
+//! `amethyst`, `prism` and `blossom`, whose characters are colours (a neon sign, a
 //! gemstone, a cherry tree in spring) that
 //! crew's median six flattened into the same shell output every other
 //! palette prints; and `nebula`, `glass-clear` and `glass-night`, which until
@@ -70,12 +70,18 @@ const GLASS_CLEAR: [f32; 6] = [2.0, 147.0, 90.0, 262.0, 312.0, 228.0];
 /// aurora green, starlight gold, sky blue, its ring's violet and its mint.
 const GLASS_NIGHT: [f32; 6] = [8.0, 150.0, 85.0, 250.0, 305.0, 190.0];
 
+/// Prism (2026-11-08): white light split by glass — coral, jade, citrine,
+/// sky, lilac and an ice aqua — so its shell prints a spectrum rather than
+/// crew's median six.
+const PRISM: [f32; 6] = [28.0, 158.0, 98.0, 238.0, 300.0, 180.0];
+
 /// The hue of each chromatic slot on `id`, indexed by ANSI slot minus one:
 /// red, green, yellow, blue, magenta, cyan.
 pub fn hues(id: ThemeId) -> [f32; 6] {
     match id {
         ThemeId::NeonDark => NEON,
         ThemeId::Amethyst => AMETHYST,
+        ThemeId::Prism => PRISM,
         ThemeId::Blossom => BLOSSOM,
         ThemeId::Nebula => NEBULA,
         ThemeId::GlassClear => GLASS_CLEAR,

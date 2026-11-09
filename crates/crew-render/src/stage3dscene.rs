@@ -26,6 +26,9 @@ pub(crate) struct Palette {
     pub key: (u8, u8, u8),
     pub fill: (u8, u8, u8),
     pub page: (u8, u8, u8),
+    /// The gradient ring's two poles, or the key and fill on a theme with
+    /// no ring: `prism` tints its solids and its halo with them.
+    pub ring: ((u8, u8, u8), (u8, u8, u8)),
     pub dark: bool,
 }
 
@@ -35,12 +38,15 @@ impl Palette {
             key: t.accent_default,
             fill: t.activity,
             page: t.page_bg,
+            ring: t
+                .modern
+                .map_or((t.accent_default, t.activity), |m| (m.pole_a, m.pole_b)),
             dark: t.dark,
         }
     }
 }
 
-fn color((r, g, b): (u8, u8, u8)) -> Color {
+pub(crate) fn color((r, g, b): (u8, u8, u8)) -> Color {
     let lin = |c: u8| {
         let c = f32::from(c) / 255.0;
         if c <= 0.04045 {

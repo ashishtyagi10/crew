@@ -429,7 +429,7 @@ way that machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → glass → neon → classic → purple → auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → glass → neon → classic → purple → prism → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -923,20 +923,21 @@ The docked command bar supports:
   The fresh process re-reads `config.toml`, so external config edits ride
   along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
-  eight themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
-  **`classic`**, **`purple`** and **`auto`** — and each one *rotates* through a pool of
+  nine themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
+  **`classic`**, **`purple`**, **`prism`** and **`auto`** — and each one *rotates* through a pool of
   palettes every 10 minutes (dark paper palettes, light paper palettes, CRT
   phosphor palettes, the iPhone's light liquid glass over your desktop, five
-  editor classics, a royal-purple page; `auto` **walks every look in turn** —
-  `dark → light → crt → glass → neon → classic → purple` — a new one every 10
+  editor classics, a royal-purple page, a jade page with its own 3D scene;
+  `auto` **walks every look in turn** —
+  `dark → light → crt → glass → neon → classic → purple → prism` — a new one every 10
   minutes, and all five classics one after another (tokyo-night → solarized →
-  everforest → gruvbox → monokai), so a lap takes 110 minutes, whatever the
+  everforest → gruvbox → monokai), so a lap takes 120 minutes, whatever the
   clock or the OS appearance). A fresh install with no
   saved theme starts on `auto`. No argument reports the current selection —
   for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
-  the eight themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → neon → classic → purple → auto`. The old names — `paper-dark` and
+  the nine themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → glass → neon → classic → purple → prism → auto`. The old names — `paper-dark` and
   `paper-light` (now simply `dark` and `light`) and the pre-consolidation
   rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).
@@ -4396,7 +4397,7 @@ subject then value.
 
 The subjects are `theme`, `font`, `weight`, `leading`, `density`, `motion`,
 `contrast`, `shapes`, `crt`, `gradient`, `smooth`,
-`gamma` and `invisibles` — each one the command it used to be, with the same
+`gamma`, `invisibles` and `3d` — each one the command it used to be, with the same
 values, the same ladders and the same live application. The picker reads its
 values from that command's own table (`crate::lookcmd::canon`), so a subject
 can never drift from what it stands for.
@@ -4431,14 +4432,14 @@ dims the desktop a little more than the glass between the lines, so text
 reads over a black or a white desktop alike (a test holds every glass
 palette to it).
 
-Crew offers **eight themes**: **`light`**, **`dark`**, **`glass`**,
-**`crt`**, **`neon`**, **`classic`**, **`purple`** and **`auto`**. `light` and `dark` are one page each.
-`glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon` and `purple` are one dark
+Crew offers **nine themes**: **`light`**, **`dark`**, **`glass`**,
+**`crt`**, **`neon`**, **`classic`**, **`purple`**, **`prism`** and **`auto`**. `light` and `dark` are one page each.
+`glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon`, `purple` and `prism` are one dark
 page each, whatever the OS appearance or the clock. `auto` **walks every look in
-turn** — `dark → light → crt → glass → neon → classic → purple`, then `dark` again — moving on
+turn** — `dark → light → crt → glass → neon → classic → purple → prism`, then `dark` again — moving on
 every 10 minutes (through the develop-fade), whatever the clock or the OS appearance. Inside
 `classic` it shows all five in turn, `tokyo-night → solarized → everforest → gruvbox →
-monokai`, rather than one at random, so every lap (110 minutes) shows every classic. Switching to it moves off the look on screen at once.
+monokai`, rather than one at random, so every lap (120 minutes) shows every classic. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
 
 Every glass theme's focused pane wears a gradient ring between its two
@@ -4540,13 +4541,40 @@ focused frame gets, so it always outshines the unfocused frames (raised to
   rose numbers, mint strings. Progress marks are a pale mint, purple's
   complement, so they stand off the lavender accent.
   The face is JetBrains Mono.
+- **`prism`** — the 3D theme, one jade page (`(4, 30, 26)`, a hue no other
+  page holds) of sheer glass with a 3D scene of its own behind the panes, on
+  by default: nine faceted glass prisms and two gems drifting at three
+  depths, tumbling slowly, fading into the page through a linear fog of the
+  page's colour, under a key light in its ice-mint accent, a coral rim light
+  (its activity colour, the accent's complement) and a thin halo in its
+  teal→violet ring colours. Each prism sits at a fraction of the view's
+  width at its depth, so a tall or an ultrawide window keeps them all in
+  frame. Its window hides three quarters of the desktop, as neon's dark room
+  does, so the scene is what shows; each pane is as sheer as the clear
+  glass, so the prisms read through it. Shell output takes its own spectrum
+  of hues (coral, jade, citrine, sky, lilac, ice aqua); code has ice-mint
+  keywords, lilac types, sky calls, coral numbers and jade strings. The face
+  is SF Mono. `/theme prism` turns it on.
 
-The picker offers the eight themes first and then **every other palette by
+**The 3D backdrop** (`/look 3d`, or `/3d`) is a threers scene drawn on
+crew's own GPU device behind the panes, lit in the theme's colours, turning
+on its own clock (40 s a turn) only while a pane works, and still at Motion
+off. The setting `backdrop_3d` is `theme` (saved empty, the default: the
+theme's own scene, which only `prism` has), `off` (none, even on prism),
+`orbit` (a metal knot with a ring of crystals, low on the right) or `prism`
+(the drifting prisms, on any theme). `/look 3d` with no argument says what is
+drawn and why (`prism (the theme's)`). The first frame a scene shows builds
+its GPU pipelines, which takes a moment; they are kept after that, so `auto`
+walking into prism once a lap does not pay for them again. A paper page's
+panes are solid, so the scene shows only behind a glass theme.
+
+The picker offers the nine themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The
-Ink Reader pages, neon's and amethyst are not repeated there: `dark`, `light`,
-`neon` and `purple` already are them, and their names `paper-dark`,
-`paper-light`, `neon-dark` and `amethyst` load as those four.
-Older palettes were folded into these eight and their names still load the
+Ink Reader pages, neon's, amethyst and prism are not repeated there: `dark`,
+`light`, `neon`, `purple` and `prism` already are them, and their names
+`paper-dark`, `paper-light`, `neon-dark` and `amethyst` load as the first
+four (`prism` names its look and its page alike).
+Older palettes were folded into these nine and their names still load the
 nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
 and `harbor` → `dark`; `sepia-light` → `light`; `fern` →
 `blossom`; `crt-blue` → `crt-green`; `crt-violet` → `crt-amber`; and the
@@ -4676,5 +4704,6 @@ characters, not its columns.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `purple`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `purple`, `prism`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
+| `backdrop_3d` | empty = the theme's | the 3D scene behind the panes (`/look 3d`): empty for the theme's own (only `prism` has one), `off`, `orbit` or `prism` |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |

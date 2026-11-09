@@ -15,6 +15,8 @@ fn the_stage_is_off_until_set_and_names_round_trip() {
 
 #[test]
 fn a_light_page_shows_less_of_it() {
-    assert!(strength(false) < strength(true));
-    assert!(strength(true) < 1.0, "the panes' words read first");
+    for s in Stage::ALL {
+        assert!(strength(s, false) < strength(s, true));
+        assert!(strength(s, true) < 1.0, "the panes' words read first");
+    }
 }

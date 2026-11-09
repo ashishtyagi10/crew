@@ -153,6 +153,19 @@ pub const AMETHYST: SyntaxSlots = SyntaxSlots {
     comment: None,
 };
 
+/// Prism: ice-mint keywords (its accent), lilac types (its ring's violet
+/// end), sky calls, coral numbers (its rim light), jade strings and citrine
+/// identifiers: the split beam's colours, each on the words read most.
+pub const PRISM: SyntaxSlots = SyntaxSlots {
+    keyword: 6,
+    ty: 5,
+    func: 4,
+    number: 1,
+    string: 2,
+    code: 3,
+    comment: None,
+};
+
 /// Blossom: sakura keywords, leaf-green strings, sky types, mint calls,
 /// coral numbers, apricot identifiers. Until 2026-10-29 it handed its hues
 /// out as amethyst does (types in the yellow slot, calls in the blue, names
