@@ -605,6 +605,7 @@ mod settingspane;
 mod shapecues;
 mod shellargs;
 mod shellprobe;
+mod shiftscroll;
 mod shimmer;
 #[cfg(test)]
 #[path = "shotdraw_tests.rs"]

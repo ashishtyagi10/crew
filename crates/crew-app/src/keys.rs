@@ -39,27 +39,10 @@ impl CrewApp {
             }
         }
 
-        // Shift+PageUp/Down scroll a page; Shift+Home/End jump to top/bottom.
-        if event.state.is_pressed() && mstate.shift_key() {
-            match &event.logical_key {
-                Key::Named(NamedKey::PageUp) => {
-                    self.scroll_focused_page(true);
-                    return;
-                }
-                Key::Named(NamedKey::PageDown) => {
-                    self.scroll_focused_page(false);
-                    return;
-                }
-                Key::Named(NamedKey::Home) => {
-                    self.scroll_focused_end(true);
-                    return;
-                }
-                Key::Named(NamedKey::End) => {
-                    self.scroll_focused_end(false);
-                    return;
-                }
-                _ => {}
-            }
+        // Shift+PageUp/Down page and Shift+Home/End jump the scrollback
+        // (`shiftscroll`), or reach a full-screen program as its own keys.
+        if self.shift_scroll_key(event, mstate) {
+            return;
         }
 
         // Cmd+Q / Ctrl+Q quits — but with panes open, the first press only arms a

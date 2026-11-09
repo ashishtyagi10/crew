@@ -40,6 +40,22 @@ pub fn page_bytes(m: &InputModes, up: bool) -> Option<Vec<u8>> {
     })
 }
 
+/// Bytes for Shift+Home/End inside the alternate screen, as xterm sends them
+/// (`CSI 1;2 H` / `CSI 1;2 F`), else `None` so Crew jumps its scrollback. They
+/// used to be eaten whole: the jump went to a history the alternate screen has
+/// not got, so vim/micro/helix Shift+Home/End selection and less's end key got
+/// nothing. Unlike `page_bytes` these keep the Shift — less 668 binds
+/// `CSI 1;2 F` to its end, but rings the bell on `CSI 6;2 ~` (measured).
+pub fn end_bytes(m: &InputModes, top: bool) -> Option<Vec<u8>> {
+    m.alt_screen.then(|| {
+        if top {
+            b"\x1b[1;2H".to_vec()
+        } else {
+            b"\x1b[1;2F".to_vec()
+        }
+    })
+}
+
 fn repeat(seq: &[u8], n: usize) -> Vec<u8> {
     seq.repeat(n)
 }

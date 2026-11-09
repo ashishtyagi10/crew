@@ -33,13 +33,17 @@ fn forward_wheel(pane: &mut Pane, lines: i32, cell: (u16, u16), mods: u8) -> boo
     true
 }
 
-/// Forward a page scroll to a full-screen program as a PageUp/PageDown key.
-/// Returns false outside the alternate screen (use local scrollback instead).
-fn forward_page(pane: &mut Pane, up: bool) -> bool {
+/// Forward a Shift+page/end key to a full-screen program as the bytes `key`
+/// picks from its modes. Returns false outside the alternate screen (use local
+/// scrollback instead).
+fn forward_key(
+    pane: &mut Pane,
+    key: impl FnOnce(&crew_term::InputModes) -> Option<Vec<u8>>,
+) -> bool {
     let PaneContent::Terminal(t) = &pane.content else {
         return false;
     };
-    let Some(bytes) = crate::altscroll::page_bytes(&t.pty.input_modes(), up) else {
+    let Some(bytes) = key(&t.pty.input_modes()) else {
         return false;
     };
     forward_to_program(pane, &bytes);
@@ -152,7 +156,7 @@ impl CrewApp {
     /// Scroll the focused pane by one page (Shift+PageUp/PageDown).
     pub(crate) fn scroll_focused_page(&mut self, up: bool) {
         if let Some(pane) = self.panes.get_mut(self.focused) {
-            if !forward_page(pane, up) {
+            if !forward_key(pane, |m| crate::altscroll::page_bytes(m, up)) {
                 let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
                 scroll_pane(pane, if up { page } else { -page });
             }
@@ -160,11 +164,14 @@ impl CrewApp {
         }
     }
 
-    /// Jump the focused pane to the top / bottom of its scrollback (Shift+Home/End).
+    /// Jump the focused pane to the top / bottom of its scrollback
+    /// (Shift+Home/End), or hand the keys to a full-screen program.
     pub(crate) fn scroll_focused_end(&mut self, to_top: bool) {
         if let Some(pane) = self.panes.get_mut(self.focused) {
-            // The grid clamps a huge delta to the available history range.
-            scroll_pane(pane, if to_top { i32::MAX / 2 } else { i32::MIN / 2 });
+            if !forward_key(pane, |m| crate::altscroll::end_bytes(m, to_top)) {
+                // The grid clamps a huge delta to the available history range.
+                scroll_pane(pane, if to_top { i32::MAX / 2 } else { i32::MIN / 2 });
+            }
             self.redraw();
         }
     }

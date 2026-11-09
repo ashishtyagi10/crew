@@ -73,7 +73,6 @@ src/inputshot_tests.rs 288
 src/ipc.rs 218
 src/ipc_win.rs 215
 src/keyentry_tests.rs 246
-src/keys.rs 228
 src/md/fold.rs 201
 src/md/layout_tests.rs 324
 src/md/parse_tests.rs 300

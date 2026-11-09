@@ -2246,7 +2246,8 @@ build a multiplier (capped at six, so a flick crosses a long log without
 crossing the whole scrollback), and a pause puts it back to one line a tick —
 which is what makes the same wheel usable for reading and for travelling. Mouse
 wheel or **Shift+PageUp/PageDown** scroll a pane's history (Shift+Home/End
-jump to top/bottom); an amber `⇡` in the title bar marks that you're viewing
+jump to top/bottom; in a full-screen program they go to the program, Home/End
+as xterm's `ESC[1;2H`/`ESC[1;2F` so vim selects and less jumps); an amber `⇡` in the title bar marks that you're viewing
 scrollback. Scrolling works in **every** pane — terminals and chat scroll their
 history, the Far file browser moves its cursor, and the settings form moves
 between fields. In a **full-screen program** (the alternate screen — vim, less,
