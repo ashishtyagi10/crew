@@ -84,6 +84,7 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.gradient = all[next].as_str().to_string();
         }
+        Field::Backdrop3d => d.backdrop_3d = crate::look3d::step(&d.backdrop_3d, back),
         Field::Glass => {
             const LEVELS: [crew_theme::GlassLevel; 4] = [
                 crew_theme::GlassLevel::Off,

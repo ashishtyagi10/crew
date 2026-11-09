@@ -34,7 +34,11 @@ fn toggle_theme_cycles_every_mode_and_wraps() {
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Purple));
     assert_eq!(app.config.theme.as_deref(), Some("purple"));
-    // …then auto, every look in turn — eight stops, no more: the modern
+    // …then prism's jade page and its 3D scene…
+    app.toggle_theme();
+    assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Prism));
+    assert_eq!(app.config.theme.as_deref(), Some("prism"));
+    // …then auto, every look in turn — nine stops, no more: the modern
     // glow palettes are members of the glass pool, not extra presses on the
     // way round.
     app.toggle_theme();

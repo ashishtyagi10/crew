@@ -2,7 +2,7 @@
 //! into the draft config, refresh the buffers on focus moves, and build the
 //! final config on Save.
 use super::{Field, SettingsAction, SettingsPane, DEFAULT_FAMILY_LABEL, FIELDS};
-use crate::config::CrewConfig;
+use crate::config::{CrewConfig, SCROLLBACK_MAX, SCROLLBACK_MIN};
 
 /// Commit the selected family from the filtered list into the draft.
 pub(crate) fn commit_family(p: &mut SettingsPane) {
@@ -38,6 +38,10 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
                 .parse::<u64>()
                 .unwrap_or(p.draft.notify_min_secs);
             p.draft.notify_min_secs = v.clamp(1, 3600);
+        }
+        Field::Scrollback => {
+            let v = p.scrollback_buf.parse().unwrap_or(p.draft.scrollback);
+            p.draft.scrollback = v.clamp(SCROLLBACK_MIN, SCROLLBACK_MAX);
         }
         Field::Budget5h => {
             p.draft.usage_budget_5h =
@@ -80,6 +84,7 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
     p.nav_buf = format!("{}", p.draft.nav_width as i32);
     p.accent_buf = p.draft.accent.clone().unwrap_or_default();
     p.minsecs_buf = format!("{}", p.draft.notify_min_secs);
+    p.scrollback_buf = format!("{}", p.draft.scrollback);
     p.patterns_buf = p.draft.notify_patterns.join("\n");
     p.budget5h_buf = super::tokens::label(p.draft.usage_budget_5h);
     p.budget7d_buf = super::tokens::label(p.draft.usage_budget_7d);

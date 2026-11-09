@@ -8,6 +8,43 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.6
+
+**A new 3D theme, `prism`, and twenty-nine more fixes in one release.**
+
+Look and feel:
+- **`prism`, a 3D theme:** jade glass over a fog of drifting glass prisms lit in ice-mint and coral. The scene comes on with the theme and stays in frame on any window shape. It sits after `purple` in Ctrl+Shift+L and in the `auto` walk.
+- The 3D backdrop draws only when it moves, not on every keystroke, and a live resize no longer rebuilds it. The orbit scene stays in frame on tall and wide windows too.
+- Settings has a **3D backdrop** picker (`theme · off · orbit · prism`), and the scene's key light takes your own accent.
+- The `/keys` panel dims the panes behind it, and the card under the pointer no longer lifts behind it.
+- A pop-up sits above the composer's border instead of on it, and clicks land on the row drawn.
+- A minimized todo reads `1 overdue · 4 open`, the overdue count in the bell colour.
+- Tab cards keep their `…` on a long name and their pane count on a narrow nav; a cut list says `2/3`; the folded rail's divider turns bell when a tab needs you.
+- Motion off holds the busy dot, the progress comet, spinners and card fades still, and a busy pane redraws once a second instead of 15 times.
+- `/keys` and F1 in `/far` open at the pane's own section.
+- With more than one tab, the window title names the tab: `zsh — web (2/3) — Crew`.
+
+Agent smith:
+- `/review` checks each finding against the tree: one citing a file or line that doesn't exist is dropped and the verdict recounted. Findings draw as severity chips, the verdict as a tally in the card header.
+- A change's receipt says how far it reaches (`reaches 6 callers in 4 files`), and names callers a signature change left behind: `! 2 callers of add() not updated`.
+- A tool call the answer never ran is smith's `!` row, not part of the answer.
+- A reviewer CLI with no read-only mode has any edit put back and named. Manifest agents keep their CLI's read-only mode in reviews.
+- One-shot judges, routers and classifiers ask Claude for low effort; work turns and compaction summaries keep the model's default.
+- A compaction keeps `done:`, `ruled out:` and `open:` lines, so work isn't redone after it.
+- A **Stop hook** in `hooks.json` can hold a turn open until its rule passes (at most 3 times).
+- The advisor also reads a turn that stopped making progress: the same call or the same error again.
+- crew remembers what you ruled out: a correction, or a compaction's `ruled out:` line, is shown in front of the next task on the same files.
+
+Terminal:
+- A killed program no longer leaves `997;1n` typed into the shell on every theme flip, and a scheme query gets one answer, not two.
+- Option/Alt+Enter types a newline in Claude Code instead of submitting (with Option as Meta).
+- Shift+Home/End reach vim and less on a full-screen program.
+- A shell prompt after a crashed full-screen program comes back on the main screen, with its mouse modes cleared.
+- Kitty pictures placed with `C=1` no longer scroll the screen; a named picture is answered `OK` (or why not), and `q=` is honoured.
+- Once the scrollback is full, pictures keep moving with their text, and Cmd+Opt+↑/↓ and the unread count keep working. Reading text stays as fast as before.
+- Scrollback length is a setting (`scrollback`, 100–100 000, default 10 000); changing it resizes open panes.
+- A colour a program sets (OSC 4/10/11) reads back as it is drawn, and a reset brings the theme's answer back. A kitty delete by id removes only that picture.
+
 ## 0.30.5
 
 **A 3D scene behind the panes: `/look 3d orbit`.**

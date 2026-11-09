@@ -37,6 +37,7 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
         Field::NavWidth => Some(&mut p.nav_buf),
         Field::Accent => Some(&mut p.accent_buf),
         Field::NotifyMinSecs => Some(&mut p.minsecs_buf),
+        Field::Scrollback => Some(&mut p.scrollback_buf),
         Field::Budget5h => Some(&mut p.budget5h_buf),
         Field::Budget7d => Some(&mut p.budget7d_buf),
         Field::NotifyPatterns => Some(&mut p.patterns_buf),
@@ -47,7 +48,9 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
 /// Whether `c` may be typed into the field's buffer (currently `buf`).
 pub(super) fn allowed(f: Field, buf: &str, c: char) -> bool {
     match f {
-        Field::FontSize | Field::NavWidth | Field::NotifyMinSecs => c.is_ascii_digit(),
+        Field::FontSize | Field::NavWidth | Field::NotifyMinSecs | Field::Scrollback => {
+            c.is_ascii_digit()
+        }
         Field::Budget5h | Field::Budget7d => c.is_ascii_digit() || (c == '.' && !buf.contains('.')),
         Field::Accent => (c == '#' || c.is_ascii_hexdigit()) && buf.len() < 7,
         Field::NotifyPatterns => !c.is_control(),

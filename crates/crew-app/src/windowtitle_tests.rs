@@ -42,3 +42,27 @@ fn a_named_pane_names_the_window() {
         "unnamed keeps its kind"
     );
 }
+
+/// With the nav hidden nothing said which tab you were in; with two tabs
+/// the window names the active one and where it sits, one tab stays plain.
+#[test]
+fn more_than_one_tab_names_the_tab() {
+    let mut app = CrewApp::default();
+    app.panes.push(far(Some("agent smith")));
+    app.panes[0].tab = app.tabs.active;
+    assert_eq!(app.focused_title(), "agent smith \u{2014} Crew", "one tab");
+    let web = app.tabs.add();
+    app.tabs.get_mut(web).unwrap().name = Some("web".into());
+    app.panes[0].tab = web;
+    app.tabs.active = web;
+    assert_eq!(
+        app.focused_title(),
+        "agent smith \u{2014} web (2/2) \u{2014} Crew"
+    );
+    // An unnamed tab is called after its first pane: not said twice.
+    app.tabs.get_mut(web).unwrap().name = None;
+    assert_eq!(
+        app.focused_title(),
+        "agent smith \u{2014} (2/2) \u{2014} Crew"
+    );
+}

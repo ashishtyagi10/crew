@@ -141,3 +141,39 @@ fn the_sheen_crosses_once_then_rests() {
     );
     assert_eq!(sheen(SCAN_MS), 0.0, "and the next pass starts over");
 }
+
+/// Motion Off costs no frames: a working pane's sweep, sheen and spinner all
+/// hold still there, so the 15 fps it asked for drew the same frame over and
+/// over. Off asks for one frame a second instead — its clocks — and Full
+/// still animates the work.
+#[test]
+fn at_off_a_working_pane_asks_only_for_its_clock_once_a_second() {
+    let _g = crate::app::motion_test_guard();
+    let mut app = CrewApp::default();
+    app.panes.push(chat_pane(true));
+    if let PaneContent::Chat(c) = &mut app.panes[0].content {
+        c.awaiting = true;
+    }
+    let now = 50_000;
+    set_level(MotionLevel::Full);
+    assert!(app.wants_animation_frame(now), "Full: the work animates");
+    assert!(!app.clock_tick(now), "…and those frames carry the clock");
+
+    set_level(MotionLevel::Off);
+    assert!(
+        !app.wants_animation_frame(now),
+        "Off: nothing on a busy pane moves, so no animation frame"
+    );
+    assert!(app.clock_tick(now), "but its clock is owed this second");
+    assert!(!app.clock_tick(now + 400), "once, not every tick");
+    assert!(app.clock_tick(now + 1_000), "and again the next second");
+
+    if let PaneContent::Chat(c) = &mut app.panes[0].content {
+        c.awaiting = false;
+    }
+    assert!(
+        !app.clock_tick(now + 5_000),
+        "idle at Off: no clock, no frame"
+    );
+    set_level(MotionLevel::Full);
+}

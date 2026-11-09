@@ -17,7 +17,7 @@
 //! task, and the scheduler's `Attempt` are `ApiAgent`'s, not the harness's;
 //! the relay's frame and hop routing are the broker's, handed in as a prompt.
 //! What every turn gets, whoever runs it: each reply made whole
-//! (`provider::cutoff`), the advisor on a failed check (an [`Advice`],
+//! (`provider::cutoff`), the advisor on a failed check or a stalled round (an [`Advice`],
 //! `crate::advisor`), and the lines under an answer — the checklist's, a call
 //! that never ran (`finish`).
 
@@ -26,6 +26,7 @@ mod context;
 mod cost;
 mod failure;
 mod finish;
+mod hold;
 mod lastword;
 mod native;
 mod note;
@@ -40,6 +41,9 @@ mod toolloop;
 #[cfg(test)]
 #[path = "advice_tests.rs"]
 mod advice_tests;
+#[cfg(test)]
+#[path = "stall_tests.rs"]
+mod stall_tests;
 #[cfg(test)]
 #[path = "stopdial_tests.rs"]
 mod stopdial_tests;

@@ -58,7 +58,13 @@ pub(crate) fn status_segments(
     let accent = crate::palette::accent();
     let mut segs = Vec::new();
     // The spinner: ASCII strokes, or pie slices on a Nerd Font (`glyphs`).
-    let spin = spinner(now_ms);
+    // Held on its first frame at Off, which still redraws once a second for
+    // the clock beside it — a spinner stepping 1 fps is motion, just slow.
+    let spin = spinner(if level == crate::motion::MotionLevel::Off {
+        0
+    } else {
+        now_ms
+    });
     if let Some((label, secs, color)) = active {
         // The border's ladder, so `12m22` here and `12m22` there — not `742s`.
         let clock = crate::runclock::label(std::time::Duration::from_secs(secs))

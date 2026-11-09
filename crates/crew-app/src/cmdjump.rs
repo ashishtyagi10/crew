@@ -26,7 +26,7 @@ impl CrewApp {
         let PaneContent::Terminal(t) = &mut pane.content else {
             return false;
         };
-        let now = t.pty.scrollable_lines();
+        let now = t.pty.lines_seen();
         let off = t.pty.display_offset();
         let history = t.pty.history_lines();
         let starts: Vec<usize> = t.spans.recent().map(|s| s.from).collect();
@@ -38,11 +38,14 @@ impl CrewApp {
 }
 
 /// The display offset that puts the previous (`up`) or next command start on
-/// the top row of a `rows`-row window, from the current offset `off`, in a
-/// buffer of `now` lines with `history` lines above the screen. A start too
-/// near the bottom to reach the top row lands at offset 0 (the live screen).
-/// Going down past the newest start returns to the bottom; `None` when the
-/// view is already as far as it can go.
+/// the top row of a `rows`-row window, from the current offset `off`, after
+/// `now` lines in all (`lines_seen`) with `history` of them still above the
+/// screen. A start too near the bottom to reach the top row lands at offset 0
+/// (the live screen). A start deeper than the history has been thrown away
+/// with the scrollback: it is skipped, not clamped to the top row, which
+/// would show some later line and call it the command. Going down past the
+/// newest start returns to the bottom; `None` when the view is already as
+/// far as it can go.
 pub(crate) fn jump_target(
     starts: &[usize],
     now: usize,
@@ -51,8 +54,11 @@ pub(crate) fn jump_target(
     off: usize,
     up: bool,
 ) -> Option<usize> {
-    let at = |from: usize| now.saturating_sub(rows).saturating_sub(from).min(history);
-    let offsets = starts.iter().map(|&from| at(from));
+    let at = |from: usize| now.saturating_sub(rows).saturating_sub(from);
+    let offsets = starts
+        .iter()
+        .map(|&from| at(from))
+        .filter(|&o| o <= history);
     let to = match up {
         true => offsets.filter(|&o| o > off).min(),
         false => offsets.filter(|&o| o < off).max().or(Some(0)),

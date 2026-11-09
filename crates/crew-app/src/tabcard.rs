@@ -39,13 +39,15 @@ pub(crate) fn top(b: &TabBlock, cols: u16, row: u16, frame: Rgb) -> Vec<CellView
     }
     let right = cols - 2;
     let count = b.rows.len().to_string();
-    // ` 3 ─╮` from the right edge in; the count goes first on a narrow nav.
+    let num = format!(" {} ", b.num);
+    let num_end = 3 + num.chars().count() as u16;
+    // ` 3 ─╮` from the right edge in. The count is the card's one number
+    // that says how much is inside, so it keeps its place on a narrow nav
+    // and the name gives way — it is drawn whenever a rule cell still
+    // parts it from the tab's number.
     let count_at = right.saturating_sub(3 + count.len() as u16);
-    let legend_end = if count_at > 10 {
-        count_at - 1
-    } else {
-        right - 1
-    };
+    let with_count = count_at > num_end;
+    let legend_end = if with_count { count_at - 1 } else { right - 1 };
     for x in 1..=right {
         let c = match x {
             1 => '\u{256d}',
@@ -55,17 +57,19 @@ pub(crate) fn top(b: &TabBlock, cols: u16, row: u16, frame: Rgb) -> Vec<CellView
         out.push(cell(x, row, c, frame, false));
     }
     let mut legend = Vec::new();
-    let num = format!(" {} ", b.num);
-    let mut x = put(&mut legend, &num, 3, row, legend_end, frame, true);
+    let x = put(&mut legend, &num, 3, row, legend_end, frame, true);
     let name_fg = if b.active || b.hovered {
         t.ink
     } else {
         t.text_muted
     };
-    let room = legend_end.saturating_sub(x + 1) as usize;
+    // `· {name} ` is the name plus three columns: clip the name to what is
+    // left after them, or the cut lands on its `…` and the end of the name
+    // runs into the count (`· web front 1`).
+    let room = legend_end.saturating_sub(x).saturating_sub(3) as usize;
     let name = crate::chatwidth::clip_words(&b.title, room);
     if !name.is_empty() {
-        x = put(
+        put(
             &mut legend,
             &format!("\u{b7} {name} "),
             x,
@@ -75,7 +79,7 @@ pub(crate) fn top(b: &TabBlock, cols: u16, row: u16, frame: Rgb) -> Vec<CellView
             b.active,
         );
     }
-    if count_at > 10 && x < count_at {
+    if with_count {
         put(
             &mut legend,
             &format!(" {count} "),
@@ -125,12 +129,15 @@ pub(crate) fn bottom(cols: u16, row: u16, frame: Rgb) -> Vec<CellView> {
 /// The rail's tab marker: `─2───`, lit for the tab on screen.
 pub(crate) fn divider(b: &TabBlock, cols: u16, row: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
-    let (rule, num) = match b.active {
-        true => (
+    // The open card's colours: a tab behind with a pane asking for you
+    // shows the bell here too, or folding the nav hides the only sign.
+    let (rule, num) = match (b.active, b.needs_you()) {
+        (true, _) => (
             crate::accentink::accent_ink(),
             crate::accentink::accent_ink(),
         ),
-        false => (t.border_normal, t.text_muted),
+        (false, true) => (t.bell, t.bell),
+        (false, false) => (t.border_normal, t.text_muted),
     };
     let label: Vec<char> = b.num.to_string().chars().collect();
     (0..cols)

@@ -86,6 +86,10 @@ pub struct CompletionRequest {
     /// must then send NO tools field at all: an empty array is not the same
     /// as absent, and some endpoints reject it.
     pub tools: Vec<ToolDef>,
+    /// How hard the model thinks on this call (`effort`). `None` leaves it
+    /// at the model's default — the work turn's setting; the one-shot
+    /// judges and classifiers ask for `Low`.
+    pub effort: Option<super::Effort>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

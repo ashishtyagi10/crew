@@ -115,7 +115,8 @@ impl CrewApp {
         // frame owed to it (the glide itself is stepped in `build_frame`).
         let size = self.frame_geometry().map_or((0.0, 0.0), |g| (g.2, g.3));
         let light = self.pointer_light.aim(Some(self.cursor), size);
-        let card = self.hover_lift.aim(self.pane_at_cursor());
+        let under = crate::helpscrim::hover(self.help_open, self.pane_at_cursor());
+        let card = self.hover_lift.aim(under);
         if btn || nav || light || card {
             self.redraw();
         }

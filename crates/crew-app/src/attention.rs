@@ -59,7 +59,7 @@ impl Attention {
 
 /// Whether markers hold still instead of blinking — motion `Off`, which is
 /// also what `auto` resolves to when the OS is asking for reduced motion.
-fn steady() -> bool {
+pub(crate) fn steady() -> bool {
     crate::motion::level() == crate::motion::MotionLevel::Off
 }
 

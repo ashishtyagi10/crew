@@ -24,6 +24,11 @@ pub struct Usage {
     /// refused tool calls on this hop (`clauderesult::note`): smith's row
     /// under the reply (`fellback::Told::line`), never the reply's own text.
     pub refused: String,
+    /// `! not run: sys:read_file README.md — the turn ended first` when the
+    /// thread's final answer still held calls (`crew_hive::tools::not_run`):
+    /// lifted out of the answer and said as smith's row under it, like
+    /// `refused`, so the raw `@tool` line is not drawn as the agent's words.
+    pub not_run: String,
 }
 
 impl Usage {
@@ -42,6 +47,7 @@ impl Usage {
             fell_back: crate::broker::fellback::detail(c),
             context_window: 0,
             refused: String::new(),
+            not_run: String::new(),
         }
     }
 

@@ -16,8 +16,6 @@
 //! Labels come off the home row outward, and are handed out from the BOTTOM of
 //! the pane up: the last thing a program printed is the thing you almost
 //! always want, and it should be the cheapest key to press.
-use std::sync::Mutex;
-
 use crew_render::CellView;
 
 /// Label letters, in the order they are handed out.
@@ -67,11 +65,11 @@ pub(crate) struct Hints {
     typed: String,
 }
 
-/// The one live hint mode, held here rather than on the app for the same
-/// reason the pointer's hover is: everything that draws it or answers a key
-/// for it is somewhere else, and threading it through every scene signature
-/// would touch a dozen files to carry a mode that is off almost always.
-static MODE: Mutex<Option<Hints>> = Mutex::new(None);
+/// The one live hint mode, held outside the app for the same reason the
+/// pointer's hover is: everything that draws it or answers a key for it is
+/// somewhere else, and threading it through every scene signature would
+/// touch a dozen files to carry a mode that is off almost always. Where it
+/// lives (one per process; one per test thread) is [`crate::hintslot`]'s.
 
 /// Label `pane`'s rows, if there is anything on them to label, plus the
 /// targets the pane knows of that its text does not show (a mail's link
@@ -124,7 +122,9 @@ pub(crate) fn labels_snapshot() -> Vec<String> {
 }
 
 fn lock() -> std::sync::MutexGuard<'static, Option<Hints>> {
-    MODE.lock().unwrap_or_else(|e| e.into_inner())
+    crate::hintslot::slot()
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
 }
 
 impl Hints {

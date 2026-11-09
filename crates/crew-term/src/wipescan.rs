@@ -20,21 +20,33 @@ pub enum ImageWipe {
     /// Erase the screen (`ESC[2J`): the pictures on it, on that screen only.
     /// `line` is the first absolute line of the screen at the time.
     Screen { line: u64, alt: bool },
-    /// Erase the scrollback (`ESC[3J`), a kitty delete, or a full reset.
+    /// Erase the scrollback (`ESC[3J`), a kitty delete of everything
+    /// (`a=d`, `d=a`), or a full reset.
     All,
+    /// A kitty delete by id (`a=d,d=i,i=N`): the pictures sent as `i=N`,
+    /// and only those — a previewer clearing its last preview must not take
+    /// every other picture in the scrollback with it. Id 0 names none: a
+    /// picture sent without one can't be deleted by id.
+    Id(u32),
     /// The alternate screen was entered (`true`) or left: every picture
     /// placed on it goes, and the primary's show again only on the primary.
     Alt(bool),
+    /// Every line before this absolute one has been thrown off the top of a
+    /// full scrollback: a picture anchored there has no text left to sit on.
+    Evicted(u64),
 }
 
 impl ImageWipe {
     /// Whether a picture at `line`, placed on the alternate screen or not,
-    /// survives this wipe. The one rule both halves (core and app) apply.
-    pub fn keeps(self, line: u64, alt: bool) -> bool {
+    /// sent with kitty id `id` (0 for none), survives this wipe. The one rule
+    /// both halves (core and app) apply.
+    pub fn keeps(self, line: u64, alt: bool, id: u32) -> bool {
         match self {
             Self::Screen { line: top, alt: on } => alt != on || line < top,
             Self::All => false,
+            Self::Id(n) => n == 0 || id != n,
             Self::Alt(_) => !alt,
+            Self::Evicted(top) => alt || line >= top,
         }
     }
 }

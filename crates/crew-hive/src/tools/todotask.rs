@@ -12,7 +12,7 @@
 use std::sync::Arc;
 
 use super::Checklist;
-use crate::tools::{ToolSpec, Tools};
+use crate::tools::{StopCheck, ToolSpec, Tools};
 
 /// `tools` for one task: behind a checklist of its own when the surface
 /// keeps checklists at all, and `tools` itself when it does not, so a surface
@@ -74,5 +74,9 @@ impl Tools for PerTask {
 
     fn checklist(&self) -> Option<&Checklist> {
         Some(&self.list)
+    }
+
+    fn stop(&self, answer: &str, held: bool) -> StopCheck {
+        self.inner.stop(answer, held)
     }
 }

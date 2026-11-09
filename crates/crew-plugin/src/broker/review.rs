@@ -77,17 +77,35 @@ pub(crate) fn review_cmd(
         from: "review".into(),
     })?;
     // Read-only: a reviewer that fixes what it was asked to judge takes the
-    // decision from the person who asked (`handsoff`).
-    let reply = reg
-        .get(&author)
-        .map(|a| a.call_read_only(&review_prompt(&diff, &callers), call_timeout()));
+    // decision from the person who asked (`handsoff`); one with no read-only
+    // mode has whatever it edited put back and said (`reviewguard`).
+    let (reply, edited) = match reg.get(&author) {
+        Some(a) => {
+            let body = review_prompt(&diff, &callers);
+            let (r, note) = super::reviewguard::call(&dir, a, &body, call_timeout());
+            (Some(r), note)
+        }
+        None => (None, None),
+    };
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
         from: String::new(),
     })?;
+    if let Some(note) = edited {
+        emit(msg("agent smith", note))?;
+    }
     match reply {
-        Some(Ok(r)) if !r.trim().is_empty() => emit(msg(&format!("{author} → user"), r)),
+        Some(Ok(r)) if !r.trim().is_empty() => {
+            // Checked before shown: a finding citing a file or line that is
+            // not there is dropped and said so, the verdict recounted.
+            let t = super::reviewfindings::tidy_in(&dir, &diff, &r);
+            emit(msg(&format!("{author} → user"), t.text))?;
+            match super::reviewfindings::dropped_note(&t.dropped) {
+                Some(note) => emit(msg("agent smith", note)),
+                None => Ok(()),
+            }
+        }
         Some(Ok(_)) => emit(msg("agent smith", "the review came back empty — try again")),
         Some(Err(e)) => emit(msg("agent smith", format!("review failed: {e}"))),
         None => emit(msg(

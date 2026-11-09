@@ -87,6 +87,12 @@ impl Adapter for Falls {
 
 /// Every message of one relay turn, `(sender, text)`.
 fn turn(agents: Vec<Falls>, start: &str) -> Vec<(String, String)> {
+    answered_turn(agents, start).0
+}
+
+/// Every message of one relay turn, and the answer it hands back for the
+/// judge and the next round.
+fn answered_turn(agents: Vec<Falls>, start: &str) -> (Vec<(String, String)>, Option<String>) {
     let agents = agents
         .into_iter()
         .map(|a| Box::new(a) as Box<dyn Adapter>)
@@ -100,8 +106,8 @@ fn turn(agents: Vec<Falls>, start: &str) -> Vec<(String, String)> {
         Ok(())
     };
     let tick = crate::broker::tick::noop_tick_emit();
-    relay_turn(&broker, start, "task", "task", "t1", &tick, &mut sink).unwrap();
-    out
+    let answer = relay_turn(&broker, start, "task", "task", "t1", &tick, &mut sink).unwrap();
+    (out, answer)
 }
 
 /// `a` is dialed twice and `b` once, and every call fell through: smith
@@ -161,4 +167,28 @@ fn a_refusal_is_smiths_row_under_the_reply_not_the_reply() {
     let at = at.unwrap_or_else(|| panic!("no refusal row: {msgs:#?}"));
     assert!(msgs[at - 1].0.starts_with("a \u{2192}"), "{msgs:#?}");
     assert!(!msgs[at - 1].1.contains("not allowed"), "{msgs:#?}");
+}
+
+/// A final answer still holding a call loses it, and smith names it in its
+/// own `!` row right under the reply: the raw `@tool` line and a `not run`
+/// sentence were drawn as the agent's last words (smith #16).
+#[test]
+fn a_call_the_answer_never_ran_is_smiths_row_not_the_answer() {
+    let said =
+        "Reading it next:\n```json\n@tool sys:read_file {\"path\": \"README.md\"}\n```\n@done";
+    let a = Falls("a", vec![said], "", Mutex::new(0));
+    let (msgs, answer) = answered_turn(vec![a], "a");
+    let note = "! not run: sys:read_file README.md \u{2014} the turn ended first";
+    let at = msgs
+        .iter()
+        .position(|(s, t)| s == "agent smith" && t == note);
+    let at = at.unwrap_or_else(|| panic!("no not-run row: {msgs:#?}"));
+    let (who, reply) = &msgs[at - 1];
+    assert!(who.starts_with("a \u{2192}"), "{msgs:#?}");
+    assert_eq!(reply, "Reading it next:", "{msgs:#?}");
+    // What reads the answer next (the judge, a `/loop` round) still hears it.
+    assert_eq!(
+        answer.as_deref(),
+        Some(format!("Reading it next:\n\n{note}").as_str())
+    );
 }

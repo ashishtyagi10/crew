@@ -225,11 +225,14 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then purple, amethyst's one page...
     assert_eq!(cycle_next(7), "purple");
     assert_eq!(current_id(), ThemeId::Amethyst);
+    // ...then prism, its jade page and its 3D scene...
+    assert_eq!(cycle_next(8), "prism");
+    assert_eq!(current_id(), ThemeId::Prism);
     // ...then auto, which moves straight on to another look...
-    assert_eq!(cycle_next(8), "auto");
-    assert_ne!(current_id().mode(), RandomMode::Purple);
-    // ...and wraps back to dark — eight stops, no more.
-    assert_eq!(cycle_next(9), "dark");
+    assert_eq!(cycle_next(9), "auto");
+    assert_ne!(current_id().mode(), RandomMode::Prism);
+    // ...and wraps back to dark — nine stops, no more.
+    assert_eq!(cycle_next(10), "dark");
     assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -247,7 +250,8 @@ fn auto_is_advertised_and_holds_every_palette() {
             RandomMode::Glass,
             RandomMode::Neon,
             RandomMode::Classic,
-            RandomMode::Purple
+            RandomMode::Purple,
+            RandomMode::Prism
         ]
     );
     assert!(ALL_THEMES
@@ -334,12 +338,14 @@ fn every_pool_survives_the_cut() {
     let neon = count(|id: ThemeId| id.mode() == RandomMode::Neon);
     let classic = count(|id: ThemeId| id.mode() == RandomMode::Classic);
     let purple = count(|id: ThemeId| id.mode() == RandomMode::Purple);
+    let prism = count(|id: ThemeId| id.mode() == RandomMode::Prism);
     // One Ink Reader page each for dark and light (2026-10-16), two tubes,
     // the four glass palettes, neon's one dark page, and the five editor
-    // classics and amethyst's one purple page (2026-10-28).
+    // classics and amethyst's one purple page (2026-10-28), and prism's one
+    // jade page (2026-11-08).
     assert_eq!(
-        (dark, light, crt, glass, neon, classic, purple),
-        (1, 1, 2, 4, 1, 5, 1),
+        (dark, light, crt, glass, neon, classic, purple, prism),
+        (1, 1, 2, 4, 1, 5, 1, 1),
         "pools are dark {dark}, light {light}, crt {crt}, glass {glass}, neon {neon}, \
          classic {classic}, purple {purple} — \
          `auto` needs both appearances and the tubes and the glass are their \
@@ -401,10 +407,10 @@ fn every_retired_theme_name_still_resolves() {
     // on 2026-10-08, and `glass-clear` on 2026-10-09, which the light pair
     // folded into the same day. The neon pair was drawn on 2026-10-22, and
     // its light page retired the same day. The five editor classics and
-    // amethyst were drawn on 2026-10-28.
+    // amethyst were drawn on 2026-10-28, prism on 2026-11-08.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        38,
+        39,
         "every retiree is listed"
     );
 }
@@ -871,6 +877,7 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
         RandomMode::Neon,
         RandomMode::Classic,
         RandomMode::Purple,
+        RandomMode::Prism,
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
@@ -888,13 +895,17 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
     }
     // …and each rotating pool is wide enough to move: `random_pick` filters
     // out the current theme first. `dark` and `light` are one Ink Reader page
-    // each (2026-10-16), and `neon` (2026-10-22) and `purple` (2026-10-28)
-    // one dark page each, which is a page, not a rotation.
+    // each (2026-10-16), and `neon` (2026-10-22), `purple` (2026-10-28) and
+    // `prism` (2026-11-08) one dark page each, which is a page, not a rotation.
     for m in pools {
         let n = ALL_THEMES.into_iter().filter(|id| m.in_pool(*id)).count();
         let page = matches!(
             m,
-            RandomMode::Dark | RandomMode::Light | RandomMode::Neon | RandomMode::Purple
+            RandomMode::Dark
+                | RandomMode::Light
+                | RandomMode::Neon
+                | RandomMode::Purple
+                | RandomMode::Prism
         );
         assert!(
             n >= 2 || (page && n == 1),
@@ -1062,6 +1073,7 @@ fn the_ink_reader_pages_are_their_rotations() {
         ("paper-dark", RandomMode::Dark, ThemeId::PaperDark),
         ("paper-light", RandomMode::Light, ThemeId::PaperLight),
         ("amethyst", RandomMode::Purple, ThemeId::Amethyst),
+        ("prism", RandomMode::Prism, ThemeId::Prism),
     ] {
         assert_eq!(parse_selection(name), Some(Selection::Mode(mode)), "{name}");
         assert_eq!(page.selection(), Selection::Mode(mode), "{name}");
@@ -1075,7 +1087,11 @@ fn the_ink_reader_pages_are_their_rotations() {
     for id in ALL_THEMES {
         if matches!(
             id,
-            ThemeId::PaperDark | ThemeId::PaperLight | ThemeId::NeonDark | ThemeId::Amethyst
+            ThemeId::PaperDark
+                | ThemeId::PaperLight
+                | ThemeId::NeonDark
+                | ThemeId::Amethyst
+                | ThemeId::Prism
         ) {
             continue;
         }

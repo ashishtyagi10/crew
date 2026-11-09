@@ -3,7 +3,7 @@
 use super::kit::*;
 use super::*;
 use crate::agent::Agent;
-use crate::bus::EventBus;
+use crate::bus::{EventBus, HiveEvent};
 use std::sync::Mutex;
 
 #[tokio::test]

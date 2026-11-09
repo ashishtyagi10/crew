@@ -44,6 +44,16 @@ impl Adapter for PluginAgent {
     fn call(&self, body: &str, timeout: std::time::Duration) -> Result<String, String> {
         self.cli.call(body, timeout)
     }
+
+    // A manifest whose command is a CLI crew knows (`codex`, `opencode`)
+    // reviews in its read-only mode too; any other is `reviewguard`'s.
+    fn call_read_only(&self, body: &str, timeout: std::time::Duration) -> Result<String, String> {
+        self.cli.call_read_only(body, timeout)
+    }
+
+    fn hands_off(&self) -> bool {
+        self.cli.hands_off()
+    }
 }
 
 /// Build an agent from a manifest. `None` when the name or command is blank.

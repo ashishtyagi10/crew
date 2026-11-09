@@ -135,6 +135,8 @@ pub(crate) fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> 
         let tail = format!(" \u{00b7} {rel}");
         line.extend(tail.chars().map(|c| plain(c, muted, false)));
     }
+    // A review's verdict, as its tally: the header is the card's legend.
+    line.extend(crate::chatfinding::tally_cells(&m.text));
     line
 }
 

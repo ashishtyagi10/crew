@@ -14,7 +14,7 @@ fn auto_names_the_look_on_screen_and_the_next_one() {
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Nebula);
     assert!(
         msg.contains(
-            "dark \u{2192} light \u{2192} crt \u{2192} glass \u{2192} neon \u{2192} classic (all 5) \u{2192} purple"
+            "dark \u{2192} light \u{2192} crt \u{2192} glass \u{2192} neon \u{2192} classic (all 5) \u{2192} purple \u{2192} prism"
         ),
         "{msg}"
     );
@@ -33,7 +33,9 @@ fn auto_names_the_look_on_screen_and_the_next_one() {
     );
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Monokai);
     assert!(msg.contains("now classic (monokai), next purple"), "{msg}");
-    // The walk wraps: after purple comes dark again.
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Amethyst);
-    assert!(msg.contains("now purple (amethyst), next dark"), "{msg}");
+    assert!(msg.contains("now purple (amethyst), next prism"), "{msg}");
+    // The walk wraps: after prism comes dark again.
+    let msg = report("auto", Some(RandomMode::Auto), ThemeId::Prism);
+    assert!(msg.contains("now prism (prism), next dark"), "{msg}");
 }

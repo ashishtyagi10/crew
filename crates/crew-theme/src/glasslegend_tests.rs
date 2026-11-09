@@ -85,8 +85,13 @@ fn the_veil_is_thicker_glass_not_a_tab() {
         let shade = shade(id.theme());
         let veil = legend_cover(l, shade);
         assert!(veil > l.text_cover(shade), "{}", id.as_str());
-        // Neon's dark room (`holo`) hides most of the desktop to begin with.
-        let most = if l.holo > 0.0 { 0.99 } else { 0.9 };
+        // Neon's dark room (`holo`) and prism's (its scene) hide most of
+        // the desktop to begin with.
+        let most = if l.holo > 0.0 || id.scene().is_some() {
+            0.99
+        } else {
+            0.9
+        };
         assert!(veil < most, "{}: veil hides {veil:.2}", id.as_str());
     }
 }

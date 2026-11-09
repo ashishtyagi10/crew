@@ -110,6 +110,16 @@ fn call_at(lines: &[&str], at: usize) -> Option<(ToolCall, usize)> {
     Some((call, used))
 }
 
+/// Every call in `lines` wherever it sits, as (the line it starts on, the
+/// lines its JSON took under it, the call): what `never_ran` lifts out of a
+/// finished answer whole, so no half-call is left behind as text.
+pub(super) fn calls_in(lines: &[&str]) -> Vec<(usize, usize, ToolCall)> {
+    (0..lines.len())
+        .filter(|&at| directive(lines[at]).is_some())
+        .filter_map(|at| call_at(lines, at).map(|(call, used)| (at, used, call)))
+        .collect()
+}
+
 /// The reply above the call on line `at`: the fence the call opened in goes
 /// with it, and trailing whitespace is trimmed.
 fn above(lines: &[&str], at: usize) -> String {

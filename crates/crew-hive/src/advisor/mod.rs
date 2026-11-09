@@ -10,7 +10,10 @@
 //! request or changes what the turn does next.
 //!
 //! When: a tool round in which a `sys:run` ran and exited non-zero
-//! (`Tools::failed`), at most [`PER_TURN`] times a turn. It reads the request,
+//! (`Tools::failed`), or one that told the agent nothing new (`stall`: every
+//! call a repeat with the same result), once per stall; at most [`PER_TURN`]
+//! times a turn, both counted. A stall's brief is the calls list and what it
+//! means to repeat them, with no failure to cut. For a failure it reads the request,
 //! the turn's calls one line each, and the failure cut to its useful part
 //! (`failexcerpt`), which keeps first the line a run cut for length opens
 //! with, every error by its place: the errors the cut dropped are the ones
@@ -32,6 +35,7 @@ use crate::harness::Advice;
 use crate::spent::Spent;
 use crate::tools::{ToolCall, Tools};
 
+mod stall;
 mod text;
 
 pub use text::HEAD;
@@ -71,15 +75,16 @@ pub struct Advisor {
     state: Mutex<State>,
 }
 
-/// The call, once a failure needed it (`Some(None)` when none may run), how
+/// The call, once a failure or a stall needed it (`Some(None)` when none may run), how
 /// often it was asked, the turn's calls so far, and the newest advice as its
-/// section.
+/// section, and what the rounds came back with (`stall`).
 #[derive(Default)]
 struct State {
     ask: Option<Option<Ask>>,
     asked: u32,
     calls: Vec<String>,
     advice: String,
+    progress: stall::Progress,
 }
 
 impl Advisor {
@@ -105,22 +110,31 @@ impl Advisor {
     }
 
     /// Note one round's `calls` and what each came back as, and when one was
-    /// a failed `sys:run` and the turn has a read left: the call to make and
-    /// its brief. `None` leaves the advice as it was.
+    /// a failed `sys:run`, or the round was a stall, and the turn has a read
+    /// left: the call to make and its brief. `None` leaves the advice as it was.
     fn noted(&self, calls: &[ToolCall], ran: &[(bool, String)]) -> Option<(Ask, String)> {
         let mut s = self.state();
         for (call, (ok, _)) in calls.iter().zip(ran) {
             let n = s.calls.len() + 1;
             s.calls.push(text::call_line(n, call, *ok));
         }
+        let stalled = s.progress.round(calls, ran);
         let failed = calls.iter().zip(ran).find(|(c, (_, out))| {
             (c.server.as_str(), c.tool.as_str()) == ("sys", "run")
                 && self.tools.failed(&c.server, &c.tool, out)
         });
-        let (call, (_, out)) = failed.filter(|_| s.asked < PER_TURN)?;
+        if s.asked >= PER_TURN || (failed.is_none() && !stalled) {
+            return None;
+        }
         let ask = s.ask.get_or_insert_with(|| (self.find)()).clone()?;
         s.asked += 1;
-        Some((ask, text::brief(&self.request, &s.calls, call, out)))
+        Some((
+            ask,
+            match failed {
+                Some((call, (_, out))) => text::brief(&self.request, &s.calls, call, out),
+                None => text::stalled(&self.request, &s.calls),
+            },
+        ))
     }
 }
 

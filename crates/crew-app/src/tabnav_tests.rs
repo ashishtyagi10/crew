@@ -118,3 +118,56 @@ fn one_tab_draws_the_flat_list_it_always_did() {
     assert_eq!(flat.cells(30, 5, ' ').len(), want.len());
     assert_eq!(flat.len(), 1);
 }
+
+fn three_panes(title: &str) -> NavList {
+    let rows = vec![row(1, "a"), row(2, "b"), row(3, "c")];
+    NavList::Tabs(vec![
+        block(1, title, true, rows),
+        block(2, "x", false, vec![]),
+    ])
+}
+
+#[test]
+fn a_long_tab_name_keeps_its_ellipsis_and_the_count_its_place() {
+    // 40 columns of name on a 24-column nav: `· {name} ` is three wider
+    // than the name, so clipping to the gap alone cut the `…` off.
+    let l = three_panes("web frontend staging server for the team");
+    let top = line(&l.cells(24, 20, ' '), 1, 24);
+    assert!(top.contains('\u{2026}'), "the name says it was cut: {top}");
+    assert!(top.ends_with(" 3 \u{2500}\u{256e}"), "{top}");
+}
+
+#[test]
+fn a_narrow_nav_keeps_the_pane_count_and_lets_the_name_go() {
+    let l = three_panes("build");
+    let top = line(&l.cells(16, 20, ' '), 1, 16);
+    assert!(
+        top.ends_with(" 3 \u{2500}\u{256e}"),
+        "the count stays: {top}"
+    );
+    assert!(top.contains(" 1 "), "{top}");
+}
+
+#[test]
+fn a_cut_list_says_how_many_panes_it_shows() {
+    // Three lines hold tab 1's edge and two rows: pane 3 (tab 2) is hidden.
+    let key = line(&list().cells(30, 3, ' '), 0, 30);
+    assert!(key.contains("2 tabs \u{b7} 2/3"), "{key}");
+    let all = line(&list().cells(30, 20, ' '), 0, 30);
+    assert!(all.contains("2 tabs \u{b7} 3"), "{all}");
+}
+
+#[test]
+fn the_rails_divider_takes_the_bell_for_a_tab_that_needs_you() {
+    let _g = crate::appearanceguard::theme_test_guard();
+    let mut r = row(3, "vite");
+    r.attention = Some(('!', true));
+    let l = NavList::Tabs(vec![
+        block(1, "build", true, vec![row(1, "cargo")]),
+        block(2, "web", false, vec![r]),
+    ]);
+    let cells = l.rail_cells(5, 20, ' ');
+    let bell = crew_theme::theme().bell;
+    let divider: Vec<_> = cells.iter().filter(|c| c.row == 2).collect();
+    assert!(!divider.is_empty() && divider.iter().all(|c| c.fg == bell));
+}

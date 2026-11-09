@@ -60,11 +60,17 @@ pub(crate) enum Field {
     /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
     /// much the canvas is allowed to do on its own.
     Gradient,
+    /// The 3D scene behind the panes (`look3d`): the theme's own, off, or a
+    /// named one. Beside Gradient: both are the canvas moving on its own.
+    Backdrop3d,
     Maximized,
     /// macOS: Option+<key> sends ESC+<key> to a terminal (see `altmeta`).
     /// In the Window card beside Launch maximized: both are how crew sits
     /// on this machine rather than how it looks.
     OptionMeta,
+    /// Lines a terminal keeps above its screen (see `scrollback`). Beside
+    /// Nav width: both are a size in the window rather than a look.
+    Scrollback,
     Notify,
     NotifyAgentDone,
     NotifyBell,
@@ -81,7 +87,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 30] = [
+pub(crate) const FIELDS: [Field; 32] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -100,8 +106,10 @@ pub(crate) const FIELDS: [Field; 30] = [
     Field::Contrast,
     Field::ShapeCues,
     Field::Gradient,
+    Field::Backdrop3d,
     Field::Maximized,
     Field::OptionMeta,
+    Field::Scrollback,
     Field::Notify,
     Field::NotifyAgentDone,
     Field::NotifyBell,

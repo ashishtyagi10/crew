@@ -106,3 +106,11 @@ pub(crate) fn default_font_gamma() -> u8 {
     // About half the full sRGB correction — Apple's historical text gamma.
     crew_render::DEFAULT_TEXT_GAMMA
 }
+
+/// alacritty's own default; the range is alacritty's cap at the top and, at
+/// the bottom, enough to scroll back over one screenful of a big window.
+pub(crate) fn default_scrollback() -> usize {
+    10_000
+}
+pub(crate) const SCROLLBACK_MIN: usize = 100;
+pub(crate) const SCROLLBACK_MAX: usize = 100_000;

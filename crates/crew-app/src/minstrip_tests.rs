@@ -1,8 +1,6 @@
 use super::*;
-
 use crate::attention::{Attention, BLINK_MS};
 use crate::notify::NotifyKind;
-
 /// `+3` says how many panes are behind the tile and nothing about which,
 /// which is the one thing you would look at it to find out.
 #[test]
@@ -77,6 +75,7 @@ fn attention_supersedes_the_activity_dot() {
 
 #[test]
 fn marker_blinks_off_mid_pulse() {
+    let _g = crate::app::theme_test_guard(); // the blink reads the motion level
     let a = Attention {
         kind: NotifyKind::Bell,
         at_ms: 0,
@@ -122,6 +121,7 @@ fn a_quiet_or_tiny_thumbnail_draws_no_count() {
 
 #[test]
 fn busy_pane_pulses_a_dot_that_never_blinks_out() {
+    let _g = crate::app::theme_test_guard();
     // A busy pane always shows the dot (never None), and its colour changes
     // over the pulse — the trough (dim) differs from the peak (full).
     let trough = strip_marker(false, None, true, 0).expect("busy always shows a dot");
@@ -130,6 +130,10 @@ fn busy_pane_pulses_a_dot_that_never_blinks_out() {
     assert_ne!(trough.1, peak.1, "the dot pulses between dim and bright");
     // Busy beats a plain activity dot; both are '●' but busy pulses.
     assert!(strip_marker(true, None, true, 0).is_some());
+    crate::motion::set_level(crate::motion::MotionLevel::Off); // a still frame, at full
+    let still = |now| strip_marker(false, None, true, now).map(|m| m.1);
+    let full = Some(crew_theme::theme().activity);
+    assert_eq!((still(0), still(PULSE_MS / 2)), (full, full));
 }
 
 /// Read the tile back as text, one string per row.

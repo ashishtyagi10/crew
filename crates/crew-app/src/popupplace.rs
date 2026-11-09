@@ -39,11 +39,16 @@ pub(crate) fn card_cols(content: usize, cols: u16) -> u16 {
 /// The y (surface px) of a pop-up `mh` px tall whose bottom edge meets the
 /// composer's top edge in pane `r`; clamped at the pane's top when the
 /// pop-up is taller than the room above.
+///
+/// Measured on the content grid the pane is drawn in (`card_inner_cells`,
+/// a cell inside the frame on every side), not on `r` itself: counted from
+/// the rect, the frame's bottom row stood in for a content row, so the card
+/// sat one row low — its bottom stroke on the composer's top border, and
+/// `popupband` cleared that border right of the card (loop 30, U4).
 pub(crate) fn above_composer(pane: &ChatPane, r: Rect, cw: f32, ch: f32, mh: f32) -> f32 {
-    let cols = (r.w / cw).floor() as u16;
-    let rows = (r.h / ch).floor() as u16;
+    let (cols, rows) = crate::layout::card_inner_cells(r.w, r.h, cw, ch);
     let g = crate::chatplace::grants(pane, cols, rows);
-    let composer_top = r.y + f32::from(rows.saturating_sub(g.bottom)) * ch;
+    let composer_top = r.y + ch + f32::from(rows.saturating_sub(g.bottom)) * ch;
     (composer_top - mh).max(r.y)
 }
 

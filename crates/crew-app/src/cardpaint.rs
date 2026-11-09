@@ -17,9 +17,6 @@ use crate::plot::{sdf, Canvas};
 
 /// Thickness of a border indicator, in cell widths.
 const WEIGHT: f32 = 0.34;
-/// One full bounce of the indeterminate sweep, in ms — the same clock the
-/// glyph sweep used, so nothing about the motion changed but its smoothness.
-const SWEEP_MS: u64 = 1400;
 /// Rows a card needs before its gutter is worth drawing.
 const MIN_ROWS: u16 = 5;
 
@@ -167,27 +164,7 @@ fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64, mid: f32) -> V
             }
         }
         Some(_) => {}
-        None => {
-            // A comet: a block of the same width the glyph sweep used, but
-            // shaded so its LEADING edge is brightest and it fades away
-            // behind. A block of constant brightness cannot say which way it
-            // is going, and half of a bounce is spent going the other way.
-            let w = (inner / 5.0).max(1.0);
-            let travel = (inner - w).max(0.0);
-            let phase = crate::anim::tri(now, SWEEP_MS);
-            let x0 = 1.0 + phase * travel;
-            // Which way it is heading, from the wave a moment later.
-            let forward = crate::anim::tri(now + SWEEP_MS / 64, SWEEP_MS) >= phase;
-            c.fill_sdf_shaded(
-                (x0, y, w, WEIGHT),
-                move |px, py| sdf::round_box((px, py), x0, y, w, WEIGHT, WEIGHT * 0.5),
-                move |px, _| {
-                    let t = ((px - x0) / w).clamp(0.0, 1.0);
-                    let lead = if forward { t } else { 1.0 - t };
-                    (fg, lead.powf(1.6) * 0.95)
-                },
-            );
-        }
+        None => crate::cardcomet::comet(&mut c, inner, y, WEIGHT, fg, now),
     }
     c.paint()
         .into_iter()

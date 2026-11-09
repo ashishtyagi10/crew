@@ -22,9 +22,11 @@ fn glass_lets_the_desktop_through() {
         let Some(l) = id.theme().liquid else { continue };
         let name = id.as_str();
         // Neon's holographic glass is a dark room with a grid of its own
-        // (`holo`): its window keeps most of the desktop out, and its panes
-        // are thinner glass over the grid, which shows through them.
-        if l.holo > 0.0 {
+        // (`holo`), and prism one with a 3D scene of its own
+        // (`ThemeId::scene`): the window keeps most of the desktop out, and
+        // the panes are thinner glass over what the room shows, which shows
+        // through them.
+        if l.holo > 0.0 || id.scene().is_some() {
             assert!((0.6..=0.9).contains(&l.window), "{name}: window");
             assert!(l.body < 0.5 && l.pane_cover() < 0.95, "{name}: body");
             continue;

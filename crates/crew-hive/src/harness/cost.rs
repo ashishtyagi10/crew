@@ -28,6 +28,21 @@ pub(crate) fn billed(model_id: &str, tier: ModelTier, c: &Completion) -> u64 {
         .unwrap_or_else(|| crate::pricing::usage_cost(tier.model_id(), c))
 }
 
+/// What one reply used and cost, published as it happens: a turn that spends
+/// four model calls must not look like one call's worth to the budget
+/// governor watching these events. Every call of every loop bills here.
+pub(super) fn publish(ctx: &super::TurnContext, model_id: &str, tier: ModelTier, c: &Completion) {
+    ctx.publish(crate::bus::HiveEvent::TokenDelta {
+        agent: ctx.agent.clone(),
+        input: c.input_tokens,
+        output: c.output_tokens,
+    });
+    ctx.publish(crate::bus::HiveEvent::CostDelta {
+        agent: ctx.agent.clone(),
+        micros_usd: billed(model_id, tier, c),
+    });
+}
+
 #[cfg(test)]
 #[path = "cost_tests.rs"]
 mod tests;

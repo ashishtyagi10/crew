@@ -63,6 +63,8 @@ pub struct SettingsPane {
     /// number typed is the number said rather than eight digits.
     pub(crate) budget5h_buf: String,
     pub(crate) budget7d_buf: String,
+    /// The `scrollback` length, in lines.
+    pub(crate) scrollback_buf: String,
     /// The width the form was last DRAWN at, so key handling can ask the
     /// layout what order the fields are in (`form::tab_order`). A `Cell`
     /// because rendering takes `&self` — and the frame always precedes the
@@ -83,6 +85,7 @@ impl SettingsPane {
         let patterns_buf = cfg.notify_patterns.join("\n");
         let budget5h_buf = tokens::label(cfg.usage_budget_5h);
         let budget7d_buf = tokens::label(cfg.usage_budget_7d);
+        let scrollback_buf = format!("{}", cfg.scrollback);
         Self {
             draft: cfg,
             families,
@@ -97,6 +100,7 @@ impl SettingsPane {
             patterns_buf,
             budget5h_buf,
             budget7d_buf,
+            scrollback_buf,
             cols: std::cell::Cell::new(0),
         }
     }

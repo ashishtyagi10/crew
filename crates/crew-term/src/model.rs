@@ -93,13 +93,20 @@ pub(crate) struct TermCore {
     /// size reports (`modelsize`). The app publishes it on every relayout; a
     /// plausible 8×16 until then.
     cell_px: (u32, u32),
+    /// Lines thrown off the top of a full scrollback, ever: what keeps a
+    /// picture's absolute anchor moving once `history_size` stops growing
+    /// (see `modelevict`).
+    evicted: u64,
+    /// How many lines of scrollback the primary screen keeps.
+    history_cap: usize,
 }
 
 /// A picture the program asked for, and where in the buffer it goes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlacedImage {
-    /// Absolute buffer line: scrollback above the screen plus the cursor's
-    /// row. Stable as the screen scrolls, which a viewport row is not.
+    /// Absolute buffer line: every line ever scrolled into the history (kept
+    /// or since evicted) plus the cursor's row. Stable as the screen scrolls,
+    /// which a viewport row is not; `TermCore::screen_line` is the top row's.
     pub line: u64,
     pub col: u16,
     /// How many columns and rows of the grid it covers.
@@ -116,7 +123,9 @@ impl TermCore {
             rows: size.rows as usize,
         };
         let events = TermEvents::default();
-        let term = Term::new(Config::default(), &dims, events.clone());
+        let config = Config::default();
+        let history_cap = config.scrolling_history;
+        let term = Term::new(config, &dims, events.clone());
         let core = Self {
             term,
             parser: Processor::new(),
@@ -129,6 +138,8 @@ impl TermCore {
             wipes: Default::default(),
             cell_px: (8, 16),
             cellq: modelsize::Queries::default(),
+            evicted: 0,
+            history_cap,
         };
         core.publish_size();
         core
@@ -163,7 +174,13 @@ impl TermCore {
     }
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
-        self.osc7.feed(bytes);
+        let prompts = self.osc7.feed(bytes);
+        self.feed_split(bytes, &prompts);
+    }
+
+    /// Everything but the OSC sniff, for one piece of a chunk (`feed_split`
+    /// cuts a chunk at each prompt mark).
+    fn feed_part(&mut self, bytes: &[u8]) {
         // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
         replies.push_str(&self.cellq.feed(bytes, self.cell_px));
@@ -227,12 +244,18 @@ mod cursorpos;
 mod headless;
 #[path = "modelcells.rs"]
 mod modelcells;
+#[path = "modelcolor.rs"]
+mod modelcolor;
+#[path = "modelevict.rs"]
+mod modelevict;
 #[path = "modelimage.rs"]
 mod modelimage;
 #[path = "modellast.rs"]
 mod modellast;
 #[path = "modelmodes.rs"]
 mod modelmodes;
+#[path = "modelprompt.rs"]
+mod modelprompt;
 #[path = "modelscroll.rs"]
 mod modelscroll;
 #[path = "modelsel.rs"]
@@ -256,3 +279,6 @@ mod model_tests;
 #[cfg(test)]
 #[path = "modelmarks_tests.rs"]
 mod modelmarks_tests;
+#[cfg(test)]
+#[path = "modelprompt_tests.rs"]
+mod modelprompt_tests;

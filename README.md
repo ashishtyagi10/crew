@@ -282,7 +282,7 @@ way that machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
@@ -395,7 +395,7 @@ minutes while the pane is closed; a click opens `/inbox`.
 **How crew looks is one command.** `/look` owns the whole appearance family
 as SUBJECTS — `theme`, `font`, `weight`, `leading`, `density`, `motion`,
 `contrast`, `shapes`, `crt`, `gradient`, `smooth`,
-`gamma`, `invisibles` — and the palette walks them in two steps: `/look `
+`gamma`, `invisibles`, `3d` — and the palette walks them in two steps: `/look `
 lists the subjects, `/look gamma ` lists that subject's ladder with the value
 you are on marked. Fifteen rows became one, which is fourteen fewer names to
 know and fourteen fewer rows between you and `/find`. The old spellings
@@ -810,7 +810,12 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
   as one JSON line on stdin and has five seconds. A pre hook that exits 2, or
   prints `{"decision": "block", "reason": "…"}`, stops the call and the agent
   reads why as its result; a post hook's output lands under the result, so a
-  formatter or linter answers back. `CREW_HOOKS=0` turns hooks off.
+  formatter or linter answers back. A `"stop": [{"cmd": "…"}]` hook runs when
+  an agent is about to end its turn (Claude Code's Stop hook): it reads the
+  answer and `stop_hook_active`, and exit 2 or a block decision sends the
+  reason back and the turn goes on, at most three times; a hook that fails
+  or times out ends the turn as a failed `hook:stop` row instead.
+  `CREW_HOOKS=0` turns hooks off.
 
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel
@@ -897,7 +902,10 @@ configurable property: font family/size, font smoothing (the `/smooth`
 ladder), text gamma
 (the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, card border
-marks, revealed invisibles, launch-maximized, Option as Meta, and the whole
+marks, revealed invisibles, the 3D backdrop (`theme · off · orbit · prism`,
+as `/look 3d`), launch-maximized, Option as Meta, scrollback
+length (`scrollback`, default 10 000 lines, 100–100 000 — a save resizes the
+panes already open), and the whole
 notification block (master + per-event toggles, min-secs threshold, watched
 output patterns as a one-per-line text area). Every key in the config file has
 a field here, and a test that parses `config.rs` says so. **Cmd+S / Alt+S**
@@ -937,9 +945,9 @@ brightnesses; code is highlighted by brightness alone, as on a phosphor
 terminal (keywords brightest, then types and calls, numbers, strings,
 comments). A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
-`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `dark` — a new one
+`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `prism` → `dark` — a new one
 every 10 minutes, whatever the clock or the OS appearance. In `classic` it shows all five,
-one after another, so every lap (110 minutes) shows every classic.
+one after another, so every lap (120 minutes) shows every classic.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
 it is always dark, whatever the OS appearance or the clock. A fine grid glows
@@ -979,7 +987,27 @@ violet→magenta ring, with progress marks in a pale mint. Its code is in
 jewel tones: orchid keywords, amber types, periwinkle calls, rose numbers and
 mint strings. `nebula` is violet too, but on a near-black page; here the page
 itself is purple. `/theme purple` or `/theme amethyst` turns it on.
-That makes **fifteen palettes** in all.
+
+`prism` is the 3D theme: one jade page of sheer glass with a 3D scene of its
+own behind the panes, on by default. Faceted glass prisms and two small gems
+drift at three depths across the window, tumbling slowly and fading into the
+page through a fog of its own colour, lit by its ice-mint accent with a coral
+rim light, over a thin halo in its teal→violet ring colours. The scene fills
+the frame evenly at low contrast, so every pane of a grid has depth behind
+it, and it turns only while a pane works (it holds still at Motion off). The
+window keeps most of your desktop out, as neon's does, so the scene is what
+shows; each pane is a sheerer slab than the smoked glass, so the prisms read
+through it. Words are near-white, the face is SF Mono, and code is in the
+split beam's colours: ice-mint keywords, lilac types, sky calls, coral
+numbers, jade strings. `/theme prism` turns it on; `/look 3d off` keeps the
+page and drops the scene.
+
+**The 3D backdrop** is `/look 3d` (or `/3d`): `theme` (the default) draws
+the theme's own scene — only prism has one — `off` draws none on any theme,
+and `orbit` (a metal knot with a ring of crystals) or `prism` draws that
+scene on every glass theme. A paper page's panes are solid, so the scene
+shows only behind glass.
+That makes **sixteen palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a

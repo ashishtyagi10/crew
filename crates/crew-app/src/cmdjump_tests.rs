@@ -44,11 +44,12 @@ fn a_start_on_the_live_screen_is_reached_at_the_bottom() {
 }
 
 #[test]
-fn a_start_older_than_the_history_clamps_to_the_top() {
-    // The scrollback wrapped past line 0's span: offsets stop at `history`.
-    let starts = [0];
-    assert_eq!(jump_target(&starts, NOW, ROWS, 500, 0, true), Some(500));
-    assert_eq!(jump_target(&starts, NOW, ROWS, 500, 500, true), None);
+fn a_start_older_than_the_history_is_skipped() {
+    // The scrollback threw line 0 away (its offset, 980, is past the 500
+    // kept): the oldest start still held, line 700, is as far up as it goes.
+    let starts = [0, 700];
+    assert_eq!(jump_target(&starts, NOW, ROWS, 500, 0, true), Some(280));
+    assert_eq!(jump_target(&starts, NOW, ROWS, 500, 280, true), None);
 }
 
 #[test]
@@ -90,7 +91,7 @@ fn the_screens_chord_up_scrolls_the_focused_terminal_to_a_command() {
         "the shell never filled the history"
     );
     // A command started 30 lines above the live screen's top row.
-    let from = t.pty.scrollable_lines() - 10 - 30;
+    let from = t.pty.lines_seen() - 10 - 30;
     t.spans.started("build".into(), from, 0);
     app.focused = 0;
     let mods = match cfg!(target_os = "macos") {
@@ -108,4 +109,56 @@ fn the_screens_chord_up_scrolls_the_focused_terminal_to_a_command() {
         30,
         "the command's start is the top row"
     );
+}
+
+/// Once the scrollback is full the jump still lands on the command's line:
+/// a 20-line scrollback, a mark on the screen's top row, 12 more lines, and
+/// Opt+↑ must show that same row on top again. A mark the scrollback has
+/// since thrown away is no longer a place to jump to.
+#[test]
+fn a_mark_in_a_full_scrollback_still_lands_on_its_line() {
+    use crate::app::CrewApp;
+    use crate::pane::{spawn_pane, PaneContent, TermPane};
+    let grid = crew_term::GridSize { cols: 40, rows: 10 };
+    let mut app = CrewApp::default();
+    let pane = spawn_pane("sh", "sh", grid, Some(&std::env::temp_dir())).unwrap();
+    app.panes.push(pane);
+    let PaneContent::Terminal(t) = &mut app.panes[0].content else {
+        panic!("not a terminal");
+    };
+    t.pty.set_scrollback(20);
+    use crew_term::TermModel;
+    let text = |t: &TermPane| crate::search::rows_text(&t.pty.cells(false), 40, 10, false);
+    let top = |t: &TermPane| text(t)[0].clone();
+    // `n` lines of `p<i>`, then `done`, and wait until `done` is on screen.
+    let run = |t: &mut TermPane, p: &str, n: usize, done: &str| {
+        use std::io::Write;
+        let s =
+            format!("i=0; while [ $i -lt {n} ]; do echo {p}$i; i=$((i+1)); done; echo {done}\n");
+        let _ = t.input.write_all(s.as_bytes());
+        let end = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        let seen = |t: &TermPane| text(t).iter().any(|r| r.starts_with(done));
+        while !seen(t) && std::time::Instant::now() < end {
+            t.pty.try_read();
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        assert!(seen(t), "{done} never arrived");
+    };
+    run(t, "a", 60, "ONE");
+    let marked = top(t);
+    t.spans.started("build".into(), t.pty.lines_seen() - 10, 0);
+    run(t, "b", 12, "TWO");
+    assert!(app.jump_command(true));
+    let PaneContent::Terminal(t) = &mut app.panes[0].content else {
+        unreachable!()
+    };
+    assert!(t.pty.display_offset() > 0, "the jump went nowhere");
+    assert_eq!(top(t), marked, "the mark's own line is on top");
+    t.pty.scroll(-(t.pty.display_offset() as i32));
+    run(t, "c", 40, "SIX");
+    assert!(app.jump_command(true));
+    let PaneContent::Terminal(t) = &app.panes[0].content else {
+        unreachable!()
+    };
+    assert_eq!(t.pty.display_offset(), 0, "an evicted mark is not a target");
 }

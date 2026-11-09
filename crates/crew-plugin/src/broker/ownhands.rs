@@ -119,6 +119,9 @@ impl ToolRunner for OwnHands {
     fn checklist(&self) -> Option<&Checklist> {
         self.0.checklist()
     }
+    fn stop(&self, answer: &str, held: bool) -> crew_hive::tools::StopCheck {
+        self.0.stop(answer, held)
+    }
 }
 
 /// `specs` without the twins, so the native path offers what the text does.

@@ -47,8 +47,14 @@ pub(crate) fn relay_turn(
     let mut werr: anyhow::Result<()> = Ok(());
     let mut told = super::fellback::Told::default();
     let stats = broker.run("user", start, &body, tid, tick_emit, &mut |hop| {
+        // The calls the answer never ran ride beside it (smith's row, not
+        // its text), and go back in for what reads the answer next — the
+        // reply judge, the next `/loop` round — which must hear of them.
         if hop.kind == HopKind::Done && !hop.text.is_empty() {
-            answer = Some(hop.text.clone());
+            answer = Some(match hop.usage.not_run.as_str() {
+                "" => hop.text.clone(),
+                note => format!("{}\n\n{note}", hop.text),
+            });
         }
         // A Dialing hop opens an agent's segment; any other hop closes it —
         // the closed segment is that reply's latency, streamed at once as that

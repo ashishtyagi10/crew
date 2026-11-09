@@ -8,7 +8,6 @@ use super::{
     chunks, failure, finish, lastword, overflow, steered, textround, toolloop, Ended, TurnContext,
     TurnSpec,
 };
-use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider};
 use crate::steers::Steers;
 use crate::tools::{self, Tools};
@@ -21,7 +20,6 @@ pub(super) async fn run(
     tools: Option<Arc<dyn Tools>>,
     steers: Option<Steers>,
 ) -> Ended {
-    let agent_id = ctx.agent.clone();
     let TurnSpec {
         ask,
         prompt: mut body,
@@ -66,6 +64,8 @@ pub(super) async fn run(
     // What the engine made of the latest round it read (`Advice`), for every
     // follow-up after it.
     let mut advice = String::new();
+    // The user's stop check, which may hold an answer back (`hold`).
+    let mut hold = super::hold::Hold::default();
     loop {
         // A stop pressed while the last round's tools ran: no next call. The
         // tools already run are not undone (`stop`).
@@ -109,25 +109,23 @@ pub(super) async fn run(
             Some(Err(err)) => return failure::failed(&ctx, &err),
         };
         sink.settle(&completion);
-        // Billed per round, as it happens: a run that spends four model calls
-        // on tools must not look like one call's worth of tokens to the
-        // budget governor watching these events.
-        ctx.publish(HiveEvent::TokenDelta {
-            agent: agent_id.clone(),
-            input: completion.input_tokens,
-            output: completion.output_tokens,
-        });
-        ctx.publish(HiveEvent::CostDelta {
-            agent: agent_id.clone(),
-            micros_usd: super::cost::billed(&model_id, tier, &completion),
-        });
+        super::cost::publish(&ctx, &model_id, tier, &completion);
 
         let asked = tools
             .as_ref()
             .and_then(|_| tools::split_tool_calls(&completion.text));
         let (Some(runner), Some((said, calls))) = (tools.as_ref(), asked) else {
-            // No tool asked for: this reply is the answer.
-            return finish::answer(&ctx, tools.as_ref(), completion.text);
+            // No tool asked for: this reply is the answer, unless it is held.
+            let text = completion.text;
+            let Some(note) = hold.check(&ctx, tools.as_ref(), &text).await else {
+                return finish::answer(&ctx, tools.as_ref(), text);
+            };
+            let list = tools::todo::section(tools.as_ref().and_then(|t| t.checklist()));
+            let heard = steered::heard(steers.as_ref()) + &advice;
+            let heard = format!("{heard}YOUR ANSWER WAS:\n{text}\n\n{note}\n\n");
+            let left = ctx.budget.left();
+            prompt = toolloop::follow_up(&base, &list, &exchanges, &heard, left, &ending);
+            continue;
         };
         // One round for the reply, however many calls it made: a round is a
         // round trip (`textround`). The batch runs either way.

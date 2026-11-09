@@ -21,7 +21,7 @@ fn term() -> HeadlessTerm {
 
 /// Whether a picture taken earlier survives the wipes taken now.
 fn survives(t: &mut HeadlessTerm, line: u64, alt: bool) -> bool {
-    t.take_image_wipes().iter().all(|w| w.keeps(line, alt))
+    t.take_image_wipes().iter().all(|w| w.keeps(line, alt, 0))
 }
 
 #[test]
@@ -53,8 +53,14 @@ fn erasing_the_screen_keeps_the_scrollback_pictures() {
     let new = t.take_images().remove(0);
     t.feed(b"\x1b[2J");
     let wipes = t.take_image_wipes();
-    assert!(wipes.iter().all(|w| w.keeps(old.line, false)), "{wipes:?}");
-    assert!(!wipes.iter().all(|w| w.keeps(new.line, false)), "{wipes:?}");
+    assert!(
+        wipes.iter().all(|w| w.keeps(old.line, false, 0)),
+        "{wipes:?}"
+    );
+    assert!(
+        !wipes.iter().all(|w| w.keeps(new.line, false, 0)),
+        "{wipes:?}"
+    );
 }
 
 #[test]
@@ -70,11 +76,11 @@ fn the_alternate_screen_takes_its_pictures_when_it_goes() {
     let wipes = t.take_image_wipes();
     assert_eq!(wipes, [ImageWipe::Alt(false)]);
     assert!(
-        !wipes[0].keeps(preview.line, preview.alt),
+        !wipes[0].keeps(preview.line, preview.alt, 0),
         "no ghost preview"
     );
     assert!(
-        wipes[0].keeps(shell.line, shell.alt),
+        wipes[0].keeps(shell.line, shell.alt, 0),
         "the shell's own stays"
     );
 }
@@ -94,4 +100,43 @@ fn ordinary_output_drops_nothing() {
     t.feed(format!("{}\x1b[K\x1b[J\x1b[?1006h{}", picture(), "y\r\n".repeat(30)).as_bytes());
     assert_eq!(t.take_image_wipes(), []);
     assert_eq!(t.take_images().len(), 1);
+}
+
+/// `picture()` sent as kitty id `id`, quietly (`q=2`): no replies to drain.
+fn picture_id(id: u32) -> String {
+    picture().replacen("a=T,", &format!("a=T,i={id},q=2,"), 1)
+}
+
+/// A previewer deleting its last preview by id takes that one alone — from
+/// the pictures not yet handed over and the ones the app already holds.
+#[test]
+fn a_kitty_delete_by_id_takes_only_that_picture() {
+    let mut t = term();
+    t.feed(format!("{}{}\x1b_Ga=d,d=i,i=1\x1b\\", picture_id(1), picture_id(2)).as_bytes());
+    let held: Vec<u32> = t.take_images().iter().map(|p| p.cmd.id).collect();
+    assert_eq!(held, [2]);
+    t.feed(picture_id(3).as_bytes());
+    let img = t.take_images().remove(0);
+    t.feed(b"\x1b_Ga=d,d=I,i=1\x1b\\");
+    let wipes = t.take_image_wipes();
+    assert!(
+        wipes.iter().all(|w| w.keeps(img.line, img.alt, 3)),
+        "{wipes:?}"
+    );
+    assert!(
+        !wipes.iter().all(|w| w.keeps(img.line, img.alt, 1)),
+        "{wipes:?}"
+    );
+    assert!(
+        wipes.iter().all(|w| w.keeps(img.line, img.alt, 0)),
+        "no id, not named"
+    );
+    // A delete by id that names none takes none — not the pictures sent
+    // without an id.
+    t.feed(b"\x1b_Ga=d,d=i\x1b\\");
+    let wipes = t.take_image_wipes();
+    assert!(
+        wipes.iter().all(|w| w.keeps(img.line, img.alt, 0)),
+        "{wipes:?}"
+    );
 }

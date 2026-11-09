@@ -137,3 +137,19 @@ fn wheel_reports_carry_shift_and_alt_bits() {
     };
     assert_eq!(wheel_bytes(&alt, 1, (0, 0), 8), Some(b"\x1b[A".to_vec()));
 }
+
+#[test]
+fn shift_home_end_reach_a_full_screen_program_with_their_shift() {
+    // On the primary screen Crew jumps its own scrollback.
+    assert_eq!(end_bytes(&modes(), true), None);
+    assert_eq!(end_bytes(&modes(), false), None);
+    let alt = InputModes {
+        alt_screen: true,
+        ..modes()
+    };
+    // As xterm sends them: less 668 jumps to its end on `CSI 1;2 F`.
+    assert_eq!(end_bytes(&alt, true), Some(b"\x1b[1;2H".to_vec()));
+    assert_eq!(end_bytes(&alt, false), Some(b"\x1b[1;2F".to_vec()));
+    // Shift+PgDn stays plain: less rings the bell on `CSI 6;2 ~`.
+    assert_eq!(page_bytes(&alt, false), Some(b"\x1b[6~".to_vec()));
+}

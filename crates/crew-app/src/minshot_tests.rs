@@ -70,7 +70,18 @@ fn min_shot_thumbnails() {
             "7 todo",
             None,
             0,
-            Some("4 open items \u{b7} 1 overdue"),
+            Some("1 overdue \u{b7} 4 open"),
+        ),
+        // ...and on the narrowest thumb the strip deals (14 columns, its
+        // `MIN_STRIP_TILE_COLS`), where the clip takes the tail: the late
+        // count leads so it is the part that stays (survey UI #17).
+        (
+            "min-drawn-narrow",
+            136,
+            "7 todo",
+            None,
+            0,
+            Some("1 overdue \u{b7} 4 open"),
         ),
     ] {
         let Some(px) = thumb_shot(name, w, title, marker, unread, preview) else {

@@ -81,7 +81,8 @@ pub(crate) fn tidy(s: &str) -> Option<String> {
 ///
 /// Nothing is drawn rather than a clipped word when the room is gone — see
 /// [`MIN_ROOM`]. The colour is the muted one because this is a glance at a
-/// pane you are not reading, sitting under the title that names it.
+/// pane you are not reading, sitting under the title that names it — all but
+/// a leading alarm ([`crate::paneglance::alarm`]), which is the attention ink.
 pub(crate) fn cells(text: &str, cols: u16, badge: usize) -> Vec<CellView> {
     let right = match badge {
         0 => 0,
@@ -95,18 +96,21 @@ pub(crate) fn cells(text: &str, cols: u16, badge: usize) -> Vec<CellView> {
     }
     let t = crew_theme::theme();
     let mut out = Vec::new();
+    // An alarm the line leads with (`1 overdue`) is not a glance, it is the
+    // reason to restore the pane: it takes the attention ink, muted around it.
+    let alarm = crate::paneglance::alarm(text);
     let text = crate::chatwidth::clip_words(text, room);
     crate::chatwidth::place_row(
         LEFT,
         u16::MAX,
-        text.chars().map(|c| (c, ())),
-        |col, c, marks, ()| {
+        text.chars().enumerate().map(|(i, c)| (c, i < alarm)),
+        |col, c, marks, loud| {
             out.push(CellView {
                 col,
                 row: 0,
                 c,
                 marks,
-                fg: t.text_muted,
+                fg: if loud { t.bell } else { t.text_muted },
                 bg: t.page_bg,
                 ..Default::default()
             })

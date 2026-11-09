@@ -92,6 +92,9 @@ pub struct CrewApp {
     /// redraw-scheduling flag `wants_animation_frame` reads.
     pub(crate) glide_prev_ms: u64,
     pub(crate) glide_active: bool,
+    /// The wall second a working pane's clocks were last drawn at Motion Off
+    /// (`CrewApp::clock_tick`): the one frame a second Off still owes them.
+    pub(crate) clock_sec: u64,
     /// Theme-switch crossfade (see [`crate::themefade`]): the last theme id
     /// drawn, and the old-frame melt running when it changes. `None` until
     /// first frame.

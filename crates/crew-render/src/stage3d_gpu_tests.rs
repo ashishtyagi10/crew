@@ -126,3 +126,92 @@ fn the_orbit_draws_low_on_the_right_and_off_draws_nothing() {
     assert!(off.chunks(4).all(|p| p[3] == 0), "off draws nothing");
     assert!(stage.live.is_none(), "and holds nothing");
 }
+
+/// Prism fills the frame (ink in every third across) rather than one corner,
+/// still dimmed under the panes; and going orbit → off → prism builds the
+/// scene anew but threers' renderer once, so `auto` walking into prism once
+/// a lap pays the pipeline build once, not every lap.
+#[test]
+fn prism_fills_the_frame_and_the_renderer_outlives_off() {
+    let _g = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some((device, queue)) = device() else {
+        eprintln!("no GPU adapter, skipping");
+        return;
+    };
+    let mut stage = Stage3dPass::new(&device, FORMAT);
+    set_phase(0.1);
+    set_stage(Some(Stage::Orbit));
+    shot(&mut stage, &device, &queue);
+    set_stage(None);
+    shot(&mut stage, &device, &queue);
+    assert!(stage.live.is_none(), "off lets the scene go");
+    set_stage(Some(Stage::Prism));
+    let px = shot(&mut stage, &device, &queue);
+    set_stage(None);
+    if let Ok(dir) = std::env::var("CREW_SHOT_DIR") {
+        // Premultiplied: laid over a jade page to be looked at.
+        let page = [4u8, 30, 26];
+        let over: Vec<u8> = px
+            .chunks(4)
+            .flat_map(|p| {
+                let k = 255 - u16::from(p[3]);
+                let c = |i: usize| (u16::from(p[i]) + u16::from(page[i]) * k / 255).min(255) as u8;
+                [c(0), c(1), c(2), 255]
+            })
+            .collect();
+        let path = format!("{dir}/stage3d-prism.png");
+        image::save_buffer(&path, &over, W, H, image::ColorType::Rgba8).unwrap();
+        eprintln!("wrote {path}");
+    }
+    assert_eq!(stage.counts.builds, 1, "the renderer was built again");
+    for third in 0..3 {
+        let x0 = W * third / 3;
+        let ink = covered(&px, (x0, x0 + W / 3), (0, H));
+        assert!(ink > 600, "third {third} is empty: {ink} px");
+    }
+    let brightest = px.chunks(4).map(|p| p[3]).max().unwrap_or(0);
+    assert!(brightest < 250, "dimmed under the panes: alpha {brightest}");
+}
+
+/// A frame drawn for a keystroke (same clock, same window) lays down the
+/// picture it has; only a new phase or a new window size draws the scene
+/// again. A live resize keeps the scene, and makes a new texture only when
+/// the window crosses a `SIZE_STEP`, not on every pixel of the drag.
+#[test]
+fn the_scene_draws_only_when_its_clock_or_the_window_moved() {
+    let _g = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some((device, queue)) = device() else {
+        eprintln!("no GPU adapter, skipping");
+        return;
+    };
+    let mut stage = Stage3dPass::new(&device, FORMAT);
+    set_stage(Some(Stage::Orbit));
+    set_phase(0.1);
+    for _ in 0..3 {
+        stage.prepare(&device, &queue, (W, H));
+    }
+    assert_eq!(stage.counts.renders, 1, "three keystrokes, one picture");
+    set_phase(0.2);
+    stage.prepare(&device, &queue, (W, H));
+    stage.prepare(&device, &queue, (W, H));
+    assert_eq!(stage.counts.renders, 2, "the clock moved once");
+    // A drag a pixel at a time (W is a whole step, so its first pixel opens
+    // the next one): drawn at each size, as the aspect moved, but on the
+    // same scene and on one new texture for all eight.
+    for dw in 1..=8 {
+        stage.prepare(&device, &queue, (W + dw, H));
+    }
+    assert_eq!((stage.counts.scenes, stage.counts.targets), (1, 2));
+    // And on past that step: one more.
+    stage.prepare(&device, &queue, (W + SIZE_STEP + 1, H));
+    set_stage(None);
+    assert_eq!(
+        stage.counts,
+        Counts {
+            builds: 1,
+            scenes: 1,
+            targets: 3,
+            renders: 11,
+        }
+    );
+}

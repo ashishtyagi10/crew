@@ -74,6 +74,7 @@ mod chatevents;
 mod chatexport;
 mod chatfield;
 mod chatfind;
+mod chatfinding;
 mod chatflash;
 mod chatflow;
 mod chatfold;
@@ -107,6 +108,7 @@ mod chatreceipt;
 mod chatreceiptcells;
 mod chatreceipthead;
 mod chatreceiptparse;
+mod chatreceiptreach;
 mod chatrepro;
 #[cfg(test)]
 #[path = "chatshot_tests.rs"]
@@ -138,11 +140,13 @@ mod popupband;
 #[cfg(test)]
 #[path = "quotestyle_tests.rs"]
 mod quotestyle_tests;
+mod scrollback;
 mod segment;
 mod shellback;
 mod signoutpick;
 
 mod canvas;
+mod cardcomet;
 mod cardmarks;
 mod cardpaint;
 #[cfg(test)]
@@ -345,6 +349,7 @@ mod helpinbox;
 mod helpkeys;
 mod helplayout;
 mod helppanes;
+mod helpscrim;
 #[cfg(test)]
 #[path = "helpshot_tests.rs"]
 mod helpshot_tests;
@@ -352,6 +357,7 @@ mod helptable;
 mod hintact;
 mod hintlegend;
 mod hints;
+mod hintslot;
 mod history;
 mod histsearch;
 mod hit;
@@ -566,6 +572,9 @@ mod procname;
 #[path = "proofshot_tests.rs"]
 mod proofshot_tests;
 mod quit;
+#[cfg(test)]
+#[path = "reachshot_tests.rs"]
+mod reachshot_tests;
 mod readout;
 mod reducemotion;
 mod relay;
@@ -578,6 +587,9 @@ mod restartnote;
 #[cfg(test)]
 #[path = "restartshot_tests.rs"]
 mod restartshot_tests;
+#[cfg(test)]
+#[path = "reviewshot_tests.rs"]
+mod reviewshot_tests;
 mod route;
 mod runclock;
 mod runpane;
@@ -596,6 +608,7 @@ mod settingspane;
 mod shapecues;
 mod shellargs;
 mod shellprobe;
+mod shiftscroll;
 mod shimmer;
 #[cfg(test)]
 #[path = "shotdraw_tests.rs"]

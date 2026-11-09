@@ -55,7 +55,7 @@ impl CrewApp {
                 t.read_at,
                 true,
                 t.pty.display_offset() == 0,
-                t.pty.scrollable_lines(),
+                t.pty.lines_seen(),
             );
         }
         let focus_t = self.focus_fx(now);
@@ -218,17 +218,17 @@ impl CrewApp {
         if let Some(r) = self.renderer.as_mut() {
             r.set_glass_light(self.pointer_light.tilt());
         }
-        // …and the card under it rises a little.
+        // …and the card under it rises; the keys panel stills and dims all (`helpscrim`).
         let hovered = self.cursor_in.then(|| self.pane_at_cursor()).flatten();
-        self.hover_lift.aim(hovered);
+        self.hover_lift
+            .aim(crate::helpscrim::hover(self.help_open, hovered));
         self.hover_lift.step(glide_dt, crate::motion::level());
         self.hover_lift.apply(&mut scenes, &self.panes);
-
+        crate::helpscrim::apply(&mut scenes, self.help_open);
         // The solidity pass holds only overlays (collected below, once they are
         // placed): the panes, the nav and the input bar are all the same
         // frosted glass in a sheer window.
         self.solid_chrome.clear();
-
         // Toast cards at the top-right of the content area — pushed before the
         // help early-return so an open help screen doesn't swallow them.
         let cursor = self.cursor_in.then_some(self.cursor);

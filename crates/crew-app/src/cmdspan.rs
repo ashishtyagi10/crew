@@ -26,8 +26,8 @@
 pub(crate) struct Span {
     /// What was running.
     pub name: String,
-    /// Buffer lines when it started, and when it stopped. `to` is `None`
-    /// while it is still running.
+    /// `lines_seen` when it started and stopped (evicted lines count, so a
+    /// mark outlives a full scrollback). `to` is `None` while it is running.
     pub from: usize,
     pub to: Option<usize>,
     /// The exit status the shell reported for it (OSC 133 `D`). `None` for

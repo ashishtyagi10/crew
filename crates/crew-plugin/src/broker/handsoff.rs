@@ -28,6 +28,13 @@ fn flags(program: &str) -> &'static [&'static str] {
     }
 }
 
+/// Whether crew knows a read-only mode for `program`. A manifest agent's
+/// own command has none crew can name, so its review is guarded instead
+/// (`reviewguard`).
+pub(crate) fn known(program: &str) -> bool {
+    !flags(program).is_empty()
+}
+
 /// `args` (the call's argv, body already in place) with `program`'s
 /// read-only flags after the first argument, its subcommand (`exec`, `run`).
 pub(crate) fn cli_args(program: &str, mut args: Vec<String>) -> Vec<String> {

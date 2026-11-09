@@ -14,17 +14,28 @@ fn modes(alt_screen: bool, mouse: bool, focus_events: bool) -> InputModes {
 
 #[test]
 fn only_left_reporting_on_the_primary_screen_is_cleared() {
-    assert_eq!(leftover_reset(modes(false, false, false)), None);
-    assert_eq!(leftover_reset(modes(false, true, false)), Some(RESET));
-    assert_eq!(leftover_reset(modes(false, false, true)), Some(RESET));
+    assert_eq!(leftover_reset(modes(false, false, false), false), None);
+    assert_eq!(
+        leftover_reset(modes(false, true, false), false),
+        Some(RESET)
+    );
+    assert_eq!(
+        leftover_reset(modes(false, false, true), false),
+        Some(RESET)
+    );
+    // Scheme notifications alone are a leftover too.
+    assert_eq!(
+        leftover_reset(modes(false, false, false), true),
+        Some(RESET)
+    );
     // A full-screen program may still be the one that asked.
-    assert_eq!(leftover_reset(modes(true, true, true)), None);
+    assert_eq!(leftover_reset(modes(true, true, true), true), None);
     // Keys are the shell's own business: DECCKM alone is left on.
     let keys = InputModes {
         app_cursor: true,
         ..InputModes::default()
     };
-    assert_eq!(leftover_reset(keys), None);
+    assert_eq!(leftover_reset(keys, false), None);
 }
 
 fn pump_until(term: &mut PtyTerm, done: impl Fn(&PtyTerm) -> bool) -> bool {
@@ -83,4 +94,41 @@ fn the_alternate_screen_keeps_its_mouse() {
     }));
     assert!(!term.release_leftover_modes());
     assert!(term.input_modes().mouse);
+}
+
+/// Claude Code killed with `kill -9` leaves DECSET 2031 on, and every
+/// light/dark flip after that typed `ESC [ ? 997 ; 1 n` at the prompt. The
+/// shell back clears it like the mouse.
+#[test]
+fn a_dead_programs_scheme_notifications_go_when_the_shell_is_back() {
+    let mut term = PtyTerm::spawn(GridSize { cols: 60, rows: 8 }, "sh").unwrap();
+    let mut w = term.writer();
+    w.write_all(b"printf '\\033[?2031h'; echo LEFT\n").unwrap();
+    w.flush().unwrap();
+    assert!(pump_until(&mut term, |t| t.scheme_notify_enabled()));
+    assert!(!term.input_modes().mouse, "only 2031 is left on");
+    assert!(term.release_leftover_modes());
+    assert!(!term.scheme_notify_enabled());
+    assert!(!term.release_leftover_modes(), "nothing left");
+}
+
+/// A real shell: a program takes the alternate screen and the mouse and
+/// dies there. The shell's prompt mark (OSC 133 `A`) takes the pane back to
+/// the primary screen, and the leftover reset the app runs on that same mark
+/// then drops the mouse. Without a mark (the test above) both stay.
+#[test]
+fn a_prompt_mark_takes_a_dead_programs_alternate_screen_and_mouse() {
+    let mut term = PtyTerm::spawn(GridSize { cols: 60, rows: 8 }, "sh").unwrap();
+    let mut w = term.writer();
+    w.write_all(b"printf '\\033[?1049h\\033[?1000hFRAME'; sleep 0.3; printf '\\033]133;A\\007'\n")
+        .unwrap();
+    w.flush().unwrap();
+    assert!(pump_until(&mut term, |t| t.input_modes().alt_screen));
+    assert!(pump_until(&mut term, |t| !t.input_modes().alt_screen));
+    let marks = term.take_shell();
+    assert!(marks.contains(&crate::osc::ShellMark::Prompt), "{marks:?}");
+    assert!(term.input_modes().mouse, "left on until the reset");
+    assert!(term.release_leftover_modes());
+    let m = term.input_modes();
+    assert!(!m.alt_screen && !m.mouse, "{m:?}");
 }

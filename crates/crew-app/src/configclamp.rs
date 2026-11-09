@@ -26,6 +26,7 @@ impl CrewConfig {
             font_random: self.font_random,
             todo_reminders: self.todo_reminders,
             option_as_meta: self.option_as_meta,
+            scrollback: self.scrollback.clamp(SCROLLBACK_MIN, SCROLLBACK_MAX),
             accent: self.accent.filter(|s| !s.is_empty()),
             maximized: self.maximized,
             last_dir: self.last_dir,

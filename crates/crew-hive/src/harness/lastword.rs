@@ -31,7 +31,6 @@ use std::sync::Arc;
 
 use super::chunks::ChunkSink;
 use super::TurnContext;
-use crate::bus::HiveEvent;
 use crate::graph::ModelTier;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, Turn};
 use crate::tools::exchanges::Exchange;
@@ -121,15 +120,7 @@ pub(super) async fn ask(
     let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
     let completion = ctx.unless_stopped(call).await?.ok()?;
     sink.settle(&completion);
-    ctx.publish(HiveEvent::TokenDelta {
-        agent: ctx.agent.clone(),
-        input: completion.input_tokens,
-        output: completion.output_tokens,
-    });
-    ctx.publish(HiveEvent::CostDelta {
-        agent: ctx.agent.clone(),
-        micros_usd: super::cost::billed(model_id, tier, &completion),
-    });
+    super::cost::publish(ctx, model_id, tier, &completion);
     let text =
         crate::tools::split_tool_calls(&completion.text).map_or(completion.text, |(body, _)| body);
     (!text.trim().is_empty()).then(|| text.trim().to_string())

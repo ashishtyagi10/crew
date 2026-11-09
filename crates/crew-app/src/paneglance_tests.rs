@@ -26,7 +26,7 @@ fn a_todo_list_counts_what_is_open_and_late() {
     assert_eq!(pane(Vec::new()).as_deref(), Some("nothing open"));
     assert_eq!(
         pane(vec![item("a", false, None), item("b", true, None)]).as_deref(),
-        Some("1 open item")
+        Some("1 open")
     );
     assert_eq!(
         pane(vec![
@@ -34,8 +34,34 @@ fn a_todo_list_counts_what_is_open_and_late() {
             item("b", false, None),
         ])
         .as_deref(),
-        Some("2 open items \u{b7} 1 overdue")
+        Some("1 overdue \u{b7} 2 open")
     );
+}
+
+/// A narrow thumbnail keeps the late count, the one number worth restoring
+/// the pane for, and draws it in the attention ink while the rest stays
+/// muted. With the open count first the clip dropped `· 1 overdue` whole.
+#[test]
+fn a_narrow_thumbnail_keeps_the_overdue_count_loud() {
+    let _g = crate::app::theme_test_guard();
+    let t = crew_theme::theme();
+    let now = crate::chattime::unix_now_ms();
+    let mut items = vec![item("late", false, Some(now - 1000))];
+    items.extend((0..3).map(|_| item("b", false, None)));
+    let line = of(&PaneContent::Todo(crate::todopane::test_pane(items))).expect("a line");
+    let cells = crate::minpreview::cells(&line, 16, 0);
+    let text: String = cells.iter().map(|c| c.c).collect();
+    assert!(text.starts_with("1 overdue"), "{text:?} lost the alarm");
+    for c in &cells {
+        let loud = (c.col as usize) < 2 + "1 overdue".len();
+        let want = if loud { t.bell } else { t.text_muted };
+        assert_eq!(c.fg, want, "{:?} at {}", c.c, c.col);
+    }
+    // Only the exact alarm shape is loud: a terminal line is not.
+    assert_eq!(alarm("1 overdue"), 9);
+    assert_eq!(alarm("12 overdue \u{b7} 3 open"), 10);
+    assert_eq!(alarm("overdue"), 0);
+    assert_eq!(alarm("3 overdue invoices"), 0);
 }
 
 /// A viewer says where in the file you are, since the legend already says

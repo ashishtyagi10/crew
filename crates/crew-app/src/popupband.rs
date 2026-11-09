@@ -25,17 +25,16 @@ use crew_term::GridSize;
 /// `(top, bottom, from_col)` in the pane's content cells (`cols` × `rows`):
 /// the rows `top..bottom` the card spans and the first column past its frame.
 ///
-/// [`popupplace::above_composer`] measures the pane by its CARD rect — the
-/// content and the frame's cell either side — and stands the pop-up on that
-/// rect's left edge, while the content is drawn one cell in. So the card's
-/// geometry is taken rect-sized and handed back shifted into the content.
+/// [`popupplace::above_composer`] measures the pane on this same content
+/// grid, so the band's rows are the card's. The card is as wide as the pane's
+/// CARD rect allows (`render.rs` asks `popup` with the rect's columns) and
+/// stands on that rect's left edge, a cell left of the content — hence the
+/// `cols + 2` and the column shifted back in.
 ///
 /// [`popupplace::above_composer`]: crate::popupplace::above_composer
 pub(crate) fn band(c: &ChatPane, cols: u16, rows: u16) -> Option<(u16, u16, u16)> {
-    let (rc, rr) = (cols + 2, rows + 2);
-    let p = c.popup(rc)?;
-    let g = crate::chatplace::grants(c, rc, rr);
-    let bottom = rr.saturating_sub(g.bottom).saturating_sub(1);
+    let p = c.popup(cols + 2)?;
+    let bottom = rows.saturating_sub(crate::chatplace::grants(c, cols, rows).bottom);
     Some((
         bottom.saturating_sub(p.rows),
         bottom,

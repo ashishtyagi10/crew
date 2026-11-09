@@ -26,7 +26,6 @@ mod names;
 use std::sync::Arc;
 
 use super::{Ended, TurnContext, TurnSpec};
-use crate::bus::HiveEvent;
 use crate::provider::{CompletionRequest, Provider, ToolInvocation, Turn};
 use crate::steers::Steers;
 use crate::tools::{seen::Seen, todo, ToolCall, ToolCatalog, Tools};
@@ -58,7 +57,6 @@ pub(super) async fn run(
     sink: super::chunks::ChunkSink,
     steers: Option<Steers>,
 ) -> Ended {
-    let agent_id = ctx.agent.clone();
     let TurnSpec {
         prompt,
         shed,
@@ -83,6 +81,8 @@ pub(super) async fn run(
     let mut cut = super::overflow::Cut::new(&prompt, system.as_deref(), &label);
     // What the engine made of the latest round it read (`Advice`).
     let mut advice = String::new();
+    // The user's stop check, which may hold an answer back (`hold`).
+    let mut hold = super::hold::Hold::default();
 
     loop {
         // A stop pressed while the last round's tools ran: no next call
@@ -102,6 +102,9 @@ pub(super) async fn run(
             max_tokens,
             turns: turns.clone(),
             tools: catalog.defs().to_vec(),
+            // The work turn keeps the model's own effort: this is the call
+            // the thinking is for (`provider::effort`).
+            effort: None,
         };
         // Raced against the stop: dropping the call aborts the request.
         let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));
@@ -119,18 +122,15 @@ pub(super) async fn run(
         };
         cut.answered();
         sink.settle(&completion);
-        ctx.publish(HiveEvent::TokenDelta {
-            agent: agent_id.clone(),
-            input: completion.input_tokens,
-            output: completion.output_tokens,
-        });
-        ctx.publish(HiveEvent::CostDelta {
-            agent: agent_id.clone(),
-            micros_usd: super::cost::billed(&model_id, tier, &completion),
-        });
+        super::cost::publish(&ctx, &model_id, tier, &completion);
 
         if completion.calls.is_empty() {
-            return super::finish::answer(&ctx, Some(&tools), completion.text);
+            let Some(note) = hold.check(&ctx, Some(&tools), &completion.text).await else {
+                return super::finish::answer(&ctx, Some(&tools), completion.text);
+            };
+            let (text, calls) = (completion.text, Vec::new());
+            turns.extend([Turn::Assistant { text, calls }, Turn::User(note)]);
+            continue;
         }
 
         // The batch runs whether or not the pool has a round for it: past the

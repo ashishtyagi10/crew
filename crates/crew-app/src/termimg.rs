@@ -37,6 +37,8 @@ struct Shown {
     line: u64,
     /// Placed on the alternate screen (see `crew_term::ImageWipe`).
     alt: bool,
+    /// The kitty id it was sent with (0 for none), for a delete by id.
+    id: u32,
     col: u16,
     cells: (u16, u16),
     art: Art,
@@ -56,7 +58,7 @@ impl TermImages {
     /// new pictures already had the same wipes applied in `crew_term`.
     pub(crate) fn sync(&mut self, wipes: Vec<ImageWipe>, placed: Vec<PlacedImage>) {
         for w in wipes {
-            self.shown.retain(|s| w.keeps(s.line, s.alt));
+            self.shown.retain(|s| w.keeps(s.line, s.alt, s.id));
             if let ImageWipe::Alt(on) = w {
                 self.alt = on;
             }
@@ -69,12 +71,14 @@ impl TermImages {
     pub(crate) fn collect(&mut self, placed: Vec<PlacedImage>) {
         for p in placed {
             let (tx, rx) = mpsc::channel();
+            let id = p.cmd.id;
             std::thread::spawn(move || {
                 let _ = tx.send(decode(&p.cmd));
             });
             self.shown.push(Shown {
                 line: p.line,
                 alt: p.alt,
+                id,
                 col: p.col,
                 cells: p.cells,
                 art: Art::Loading(rx),
@@ -113,19 +117,20 @@ impl TermImages {
 
     /// The pictures visible in this pane's viewport, as paint.
     ///
-    /// `history` is the scrollback above the screen and `offset` how far back
-    /// the view is: together they say which absolute line the top row is
-    /// showing, which is the whole mapping from "where the picture arrived" to
-    /// "where it is now".
+    /// `screen` is the absolute line of the live screen's top row
+    /// (`PtyTerm::screen_line`, which keeps counting after the scrollback is
+    /// full) and `offset` how far back the view is: together they say which
+    /// absolute line the top row is showing, which is the whole mapping from
+    /// "where the picture arrived" to "where it is now".
     pub(crate) fn paint(
         &self,
-        history: usize,
+        screen: u64,
         offset: usize,
         cols: u16,
         rows: u16,
         aspect: f32,
     ) -> Vec<Paint> {
-        let top = history as i64 - offset as i64;
+        let top = screen as i64 - offset as i64;
         let (cw, ch) = (f32::from(cols), f32::from(rows));
         let mut out = Vec::new();
         for s in &self.shown {

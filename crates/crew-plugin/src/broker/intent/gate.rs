@@ -76,6 +76,8 @@ pub(crate) fn led(
     if let Some(done) = human_gates(task, session, emit) {
         return done;
     }
+    // No router reads a led turn, so the openings decide (`correction`).
+    crate::broker::correction::note(&session.recall, None, task);
     let dialled = format!("@{lead} {task}");
     super::super::stdio::relay_counting(&dialled, None, false, session, tick_emit, emit)
 }

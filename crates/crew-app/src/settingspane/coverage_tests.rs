@@ -29,6 +29,7 @@ fn edits(f: Field) -> &'static str {
         Field::Contrast => "contrast",
         Field::ShapeCues => "shape_cues",
         Field::Gradient => "gradient",
+        Field::Backdrop3d => "backdrop_3d",
         Field::Maximized => "maximized",
         Field::OptionMeta => "option_as_meta",
         Field::Notify => "notify",
@@ -36,6 +37,7 @@ fn edits(f: Field) -> &'static str {
         Field::NotifyBell => "notify_bell",
         Field::NotifyExit => "notify_exit",
         Field::NotifyMinSecs => "notify_min_secs",
+        Field::Scrollback => "scrollback",
         Field::NotifyPatterns => "notify_patterns",
         Field::Budget5h => "usage_budget_5h",
         Field::Budget7d => "usage_budget_7d",
@@ -45,8 +47,7 @@ fn edits(f: Field) -> &'static str {
 
 /// Keys the form deliberately does not carry, each with the reason — "we
 /// forgot" is not a third option.
-const NOT_IN_FORM: [(&str, &str); 16] = [
-    ("backdrop_3d", "set live by /look 3d"),
+const NOT_IN_FORM: [(&str, &str); 15] = [
     (
         "approval_default",
         "set live by /approvals default <mode> in an agent pane",

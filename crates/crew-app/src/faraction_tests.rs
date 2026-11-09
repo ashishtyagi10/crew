@@ -36,12 +36,22 @@ fn close_closes_the_pane_at_focused() {
     assert_eq!(app.panes.len(), 0);
 }
 
+/// F1 in a panel, and `/keys` typed while one has focus, open the overlay
+/// at the panel's own section — the one `helphere` names — rather than at
+/// the top of a table whose Far keys are four sections down.
 #[test]
-fn help_opens_the_help_overlay() {
+fn help_opens_the_help_overlay_at_the_panels_section() {
+    let at = crate::helphere::scroll_to("in a /far file panel", crate::help::size().0);
+    assert!(at > 0, "the Far section is not the top row");
     let mut app = far_pane_app();
     assert!(!app.help_open);
     app.apply_far_action(FarAction::Help, 0);
     assert!(app.help_open);
+    assert_eq!(app.help_scroll, at, "F1 lands on the Far section");
+    let mut app = far_pane_app();
+    app.run_slash_command("keys");
+    assert!(app.help_open);
+    assert_eq!(app.help_scroll, at, "/keys lands on the Far section");
 }
 
 #[test]

@@ -198,13 +198,20 @@ fn the_follow_up_prompt_states_the_remaining_budget() {
     assert!(last.contains("LAST round of tool calls"), "{last}");
 }
 
-/// With no tool surface a hop is one dial, and a `@tool` line is just text.
+/// With no tool surface a hop is one dial and a `@tool` line is never run:
+/// the thread's end lifts it out of the answer and names it as smith's line
+/// (`Usage::not_run`), as it always said under the answer that it never ran.
 #[test]
 fn without_tools_a_hop_is_one_dial() {
     let t = turn(Script::new(&["answer\n@tool fs:read {}"]), |b| b, "task");
     assert_eq!(t.prompts.len(), 1);
     assert_eq!(t.stats.exchanges, 1);
-    assert!(t.answer().unwrap().starts_with("answer\n@tool fs:read {}"));
+    assert_eq!(t.answer(), Some("answer"));
+    let done = t.hops.iter().find(|h| h.kind == HopKind::Done).unwrap();
+    assert!(
+        done.usage.not_run.starts_with("! not run: fs:read"),
+        "{done:?}"
+    );
 }
 
 /// A runner that routes `sys:` to the real built-in tools (the session
@@ -398,18 +405,17 @@ fn a_failed_follow_up_never_leaves_the_raw_call_as_the_answer() {
     }
 }
 
-/// A finished answer that still holds a call says the call never ran
+/// A finished answer that still holds a call loses it, and the seam every
+/// final answer passes (`engine::done`) hands back smith's line for it
 /// (baseline probe 2026-10-16: a fenced `@tool sys:git` under `@done`).
 #[test]
-fn an_answer_still_holding_a_call_says_it_never_ran() {
+fn an_answer_still_holding_a_call_hands_back_the_line_it_never_ran() {
     let a = "@done\n\nWe will look at history:\n```json\n@tool sys:git {\"cmd\":\"log\"}\n```\nThen fix it.";
-    let got = crate::broker::toolround::never_ran(a.to_string());
-    assert!(got.starts_with(a), "the answer as written: {got}");
-    assert!(got.ends_with("not run \u{2014} the answer asks for `sys:git`, but the turn ended before any call in it ran"), "{got}");
-    assert_eq!(crate::broker::toolround::never_ran("Done.".into()), "Done.");
-    // Through the seam every final answer passes (`engine::done`).
-    let done = crate::broker::toolround::finished(None, a.to_string());
-    assert!(done.contains("not run \u{2014}"), "{done}");
+    let (text, note) = crate::broker::toolround::finished(None, a.to_string());
+    assert_eq!(text, "@done\n\nWe will look at history:\nThen fix it.");
+    assert_eq!(note, "! not run: sys:git log \u{2014} the turn ended first");
+    let done = crate::broker::toolround::finished(None, "Done.".into());
+    assert_eq!(done, ("Done.".to_string(), String::new()));
 }
 
 /// Crew's own tools are listed whole on the text path: clipped at 100,

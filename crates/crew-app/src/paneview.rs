@@ -44,7 +44,7 @@ pub(crate) fn push_pane_scenes(
     // arrived on and clipped to the pane (see `termimg`).
     if let PaneContent::Terminal(t) = &p.content {
         paint.extend(t.images.paint(
-            t.pty.history_lines(),
+            t.pty.screen_line(),
             t.pty.display_offset(),
             p.grid.cols,
             p.grid.rows,
@@ -86,7 +86,7 @@ pub(crate) fn push_pane_scenes(
     // Where the commands you ran began, in this window.
     let cmd_rows = match &p.content {
         PaneContent::Terminal(t) if marks => t.spans.start_rows(
-            t.pty.scrollable_lines(),
+            t.pty.lines_seen(),
             usize::from(p.grid.rows),
             t.pty.display_offset(),
         ),
@@ -98,7 +98,7 @@ pub(crate) fn push_pane_scenes(
     // border ticks, so the tick ladder and the name can never disagree.
     let at_cmd = match &p.content {
         PaneContent::Terminal(t) if marks && t.pty.display_offset() > 0 => {
-            let now = t.pty.scrollable_lines();
+            let now = t.pty.lines_seen();
             let first = now
                 .saturating_sub(usize::from(p.grid.rows))
                 .saturating_sub(t.pty.display_offset());
@@ -115,7 +115,7 @@ pub(crate) fn push_pane_scenes(
     // …and which of them the shell said went wrong (OSC 133).
     let fail_rows = match &p.content {
         PaneContent::Terminal(t) if marks => t.spans.failed_rows(
-            t.pty.scrollable_lines(),
+            t.pty.lines_seen(),
             usize::from(p.grid.rows),
             t.pty.display_offset(),
         ),
@@ -143,7 +143,7 @@ pub(crate) fn push_pane_scenes(
         _ => None,
     };
     let unread = match &p.content {
-        PaneContent::Terminal(t) => crate::unread::count(t.pty.scrollable_lines(), t.read_at),
+        PaneContent::Terminal(t) => crate::unread::count(t.pty.lines_seen(), t.read_at),
         _ => 0,
     };
     // An agent cites files in prose as often as a compiler does, and a chat

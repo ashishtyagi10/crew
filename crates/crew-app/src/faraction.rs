@@ -16,7 +16,7 @@ impl CrewApp {
             FarAction::Close => {
                 self.close_pane(focused);
             }
-            FarAction::Help => self.help_open = true,
+            FarAction::Help => self.open_help(),
             FarAction::Open(path) => {
                 // `that_detached`, never `that`: the blocking form waits for
                 // the opener to exit, and this runs on the winit thread, so

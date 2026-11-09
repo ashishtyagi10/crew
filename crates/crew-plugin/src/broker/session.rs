@@ -209,11 +209,22 @@ impl Session {
         let b = Broker::new(reg, max_hops(), call_timeout())
             .with_budget(token_budget())
             .with_cancel_flag(Arc::clone(&self.cancel))
-            .with_summarizer(super::compact::live_summarizer());
+            .with_summarizer(self.summarizer());
         match self.tools() {
             Some(t) => b.with_tools(t),
             None => b,
         }
+    }
+
+    /// The transcript summarizer, when one may run, with what each summary
+    /// rules out remembered in this session's graph (`correction`): a
+    /// compaction is where a long turn writes down what did not work.
+    fn summarizer(&self) -> Option<super::compact::Summarize> {
+        let call = super::compact::live_summarizer()?;
+        Some(super::correction::remembering(
+            call,
+            Arc::clone(&self.recall),
+        ))
     }
 
     /// This session's tool surface, or `None` when there is nothing to call.
@@ -487,6 +498,12 @@ impl super::toolcall::ToolRunner for SessionTools {
     /// The task's checklist, while the `sys` surface that writes it is on.
     fn checklist(&self) -> Option<&crew_hive::tools::todo::Checklist> {
         self.sys.then_some(self.todo.as_ref())
+    }
+
+    /// The user's Stop hooks (`hookstop`), read afresh like the tool hooks: none, no check.
+    fn stop(&self, answer: &str, held: bool) -> crew_hive::tools::StopCheck {
+        let hooks = self.hooks.as_ref().map(hooks::Source::load);
+        hooks.map_or(crew_hive::tools::StopCheck::End, |h| h.stop(answer, held))
     }
 
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which

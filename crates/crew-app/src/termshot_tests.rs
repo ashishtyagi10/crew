@@ -210,7 +210,7 @@ fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u
                 }
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
-            paint.extend(store.paint(t.history_lines(), t.display_offset(), cols, rows, 2.1));
+            paint.extend(store.paint(t.screen_line(), t.display_offset(), cols, rows, 2.1));
         }
         (cells, paint)
     })

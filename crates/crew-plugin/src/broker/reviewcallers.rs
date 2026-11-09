@@ -108,13 +108,21 @@ fn not_a_call(text: &str, name: &str) -> bool {
 }
 
 /// Tests call everything; a production caller is the one that breaks users.
-fn is_test_path(path: &str) -> bool {
+pub(crate) fn is_test_path(path: &str) -> bool {
     path.contains("_tests.") || path.contains("/tests/") || path.contains("_test.")
 }
 
-/// `git grep -n -w` for `name` in `dir`'s tree (untracked files too, ignored
-/// ones not): `(path, line, text)` hits that are calls, production first.
+/// [`call_sites`], cut to the few a review prompt has room for.
 fn grep_callers(dir: &Path, name: &str) -> Vec<(String, String, String)> {
+    let mut hits = call_sites(dir, name);
+    hits.truncate(PER_SYMBOL);
+    hits
+}
+
+/// `git grep -n -w` for `name` in `dir`'s tree (untracked files too, ignored
+/// ones not): EVERY `(path, line, text)` hit that is a call, production
+/// first — the receipt counts them (`receiptreach`), so none is cut here.
+pub(crate) fn call_sites(dir: &Path, name: &str) -> Vec<(String, String, String)> {
     let out = no_console_window(&mut Command::new("git"))
         .current_dir(dir)
         .args(["grep", "-n", "-w", "-I", "--untracked", "-e", name])
@@ -130,7 +138,6 @@ fn grep_callers(dir: &Path, name: &str) -> Vec<(String, String, String)> {
         })
         .collect();
     hits.sort_by_key(|(p, _, _)| is_test_path(p));
-    hits.truncate(PER_SYMBOL);
     hits
 }
 

@@ -39,3 +39,16 @@ fn queries_answer_in_the_order_asked() {
     let out = q.feed(b"\x1b[>q\x1b[16t", (9, 18));
     assert_eq!(out, format!("{}\x1b[6;18;9t", reply()));
 }
+
+/// DECRQM for 2031 through the whole terminal: crew's scanner says
+/// "supported" and alacritty's "unknown" (`;0$y`) is not sent after it, or a
+/// program reading the last answer turns its notifications off.
+#[test]
+fn decrqm_2031_is_answered_once() {
+    let mut t = HeadlessTerm::new(GridSize { cols: 80, rows: 24 });
+    t.feed(b"\x1b[?2031$p");
+    assert_eq!(t.take_replies().as_deref(), Some("\x1b[?2031;2$y"));
+    // Other modes alacritty doesn't know still get its honest answer.
+    t.feed(b"\x1b[?2032$p");
+    assert_eq!(t.take_replies().as_deref(), Some("\x1b[?2032;0$y"));
+}

@@ -99,6 +99,7 @@ impl CrewApp {
         }
         // Pick up any change to the watched notification patterns on live panes.
         self.apply_notify_patterns();
+        self.apply_scrollback();
         self.redraw();
     }
 

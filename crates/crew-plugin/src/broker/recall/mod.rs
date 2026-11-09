@@ -25,6 +25,7 @@ mod ingest;
 mod node;
 mod query;
 mod repeats;
+mod ruled;
 mod score;
 mod store;
 
@@ -178,6 +179,13 @@ pub(crate) fn seen_failing(r: &SharedRecall, cmd: &str, output: &str) -> Option<
 /// compares, so what is written and what is matched can never drift apart.
 pub(crate) fn failure_digest(output: &str) -> String {
     repeats::digest(output)
+}
+
+/// Remember that `what` was ruled out (see `ruled`): a user's correction
+/// (`tie_last`, joined to the files of the turn it corrects) or a line a
+/// compaction wrote.
+pub(crate) fn ruled_out(r: &SharedRecall, what: &str, tie_last: bool) {
+    lock(r).record_ruled(what, tie_last);
 }
 
 /// The arms' one recording call: `None` (failed or cancelled) records nothing.

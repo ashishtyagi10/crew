@@ -24,7 +24,8 @@ fn a_popup_stands_on_the_composer_not_on_the_footer() {
         w: 100.0 * cw,
         h: 40.0 * ch,
     };
-    let (cols, rows) = (100, 40);
+    // The content grid the pane draws in: a cell inside the frame each side.
+    let (cols, rows) = (98, 38);
     let g = crate::chatplace::grants(&p, cols, rows);
     assert!(
         g.summary > 0,
@@ -34,7 +35,10 @@ fn a_popup_stands_on_the_composer_not_on_the_footer() {
     assert!(g.bottom > g.summary, "and a composer above it");
     let mh = 12.0 * ch;
     let y = above_composer(&p, r, cw, ch, mh);
-    let composer_top = r.y + f32::from(rows - g.bottom) * ch;
+    // Content row `rows - g.bottom`, one frame row down from the rect's top.
+    // Counted on the rect (the old measure), the card sat a row lower: on
+    // the composer's top border.
+    let composer_top = r.y + ch + f32::from(rows - g.bottom) * ch;
     assert_eq!(y + mh, composer_top);
     // The old formula lands on the composer, `summary` rows below.
     let old = r.y + r.h - f32::from(g.bottom - g.summary) * ch - mh;
@@ -91,8 +95,9 @@ fn a_popup_scene_is_as_wide_as_its_card_and_flush_left() {
         s.glass && s.lift > 0.0,
         "and floating, so it casts a shadow"
     );
-    let g = crate::chatplace::grants(&p, 100, 40);
-    assert_eq!(s.y + s.h, r.y + f32::from(40 - g.bottom) * ch);
+    // On the composer's top: content row `38 - bottom`, a frame row down.
+    let g = crate::chatplace::grants(&p, 98, 38);
+    assert_eq!(s.y + s.h, r.y + ch + f32::from(38 - g.bottom) * ch);
 }
 
 /// A pop-up's scene is its card: no column of page beside the frame (the
