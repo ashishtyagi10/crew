@@ -84,6 +84,19 @@ fn the_rows_a_popup_stands_on_are_blank_beside_it() {
         row(&shown, bottom),
         "the composer keeps its row"
     );
+    // That row is the composer's top border, right corner and all: the band
+    // ends where the composer starts. Measured on the frame, the band ran a
+    // row long and cleared the border right of the card (loop 30, U4).
+    let corner = |cells: &[CellView]| {
+        cells
+            .iter()
+            .any(|c| c.row == bottom && c.col + 1 == cols && c.c == '╮')
+    };
+    assert!(
+        corner(&plain),
+        "the row under the band is the composer's top"
+    );
+    assert!(corner(&shown), "and the band leaves it drawn");
 }
 
 #[test]

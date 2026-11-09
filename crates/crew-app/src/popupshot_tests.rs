@@ -124,13 +124,24 @@ pub(crate) fn shot_at(name: &str, p: &ChatPane, w: u32, now: u64) -> Option<()> 
     // ...and the rows it stands on are bare from past its edge to inside
     // the pane's own border: no band of card (the old full-width band put a
     // corner at the pane's edge) and no transcript tail (`popupband` clears
-    // it; `p.cells` drew it). A row short at the bottom for a rising card.
+    // it; `p.cells` drew it) — its bottom row too, where the card stands.
+    // Measured from where the card SETTLES: a rising card is drawn `drop`
+    // low, the band it clears is not.
+    let settled = (bottom - p.popup_rise.drop_rows(now) * ch_px) as u32;
     if edge + 3 * cw < w {
         let (x0, x1) = (edge + 2 * cw, w - 2 * cw);
-        let (y0, y1) = (top + ch / 2, (at.y + at.h) as u32 - ch);
         assert!(
-            !inked(&px, w, x0, x1, y0, y1),
+            !inked(&px, w, x0, x1, top + ch / 2, settled),
             "{name}: something is drawn beside the pop-up on the rows it stands on"
+        );
+        // The row under the card is the composer's top border, drawn all
+        // the way to the composer's right corner. The card stood on that
+        // row (`above_composer` measured the frame, not the content) and
+        // `popupband` cleared it, so the border stopped at the card. (A
+        // tile the card all but fills leaves no run of border to look at.)
+        assert!(
+            x0 + cw >= w - 3 * cw || inked(&px, w, x0, w - 3 * cw, settled, settled + ch),
+            "{name}: the composer's top border is gone beside the pop-up"
         );
     }
     Some(())
