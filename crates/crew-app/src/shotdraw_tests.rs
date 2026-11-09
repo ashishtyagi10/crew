@@ -104,6 +104,8 @@ pub(crate) fn draw_with(
     let (cw, ch) = grid.cell_size();
     grid.set_scene(&device, &scenes(cw, ch));
     grid.prepare(&device, &queue, w, h);
+    let mut stage = crew_render::stage3d::Stage3dPass::new(&device, FORMAT);
+    stage.prepare(&device, &queue, (w, h)); // nothing while `/look 3d` is off
 
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
@@ -128,6 +130,7 @@ pub(crate) fn draw_with(
             occlusion_query_set: None,
             multiview_mask: None,
         });
+        stage.draw(&mut pass);
         grid.draw(&mut pass);
     }
     if let Some(c) = chain.as_ref() {

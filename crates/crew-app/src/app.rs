@@ -293,6 +293,8 @@ pub struct CrewApp {
     /// The gradient's hue breath (see [`crate::washphase`]) — advanced only
     /// by the frames activity is already drawing.
     pub(crate) wash: crate::washphase::WashPhase,
+    /// The 3D backdrop's clock (`look3d`): its own, as most themes' wash holds.
+    pub(crate) stage_clock: crate::washphase::WashPhase,
     /// The glass rims' light, leaning toward the pointer (`pointerlight`).
     pub(crate) pointer_light: crate::pointerlight::PointerLight,
     /// The card under the pointer, risen a little (`hoverlift`).

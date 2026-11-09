@@ -100,6 +100,9 @@ pub struct CrewConfig {
     /// intensity knob only. Set in Settings → APPEARANCE → Glass.
     #[serde(default = "default_glass")]
     pub glass: String,
+    /// The 3D scene behind the panes (`crew_render::stage3d`): empty is none.
+    #[serde(default)]
+    pub backdrop_3d: String,
 
     /// How much crew animates: `off`, `subtle`, `full`. An unknown name falls
     /// back to `full`. Set in Settings → APPEARANCE → Motion.
@@ -211,6 +214,7 @@ impl Default for CrewConfig {
             lsp: true,
             crt: None,
             glass: default_glass(),
+            backdrop_3d: String::new(),
             motion: default_motion(),
             density: default_density(),
             nav_card: default_nav_card(),

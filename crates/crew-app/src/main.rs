@@ -386,6 +386,7 @@ mod linkclick;
 mod linkhl;
 mod linkhover;
 mod load;
+mod look3d;
 mod lookcmd;
 mod md;
 #[cfg(test)]
@@ -543,6 +544,9 @@ mod popupsweep_tests;
 #[cfg(test)]
 #[path = "ringfocus_tests.rs"]
 mod ringfocus_tests;
+#[cfg(test)]
+#[path = "stage3dshot_tests.rs"]
+mod stage3dshot_tests;
 #[cfg(test)]
 #[path = "tabshot_tests.rs"]
 mod tabshot_tests;
