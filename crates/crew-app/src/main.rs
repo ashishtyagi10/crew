@@ -145,6 +145,7 @@ mod shellback;
 mod signoutpick;
 
 mod canvas;
+mod cardcomet;
 mod cardmarks;
 mod cardpaint;
 #[cfg(test)]

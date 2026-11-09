@@ -31,7 +31,7 @@ impl CrewApp {
             "exit" => return true,
             // `/help` is the first thing a new hand types, and the manual
             // documents it — it opens the same overlay `/keys` does.
-            "keys" | "help" => self.help_open = true,
+            "keys" | "help" => self.open_help(),
             // A long build scrolls its own failure off the screen; this walks
             // back to it. Repeating steps to the one before.
             "errors" => self.find_error_in_terminal(),

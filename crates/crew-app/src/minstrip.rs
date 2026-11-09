@@ -29,8 +29,9 @@ pub fn strip_marker(
     if busy {
         // Pulse between a dim floor and full activity — always visible, never
         // fully off, so a busy pane reads as alive rather than blinking out.
+        // Motion off holds the peak: the busy glyph alone says "working".
         let floor = crate::anim::lerp_rgb(t.activity, t.page_bg, 0.6);
-        let fg = crate::anim::lerp_rgb(floor, t.activity, crate::anim::tri(now, PULSE_MS));
+        let fg = crate::anim::lerp_rgb(floor, t.activity, crate::anim::sweep(now, PULSE_MS, 1.0));
         return Some((crate::shapecues::dot(true), fg));
     }
     activity.then_some((crate::shapecues::dot(false), t.activity))

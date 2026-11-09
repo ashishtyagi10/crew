@@ -27,6 +27,17 @@ pub fn tri(now: u64, period_ms: u64) -> f32 {
     }
 }
 
+/// [`tri`], unless Motion is off, when it is `still` — the one frame that
+/// says the same thing as the bounce (a full dot, a centred segment). Read
+/// at the point of use like every other gate, so a bounce added later needs
+/// only to ask for this instead of `tri` to hold still for a user who asked.
+pub fn sweep(now: u64, period_ms: u64, still: f32) -> f32 {
+    match crate::motion::level() {
+        crate::motion::MotionLevel::Off => still,
+        _ => tri(now, period_ms),
+    }
+}
+
 /// Linear blend of two RGB colours by `t` (clamped to `0.0..=1.0`).
 pub fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
     let t = t.clamp(0.0, 1.0);
