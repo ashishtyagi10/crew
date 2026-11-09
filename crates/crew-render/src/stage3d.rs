@@ -130,12 +130,48 @@ impl Shown {
     }
 }
 
-/// A scene being drawn: the scene and the texture it draws into.
+/// A scene being drawn: the scene, the texture it draws into, and what the
+/// texture last showed.
 struct Live {
     shown: Shown,
     view: wgpu::TextureView,
     bind_group: wgpu::BindGroup,
+    /// The texture's size: the window's, rounded up to [`SIZE_STEP`].
     size: (u32, u32),
+    /// The phase (bits) and window size the texture was last drawn at, or
+    /// `None` when it was never drawn: a frame drawn for a keystroke or a
+    /// hover, with the clock and the window unchanged, has nothing new to
+    /// show, so it lays down the picture it has.
+    drawn: Option<(u32, (u32, u32))>,
+}
+
+/// The texture (and threers' renderer, whose depth buffer matches it) grows
+/// and shrinks in steps of this many pixels, not with every pixel of a live
+/// resize: a drag would otherwise make a texture and a bind group, and resize
+/// the renderer, on every frame of it. The blit stretches the texture over
+/// the window, and the camera takes the window's own aspect, so the picture
+/// is never distorted, only resampled by under one step.
+const SIZE_STEP: u32 = 32;
+
+fn stepped((w, h): (u32, u32)) -> (u32, u32) {
+    (
+        w.div_ceil(SIZE_STEP) * SIZE_STEP,
+        h.div_ceil(SIZE_STEP) * SIZE_STEP,
+    )
+}
+
+/// How often the pass did each costly thing, for the tests.
+#[cfg(test)]
+#[derive(Default, Debug, PartialEq)]
+pub(crate) struct Counts {
+    /// threers renderers built.
+    pub builds: u32,
+    /// Scenes built.
+    pub scenes: u32,
+    /// Textures made.
+    pub targets: u32,
+    /// Scenes drawn into their texture.
+    pub renders: u32,
 }
 
 pub struct Stage3dPass {
@@ -147,9 +183,8 @@ pub struct Stage3dPass {
     renderer: Option<(threers::Renderer, (u32, u32))>,
     live: Option<Live>,
     on: bool,
-    /// How many times a renderer was built, for the tests.
     #[cfg(test)]
-    builds: u32,
+    counts: Counts,
 }
 
 impl Stage3dPass {
@@ -161,14 +196,17 @@ impl Stage3dPass {
             live: None,
             on: false,
             #[cfg(test)]
-            builds: 0,
+            counts: Counts::default(),
         }
     }
 
     /// Draw this frame's scene into the texture (threers submits its own
     /// work, ahead of the frame's), or let the scene go when the stage is
-    /// off. A new stage, palette or size builds the scene again; only the
-    /// first scene ever builds the renderer.
+    /// off. Only a new stage or palette builds the scene again, only a size
+    /// past a [`SIZE_STEP`] makes a new texture, only the first scene ever
+    /// builds the renderer, and the scene is drawn only when its clock or the
+    /// window's size moved: most frames are a keystroke's, and those cost
+    /// the backdrop nothing.
     pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, size: (u32, u32)) {
         let Some(want) = stage() else {
             self.live = None;
@@ -176,45 +214,78 @@ impl Stage3dPass {
             return;
         };
         let (w, h) = (size.0.max(1), size.1.max(1));
+        let tex = stepped((w, h));
         let palette = Palette::of(crew_theme::theme());
         let aspect = w as f32 / h as f32;
-        let (renderer, at) = self.renderer.get_or_insert_with(|| {
+        if self.renderer.is_none() {
             #[cfg(test)]
             {
-                self.builds += 1;
+                self.counts.builds += 1;
             }
             let r = threers::Renderer::new(
                 Arc::new(device.clone()),
                 Arc::new(queue.clone()),
                 self.format,
-                w,
-                h,
+                tex.0,
+                tex.1,
             );
-            (r, (w, h))
-        });
-        if *at != (w, h) {
-            renderer.resize(w, h);
-            *at = (w, h);
+            self.renderer = Some((r, tex));
         }
-        let stale = self.live.as_ref().is_none_or(|l| {
-            l.size != (w, h) || l.shown.stage() != want || l.shown.palette() != palette
-        });
+        let stale = self
+            .live
+            .as_ref()
+            .is_none_or(|l| l.shown.stage() != want || l.shown.palette() != palette);
         if stale {
-            let view = self.target(device, (w, h));
-            let bind_group = self.blit.bind(device, &view);
-            self.live = Some(Live {
-                shown: Shown::build(want, palette, aspect),
-                view,
-                bind_group,
-                size: (w, h),
-            });
+            #[cfg(test)]
+            {
+                self.counts.scenes += 1;
+            }
+            let shown = Shown::build(want, palette, aspect);
+            self.blit.set_strength(queue, strength(want, palette.dark));
+            match self.live.as_mut() {
+                Some(l) => (l.shown, l.drawn) = (shown, None),
+                None => self.live = Some(self.live_at(device, shown, tex)),
+            }
         }
-        let (Some(l), Some((renderer, _))) = (self.live.as_mut(), self.renderer.as_mut()) else {
+        if self.live.as_ref().is_some_and(|l| l.size != tex) {
+            let shown = self.live.take().expect("live").shown;
+            self.live = Some(self.live_at(device, shown, tex));
+        }
+        let (Some(l), Some((renderer, at))) = (self.live.as_mut(), self.renderer.as_mut()) else {
             return;
         };
-        l.shown.render(renderer, &l.view, aspect);
-        self.blit.set_strength(queue, strength(want, palette.dark));
         self.on = true;
+        let now = (phase().to_bits(), (w, h));
+        if l.drawn == Some(now) {
+            return;
+        }
+        if *at != tex {
+            renderer.resize(tex.0, tex.1);
+            *at = tex;
+        }
+        #[cfg(test)]
+        {
+            self.counts.renders += 1;
+        }
+        l.shown.render(renderer, &l.view, aspect);
+        l.drawn = Some(now);
+    }
+
+    /// A texture of `size` for `shown`, not yet drawn.
+    fn live_at(&mut self, device: &wgpu::Device, shown: Shown, size: (u32, u32)) -> Live {
+        #[cfg(test)]
+        {
+            self.counts.targets += 1;
+        }
+        let view = self.target(device, size);
+        let bind_group = self.blit.bind(device, &view);
+        Live {
+            shown,
+            view,
+            bind_group,
+            size,
+            drawn: None,
+        }
     }
 
     fn target(&self, device: &wgpu::Device, (w, h): (u32, u32)) -> wgpu::TextureView {

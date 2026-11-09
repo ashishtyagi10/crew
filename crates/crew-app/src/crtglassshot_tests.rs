@@ -27,6 +27,19 @@ pub(crate) fn window_with(
     cmds: &[&str],
     prep: &dyn Fn(&mut CrewApp),
 ) -> Option<Vec<u8>> {
+    window_sized(name, id, opacity, cmds, prep, (W, H))
+}
+
+/// [`window_with`] at `w`×`h`: a tall or an ultrawide window, for what is
+/// framed by the window's aspect (the 3D backdrop).
+pub(crate) fn window_sized(
+    name: &str,
+    id: ThemeId,
+    opacity: f32,
+    cmds: &[&str],
+    prep: &dyn Fn(&mut CrewApp),
+    (w, h): (u32, u32),
+) -> Option<Vec<u8>> {
     crew_theme::set_theme(id);
     // The app serves a sheer window's palette with its frames and quiet
     // legends lifted (`glassborder`); so does the shot, or it shows inks the
@@ -39,9 +52,9 @@ pub(crate) fn window_with(
     // `effective_crt` decides with no `/crt` override: forced on, a flat Ink
     // Reader page wore the default tube's scanlines in the shot only.
     let crt = crew_theme::theme().crt.is_some();
-    let px = crate::shotdraw_tests::draw_with(W, H, FONT_PX, crt, opacity, |cw, ch| {
+    let px = crate::shotdraw_tests::draw_with(w, h, FONT_PX, crt, opacity, |cw, ch| {
         let mut app = CrewApp {
-            geo_override: Some((cw, ch, W as f32, H as f32, 1.0)),
+            geo_override: Some((cw, ch, w as f32, h as f32, 1.0)),
             ..Default::default()
         };
         for cmd in cmds {
@@ -77,7 +90,7 @@ pub(crate) fn window_with(
     });
     crew_theme::glassborder::set_sheer(false);
     let px = px?;
-    crate::shotdraw_tests::write_png(name, &px, W, H);
+    crate::shotdraw_tests::write_png(name, &px, w, h);
     Some(px)
 }
 

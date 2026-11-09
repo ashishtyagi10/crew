@@ -163,7 +163,7 @@ fn prism_fills_the_frame_and_the_renderer_outlives_off() {
         image::save_buffer(&path, &over, W, H, image::ColorType::Rgba8).unwrap();
         eprintln!("wrote {path}");
     }
-    assert_eq!(stage.builds, 1, "the renderer was built again");
+    assert_eq!(stage.counts.builds, 1, "the renderer was built again");
     for third in 0..3 {
         let x0 = W * third / 3;
         let ink = covered(&px, (x0, x0 + W / 3), (0, H));
@@ -171,4 +171,47 @@ fn prism_fills_the_frame_and_the_renderer_outlives_off() {
     }
     let brightest = px.chunks(4).map(|p| p[3]).max().unwrap_or(0);
     assert!(brightest < 250, "dimmed under the panes: alpha {brightest}");
+}
+
+/// A frame drawn for a keystroke (same clock, same window) lays down the
+/// picture it has; only a new phase or a new window size draws the scene
+/// again. A live resize keeps the scene, and makes a new texture only when
+/// the window crosses a `SIZE_STEP`, not on every pixel of the drag.
+#[test]
+fn the_scene_draws_only_when_its_clock_or_the_window_moved() {
+    let _g = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Some((device, queue)) = device() else {
+        eprintln!("no GPU adapter, skipping");
+        return;
+    };
+    let mut stage = Stage3dPass::new(&device, FORMAT);
+    set_stage(Some(Stage::Orbit));
+    set_phase(0.1);
+    for _ in 0..3 {
+        stage.prepare(&device, &queue, (W, H));
+    }
+    assert_eq!(stage.counts.renders, 1, "three keystrokes, one picture");
+    set_phase(0.2);
+    stage.prepare(&device, &queue, (W, H));
+    stage.prepare(&device, &queue, (W, H));
+    assert_eq!(stage.counts.renders, 2, "the clock moved once");
+    // A drag a pixel at a time (W is a whole step, so its first pixel opens
+    // the next one): drawn at each size, as the aspect moved, but on the
+    // same scene and on one new texture for all eight.
+    for dw in 1..=8 {
+        stage.prepare(&device, &queue, (W + dw, H));
+    }
+    assert_eq!((stage.counts.scenes, stage.counts.targets), (1, 2));
+    // And on past that step: one more.
+    stage.prepare(&device, &queue, (W + SIZE_STEP + 1, H));
+    set_stage(None);
+    assert_eq!(
+        stage.counts,
+        Counts {
+            builds: 1,
+            scenes: 1,
+            targets: 3,
+            renders: 11,
+        }
+    );
 }

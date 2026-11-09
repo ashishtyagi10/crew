@@ -77,3 +77,42 @@ fn stage3d_shot_prism_theme() {
         "prism's own scene shows through: {changed} px"
     );
 }
+
+/// The orbit on a tall window and an ultrawide one, each beside the same
+/// window with the backdrop off: framed by the window's aspect, the knot is
+/// on screen on the tall one (at a fixed x it was past the right edge) and
+/// right of the text on the wide one (it was mid-window).
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn stage3d_shot_orbit_tall_and_wide() {
+    let _g = crate::app::theme_test_guard();
+    let id = ThemeId::GlassNight;
+    let opacity = crate::tubesheer::sheer(id.theme());
+    for (n, size) in [("tall", (480, 800)), ("wide", (1680, 560))] {
+        let at = |on: bool| {
+            stage3d::set_stage(on.then_some(Stage::Orbit));
+            stage3d::set_phase(0.1);
+            let name = format!("stage3d-orbit-{n}{}", if on { "" } else { "-off" });
+            let px = crate::crtglassshot_tests::window_sized(
+                &name,
+                id,
+                opacity,
+                &["/far", "/dash"],
+                &|_| {},
+                size,
+            );
+            stage3d::set_stage(None);
+            px
+        };
+        let (Some(on), Some(off)) = (at(true), at(false)) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        let changed = on
+            .chunks(4)
+            .zip(off.chunks(4))
+            .filter(|(a, b)| a != b)
+            .count();
+        assert!(changed > 5_000, "{n}: the orbit shows: {changed} px");
+    }
+}

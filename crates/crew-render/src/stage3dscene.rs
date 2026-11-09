@@ -5,7 +5,11 @@
 //! small crystals going round it, a key light in the theme's accent and a
 //! fill in its activity colour, over an ambient wash of the page. It sits
 //! where a window has the least text (right, low), and stays dim: the panes'
-//! words are what the window is for.
+//! words are what the window is for. Like `prism` it is placed by the
+//! frustum, not in world units: its centre at a fraction of the half-width,
+//! so an ultrawide window keeps it right of the text, and narrower than
+//! [`FULL_ASPECT`] the whole orbit shrinks with the window, so a tall one
+//! keeps it in frame rather than past the right edge.
 //!
 //! Every motion is a whole number of turns per turn of the clock, so the
 //! picture at phase 1 is the picture at phase 0 and the wrap never jumps.
@@ -19,6 +23,16 @@ use threers::{
 
 /// Crystals in the ring.
 const CRYSTALS: usize = 7;
+/// The camera's distance from the plane z = 0 and its vertical field of view.
+const EYE: f32 = 8.0;
+const FOV_DEG: f32 = 40.0;
+/// Where the orbit's centre sits, as fractions of the frustum's half extents
+/// at z = 0: the right half, low.
+const AT_X: f32 = 0.5;
+const AT_Y: f32 = -0.275;
+/// The widest aspect at which the orbit is drawn at full size: the 16:10
+/// window it was designed on. Narrower, it scales down by the width.
+const FULL_ASPECT: f32 = 1.6;
 
 /// The colours a scene is lit in, taken from a theme.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -67,6 +81,7 @@ pub(crate) struct Built {
     pub palette: Palette,
     knot: ObjectId,
     crystals: Vec<ObjectId>,
+    aspect: f32,
 }
 
 impl Built {
@@ -105,8 +120,8 @@ impl Built {
         let mut fill = Object3D::light(PointLight::new(color(p.fill), 35.0));
         fill.position = Vector3::new(4.0, -2.0, 3.0);
         scene.add(fill);
-        let mut camera = PerspectiveCamera::new(40.0, aspect, 0.1, 100.0);
-        camera.position = Vector3::new(0.0, 1.2, 8.0);
+        let mut camera = PerspectiveCamera::new(FOV_DEG, aspect, 0.1, 100.0);
+        camera.position = Vector3::new(0.0, 1.2, EYE);
         camera.look_at(Vector3::ZERO);
         let mut b = Self {
             scene,
@@ -114,21 +129,34 @@ impl Built {
             palette: p,
             knot,
             crystals,
+            aspect,
         };
         b.pose(0.0);
         b
     }
 
     pub fn set_aspect(&mut self, aspect: f32) {
+        self.aspect = aspect;
         self.camera.set_aspect(aspect);
+    }
+
+    /// The orbit's centre and size for the window's aspect: a fraction of the
+    /// frustum's half extents at z = 0, and full size down to
+    /// [`FULL_ASPECT`], smaller with the width below it.
+    pub(crate) fn frame(&self) -> (Vector3, f32) {
+        let half_h = EYE * (FOV_DEG.to_radians() / 2.0).tan();
+        let half_w = half_h * self.aspect;
+        let size = (self.aspect / FULL_ASPECT).min(1.0);
+        (Vector3::new(AT_X * half_w, AT_Y * half_h, 0.0), size)
     }
 
     /// Where everything is at `phase` turns of the stage's clock.
     pub fn pose(&mut self, phase: f32) {
         let a = phase * TAU;
-        let centre = Vector3::new(2.3, -0.8, 0.0);
+        let (centre, size) = self.frame();
         if let Some(k) = self.scene.get_mut(self.knot) {
             k.position = centre;
+            k.scale = Vector3::new(size, size, size);
             k.quaternion = Euler::new(0.35 + 0.15 * a.sin(), a, 0.0).to_quaternion();
         }
         for (i, id) in self.crystals.iter().enumerate() {
@@ -136,7 +164,9 @@ impl Built {
             // Two turns of the clock spin each crystal twice on its own axis.
             let spin = Euler::new(2.0 * a, at, 0.0).to_quaternion();
             if let Some(c) = self.scene.get_mut(*id) {
-                c.position = centre + Vector3::new(1.7 * at.cos(), 0.35 * at.sin(), 1.7 * at.sin());
+                let ring = Vector3::new(1.7 * at.cos(), 0.35 * at.sin(), 1.7 * at.sin());
+                c.position = centre + ring * size;
+                c.scale = Vector3::new(size, size, size);
                 c.quaternion = spin;
             }
         }
