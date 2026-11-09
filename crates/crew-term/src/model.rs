@@ -163,7 +163,13 @@ impl TermCore {
     }
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
-        self.osc7.feed(bytes);
+        let prompts = self.osc7.feed(bytes);
+        self.feed_split(bytes, &prompts);
+    }
+
+    /// Everything but the OSC sniff, for one piece of a chunk (`feed_split`
+    /// cuts a chunk at each prompt mark).
+    fn feed_part(&mut self, bytes: &[u8]) {
         // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
         replies.push_str(&self.cellq.feed(bytes, self.cell_px));
@@ -233,6 +239,8 @@ mod modelimage;
 mod modellast;
 #[path = "modelmodes.rs"]
 mod modelmodes;
+#[path = "modelprompt.rs"]
+mod modelprompt;
 #[path = "modelscroll.rs"]
 mod modelscroll;
 #[path = "modelsel.rs"]
@@ -256,3 +264,6 @@ mod model_tests;
 #[cfg(test)]
 #[path = "modelmarks_tests.rs"]
 mod modelmarks_tests;
+#[cfg(test)]
+#[path = "modelprompt_tests.rs"]
+mod modelprompt_tests;

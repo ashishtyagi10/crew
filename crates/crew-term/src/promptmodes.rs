@@ -19,7 +19,10 @@
 //! Only on the primary screen. A pane whose command is a program and not a
 //! shell (an agent run straight in the pane) also reads as "the shell has it"
 //! when a job it ran ends, and on the alternate screen that program may still
-//! be the one that asked for the mouse. Keys stay as they are: oh-my-zsh
+//! be the one that asked for the mouse. A shell's OSC 133 prompt mark on the
+//! alternate screen first takes the pane back to the primary one
+//! (`model::modelprompt`), so the reset that mark runs reaches a crashed
+//! full-screen program's mouse too. Keys stay as they are: oh-my-zsh
 //! turns application cursor keys (DECCKM) on itself at every prompt, and
 //! bracketed paste is the shell's own.
 use crate::modes::InputModes;

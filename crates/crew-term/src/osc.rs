@@ -139,6 +139,10 @@ pub(crate) struct OscScanner {
     progress: Option<Progress>,
     /// Semantic marks seen since the last drain, oldest first.
     marks: Vec<ShellMark>,
+    /// Prompt (`A`) marks ever seen: `feed` compares it byte by byte to say
+    /// WHERE in a chunk each prompt began (the queue is capped, so its
+    /// length can't).
+    prompts: u64,
     /// The latest reported directory.
     cwd: Option<PathBuf>,
     /// Set when `cwd` changed since the last `take`.
@@ -162,11 +166,19 @@ impl OscScanner {
     }
 
     /// Scan a chunk of raw PTY output, updating the cwd when a complete OSC 7
-    /// report is seen.
-    pub(crate) fn feed(&mut self, bytes: &[u8]) {
-        for &b in bytes {
+    /// report is seen. Returns the offset just past each prompt (`A`) mark
+    /// that ended in this chunk, so the caller can act at that exact byte
+    /// (`modelprompt`: a prompt drawn on a dead program's alternate screen).
+    pub(crate) fn feed(&mut self, bytes: &[u8]) -> Vec<usize> {
+        let mut ends = Vec::new();
+        for (i, &b) in bytes.iter().enumerate() {
+            let seen = self.prompts;
             self.step(b);
+            if self.prompts != seen {
+                ends.push(i + 1);
+            }
         }
+        ends
     }
 
     fn step(&mut self, b: u8) {
@@ -256,6 +268,7 @@ impl OscScanner {
             return;
         };
         if let Some(mark) = ShellMark::parse(rest) {
+            self.prompts += u64::from(mark == ShellMark::Prompt);
             self.marks.push(mark);
             // A shell replaying a long scrollback can emit hundreds of these
             // before anyone drains them; keep the newest.
