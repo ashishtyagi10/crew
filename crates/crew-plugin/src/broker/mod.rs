@@ -87,6 +87,7 @@ mod retired;
 mod review;
 mod reviewask;
 mod reviewcallers;
+mod reviewfindings;
 mod rosterev;
 mod roundloop;
 mod route;

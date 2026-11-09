@@ -87,7 +87,16 @@ pub(crate) fn review_cmd(
         from: String::new(),
     })?;
     match reply {
-        Some(Ok(r)) if !r.trim().is_empty() => emit(msg(&format!("{author} → user"), r)),
+        Some(Ok(r)) if !r.trim().is_empty() => {
+            // Checked before shown: a finding citing a file or line that is
+            // not there is dropped and said so, the verdict recounted.
+            let t = super::reviewfindings::tidy_in(&dir, &diff, &r);
+            emit(msg(&format!("{author} → user"), t.text))?;
+            match super::reviewfindings::dropped_note(&t.dropped) {
+                Some(note) => emit(msg("agent smith", note)),
+                None => Ok(()),
+            }
+        }
         Some(Ok(_)) => emit(msg("agent smith", "the review came back empty — try again")),
         Some(Err(e)) => emit(msg("agent smith", format!("review failed: {e}"))),
         None => emit(msg(
