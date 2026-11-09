@@ -138,3 +138,55 @@ fn an_iterm_picture_lands_where_the_cursor_is() {
     let text: String = t.cells(true).iter().map(|c| c.c).collect();
     assert!(!text.contains("1337"), "escape text on screen: {text:?}");
 }
+
+/// `C=1` is a full-screen program that has positioned the cursor and made the
+/// room itself: placing the picture must not line-feed, or at the bottom of
+/// the alternate screen it scrolls the program's whole layout up.
+#[test]
+fn c1_places_a_picture_without_moving_the_cursor() {
+    let mut t = term();
+    // Alt screen, a title on row 0, cursor parked on the last row.
+    t.feed(b"\x1b[?1049h\x1b[Htitle\x1b[12;1H");
+    t.feed(seq("a=T,f=100,C=1,c=4,r=3", &png(40, 60)).as_bytes());
+    t.feed(b"x");
+    assert_eq!(t.take_images().len(), 1, "the picture is still placed");
+    let row_of = |ch: char| t.cells(true).iter().find(|c| c.c == ch).map(|c| c.row);
+    assert_eq!(row_of('t'), Some(0), "the layout did not scroll");
+    assert_eq!(row_of('x'), Some(11), "the cursor stayed on its row");
+}
+
+/// iTerm2 spells the same request `doNotMoveCursor=1`.
+#[test]
+fn iterm_do_not_move_cursor_keeps_the_cursor() {
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(png(100, 40));
+    let mut t = term();
+    t.feed(format!("\x1b]1337;File=inline=1;doNotMoveCursor=1:{b64}\x07x").as_bytes());
+    let x = t.cells(true).iter().find(|c| c.c == 'x').map(|c| c.row);
+    assert_eq!(x, Some(0), "no line feeds past the picture");
+}
+
+/// A picture sent with an id is answered, the way kitty answers: a sender
+/// that hears nothing back cannot tell a drawn picture from a lost one.
+#[test]
+fn a_named_picture_is_answered_ok() {
+    let mut t = term();
+    t.feed(seq("a=T,i=7,f=100", &png(100, 40)).as_bytes());
+    assert_eq!(t.take_replies().as_deref(), Some("\x1b_Gi=7;OK\x1b\\"));
+    // No id, no answer — nothing to type into the program's input.
+    t.feed(seq("a=T,f=100", &png(100, 40)).as_bytes());
+    assert_eq!(t.take_replies(), None);
+}
+
+/// `q=1` silences the OK and keeps errors; `q=2` silences both.
+#[test]
+fn quiet_levels_silence_what_they_say() {
+    let mut t = term();
+    t.feed(seq("a=T,i=7,q=1,f=100", &png(100, 40)).as_bytes());
+    assert_eq!(t.take_replies(), None, "q=1 drops the OK");
+    t.feed(seq("a=T,i=8,q=1,t=f,f=100", b"/no/such/file.png").as_bytes());
+    let reply = t.take_replies().unwrap_or_default();
+    assert!(reply.starts_with("\x1b_Gi=8;EBADF"), "answered {reply:?}");
+    t.feed(seq("a=T,i=9,q=2,t=f,f=100", b"/no/such/file.png").as_bytes());
+    assert_eq!(t.take_replies(), None, "q=2 drops errors too");
+}

@@ -22,8 +22,7 @@ impl TermCore {
                 true => "OK",
                 false => "ENOTSUPPORTED:unsupported format",
             };
-            let reply = format!("\x1b_Gi={};{body}\x1b\\", cmd.id);
-            self.events.replies.lock().unwrap().push_str(&reply);
+            self.answer(&cmd, body);
             return;
         }
         // Any delete drops them all, the ones the app holds too: the
@@ -32,7 +31,20 @@ impl TermCore {
             self.wipe(crate::wipescan::ImageWipe::All);
             return;
         }
-        if !cmd.displays() || cmd.data.is_empty() {
+        if !cmd.displays() {
+            return;
+        }
+        // A sender that named its picture (`i=`) is told how it went — a
+        // file it cannot have read, or a picture crew dropped, is one it can
+        // resend as bytes. One with no id asked for no answer.
+        let refusal = match () {
+            _ if !cmd.supported() => Some("ENOTSUPPORTED:unsupported format"),
+            _ if cmd.data.is_empty() => Some("ENODATA:no image data"),
+            _ if cmd.path().is_some_and(|p| !p.is_file()) => Some("EBADF:cannot read file"),
+            _ => None,
+        };
+        if let Some(why) = refusal {
+            self.answer(&cmd, why);
             return;
         }
         let point = self.term.grid().cursor.point;
@@ -44,6 +56,7 @@ impl TermCore {
             (c, r) if c > 0 && r > 0 => (c, r),
             _ => {
                 let Some((w, h)) = cmd.pixel_size() else {
+                    self.answer(&cmd, "EINVAL:image size unknown");
                     return;
                 };
                 let up = |n: u32, d: u32| n.div_ceil(d.max(1)).clamp(1, u16::MAX.into()) as u16;
@@ -51,6 +64,8 @@ impl TermCore {
             }
         };
         let rows = cells.1;
+        let stay = cmd.stay;
+        self.answer(&cmd, "OK");
         self.images.push(crate::model::PlacedImage {
             line,
             col: point.column.0 as u16,
@@ -60,9 +75,30 @@ impl TermCore {
         });
         // The protocol leaves the cursor past the picture; a line feed at the
         // bottom of the screen scrolls, which is exactly what reserves the
-        // room the picture is drawn over.
+        // room the picture is drawn over. `C=1` is the program saying it
+        // has made the room itself.
+        if stay {
+            return;
+        }
         for _ in 0..rows {
             self.parser.advance(&mut self.term, b"\n");
+        }
+    }
+
+    /// Reply to a graphics command, unless its `q=` asked for silence: 1
+    /// drops the `OK`, 2 drops errors as well. A picture sent with no id
+    /// asked for no answer; a probe (`a=q`) is always one.
+    fn answer(&self, cmd: &crate::graphicscmd::ImageCmd, body: &str) {
+        if cmd.id == 0 && cmd.action != b'q' {
+            return;
+        }
+        let silenced = match body {
+            "OK" => cmd.quiet >= 1,
+            _ => cmd.quiet >= 2,
+        };
+        if !silenced {
+            let reply = format!("\x1b_Gi={};{body}\x1b\\", cmd.id);
+            self.events.replies.lock().unwrap().push_str(&reply);
         }
     }
 

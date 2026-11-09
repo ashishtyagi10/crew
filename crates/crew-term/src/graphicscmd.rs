@@ -30,6 +30,14 @@ pub struct ImageCmd {
     pub id: u32,
     /// `m=1`: more chunks follow, and this payload is a fragment.
     pub more: bool,
+    /// `C=1` (iTerm2: `doNotMoveCursor=1`): leave the cursor where it is. A
+    /// full-screen program positions the cursor itself and places a picture
+    /// there; moving past it would line-feed, and at the bottom scroll its
+    /// whole layout.
+    pub stay: bool,
+    /// `q=`: 1 silences the `OK` answer, 2 silences errors too — a sender
+    /// that does not read replies must not have them typed into its input.
+    pub quiet: u8,
     /// The decoded payload: image bytes, or a path.
     pub data: Vec<u8>,
 }
@@ -44,6 +52,8 @@ impl Default for ImageCmd {
             cells: (0, 0),
             id: 0,
             more: false,
+            stay: false,
+            quiet: 0,
             data: Vec::new(),
         }
     }
@@ -76,6 +86,7 @@ impl ImageCmd {
                 "inline" => inline = v == "1",
                 "width" => size_arg(v, &mut cmd.cells.0, &mut cmd.px.0),
                 "height" => size_arg(v, &mut cmd.cells.1, &mut cmd.px.1),
+                "donotmovecursor" => cmd.stay = v == "1",
                 _ => {}
             }
         }
@@ -122,6 +133,8 @@ impl ImageCmd {
                 b"r" => cmd.cells.1 = num()?.min(u16::MAX.into()) as u16,
                 b"i" => cmd.id = num()?,
                 b"m" => cmd.more = num()? == 1,
+                b"C" => cmd.stay = num()? == 1,
+                b"q" => cmd.quiet = num()?.min(2) as u8,
                 // An unknown key is not a reason to drop a picture: the
                 // protocol grows, and everything crew needs is above.
                 _ => {}
