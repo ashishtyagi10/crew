@@ -102,6 +102,9 @@ pub(super) async fn run(
             max_tokens,
             turns: turns.clone(),
             tools: catalog.defs().to_vec(),
+            // The work turn keeps the model's own effort: this is the call
+            // the thinking is for (`provider::effort`).
+            effort: None,
         };
         // Raced against the stop: dropping the call aborts the request.
         let call = provider.complete_streaming(req, Arc::clone(&sink.on_chunk));

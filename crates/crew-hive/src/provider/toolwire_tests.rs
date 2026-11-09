@@ -34,6 +34,7 @@ fn tool_req() -> CompletionRequest {
                 is_error: false,
             }]),
         ],
+        ..Default::default()
     }
 }
 

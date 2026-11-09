@@ -294,6 +294,9 @@ impl AnthropicProvider {
         if let Some(tools) = build_tools(req) {
             body["tools"] = tools;
         }
+        if let Some(config) = super::effort::anthropic_field(&req.model, req.effort) {
+            body["output_config"] = config;
+        }
         if super::anthropiccache::caches(cache, req) {
             body["cache_control"] = super::anthropiccache::field();
         }

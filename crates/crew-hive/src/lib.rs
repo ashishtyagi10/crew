@@ -109,7 +109,7 @@ pub use spent::Spent;
 
 // Provider
 pub use provider::{
-    AnthropicProvider, Chunk, ChunkFn, ClaudeCliProvider, Completion, CompletionRequest,
+    AnthropicProvider, Chunk, ChunkFn, ClaudeCliProvider, Completion, CompletionRequest, Effort,
     MockProvider, OpenRouterProvider, Provider, ProviderError, ToolDef, ToolInvocation,
     ToolOutcome, Turn,
 };

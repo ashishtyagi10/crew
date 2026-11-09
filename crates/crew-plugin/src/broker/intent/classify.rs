@@ -130,6 +130,9 @@ pub(crate) fn complete_once(
         system: None,
         prompt: prompt.to_string(),
         max_tokens,
+        // A verdict, a route, a pick or a summary: none earns the work
+        // turn's thinking (`crew_hive::provider::effort`).
+        effort: Some(crew_hive::Effort::Low),
         ..Default::default()
     };
     let rt = tokio::runtime::Builder::new_current_thread()
