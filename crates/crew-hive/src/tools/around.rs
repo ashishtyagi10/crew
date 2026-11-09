@@ -91,12 +91,12 @@ pub(super) fn fence_above(above: &[&str]) -> Option<usize> {
 
 /// A fence line of either kind, bare or naming a language: models fence a
 /// call as `json` or `bash` as often as they leave it plain.
-fn opens_fence(t: &str) -> bool {
+pub(super) fn opens_fence(t: &str) -> bool {
     t.starts_with("```") || t.starts_with("~~~")
 }
 
 /// A bare code fence: the one a call was wrapped in closing behind it.
-fn is_fence(t: &str) -> bool {
+pub(super) fn is_fence(t: &str) -> bool {
     t.len() >= 3 && t.chars().all(|c| c == '`' || c == '~')
 }
 

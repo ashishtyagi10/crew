@@ -129,7 +129,11 @@ pub(super) fn translate(
                     text: tail,
                 });
             }
-            out.push(msg(name.as_str(), text.clone()));
+            // A call the worker's answer never ran is smith's row under it
+            // (`not_run`), as on the relay, not the worker's last words.
+            let (said, not_run) = crew_hive::tools::split_note(text);
+            out.push(msg(name.as_str(), said));
+            out.extend(not_run.map(|n| msg("agent smith", n)));
             out
         }
         // Tool use is NOT a transcript card any more. The app draws the live
@@ -211,3 +215,7 @@ pub(super) fn forwarded(ev: &HiveEvent) -> Option<HiveEvent> {
         other => Some(other.clone()),
     }
 }
+
+#[cfg(test)]
+#[path = "swarmmsg_tests.rs"]
+mod tests;

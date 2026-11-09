@@ -9,8 +9,9 @@
 //! every call, and a line per call would bury the answers between them.
 //!
 //! The same row says what Claude Code's settings refused on the reply
-//! (`Usage::refused`): a verdict of smith's, filed like the others, rather
-//! than a sentence appended to the agent's answer.
+//! (`Usage::refused`), and the calls a final answer held that never ran
+//! (`Usage::not_run`): verdicts of smith's, filed like the others, rather
+//! than sentences appended to the agent's answer.
 use super::adapter::Usage;
 use super::relay::msg;
 use crate::PluginEvent;
@@ -35,8 +36,9 @@ pub(crate) struct Told(Vec<String>);
 impl Told {
     /// Smith's line for `agent`'s reply usage `u` — `fell back to qwen-flash
     /// · qwen-max: <why>` — the first time `agent` falls back this turn,
-    /// then every refusal the reply met (`Usage::refused`), each call's own;
-    /// `None` when neither has anything to say.
+    /// then every refusal the reply met (`Usage::refused`), each call's own,
+    /// then the calls its final answer never ran (`Usage::not_run`); `None`
+    /// when none has anything to say.
     pub(crate) fn line(&mut self, agent: &str, u: &Usage) -> Option<PluginEvent> {
         let fell = !u.fell_back.is_empty() && !self.0.iter().any(|a| a == agent);
         let mut rows = Vec::new();
@@ -46,6 +48,9 @@ impl Told {
         }
         if !u.refused.is_empty() {
             rows.push(u.refused.clone());
+        }
+        if !u.not_run.is_empty() {
+            rows.push(u.not_run.clone());
         }
         (!rows.is_empty()).then(|| msg("agent smith", rows.join("\n")))
     }

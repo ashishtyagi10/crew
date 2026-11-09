@@ -37,7 +37,7 @@ mod failed_tests;
 
 pub use catalog::ToolCatalog;
 pub use jsondepth::JsonDepth;
-pub use neverran::{is_note, never_ran};
+pub use neverran::{is_note, never_ran, not_run, split_note};
 pub use parse::{parse_tool_call, split_tool_call, split_tool_calls, stray_calls};
 pub use said::said;
 pub use spec::ToolSpec;

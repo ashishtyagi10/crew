@@ -8,6 +8,8 @@
 use std::path::Path;
 use std::process::Command;
 
+use crew_hive::childproc::no_console_window;
+
 /// What looking up a cited file found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Cited {
@@ -142,7 +144,7 @@ pub(crate) fn tidy(reply: &str, lookup: &dyn Fn(&str) -> Cited) -> Tidied {
 /// `lib.rs` for `src/lib.rs`). A path the diff names (a deleted file) is
 /// never called missing.
 pub(crate) fn tidy_in(dir: &Path, diff: &str, reply: &str) -> Tidied {
-    let files: Option<Vec<String>> = Command::new("git")
+    let files: Option<Vec<String>> = no_console_window(&mut Command::new("git"))
         .args(["ls-files", "-co", "--exclude-standard"])
         .current_dir(dir)
         .output()

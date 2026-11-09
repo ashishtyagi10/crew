@@ -46,6 +46,13 @@ impl ToolRunner for AnyTools {
 
 /// Run one turn; hand back every prompt the agent saw and the answer.
 fn turn(replies: &[&str]) -> (Vec<String>, String) {
+    let (seen, done) = done_hop(replies);
+    (seen, done.text)
+}
+
+/// Run one turn; hand back every prompt the agent saw and the hop that
+/// ended it, usage and all.
+fn done_hop(replies: &[&str]) -> (Vec<String>, Hop) {
     let seen = Arc::new(Mutex::new(Vec::new()));
     let agent = Script {
         replies: Mutex::new(replies.iter().map(|r| r.to_string()).collect()),
@@ -69,7 +76,7 @@ fn turn(replies: &[&str]) -> (Vec<String>, String) {
     let answer = hops
         .iter()
         .find(|h| h.kind == HopKind::Done)
-        .map(|h| h.text.clone())
+        .cloned()
         .unwrap_or_else(|| {
             panic!(
                 "no answer: {:?}",
@@ -131,8 +138,9 @@ fn a_spent_budget_on_a_bare_call_answers_with_one_plain_line() {
 /// Calls left in the answer by a spent budget: edits, an explanation too long
 /// to be an aside, then a test run (on the 2026-10-23 probe the gap was one
 /// line, which now runs every group). Only the run is the reply's call, so
-/// the edits stayed in the text and never ran; the line under the answer
-/// says the budget stopped them, not that the turn ran no call at all.
+/// the edits stayed in the text and never ran; smith's line beside the
+/// answer says the budget stopped them, not that the turn ran no call at
+/// all, and the answer itself no longer holds them.
 #[test]
 fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
     let reply = "Let's make these changes.\n\n```rust\n\
@@ -142,12 +150,17 @@ fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
                  They cover the floors and the ratios both.\n\
                  If one fails, the edit above is the place to look.\n\n\
                  @tool sys:run {\"cmd\": \"cargo test\"}";
-    let (_, answer) = turn(&[reply]);
-    let note = "not run \u{2014} the answer asks for `sys:edit`, but the tool budget was \
-                spent before it could run";
-    assert!(answer.ends_with(note), "{answer}");
+    let (_, done) = done_hop(&[reply]);
+    let answer = done.text;
+    let note =
+        "! not run: sys:edit a.rs \u{b7} sys:edit b.rs \u{2014} the tool budget ran out first";
+    assert_eq!(done.usage.not_run, note, "{answer}");
     assert!(answer.contains(BUDGET), "{answer}");
-    assert_eq!(answer.matches("not run").count(), 1, "one note: {answer}");
+    assert!(
+        !answer.contains("not run"),
+        "smith's, not the answer's: {answer}"
+    );
+    assert!(!answer.contains("@tool"), "lifted: {answer}");
     assert!(
         !answer.contains("cargo test"),
         "the trailing call is cut: {answer}"

@@ -34,15 +34,14 @@ pub(super) fn stopped_answer(before: &str, calls: u32) -> String {
 /// what the task's checklist left undone (`crew_hive::tools::todo`), so a
 /// step the agent skipped is not hidden behind an answer that says done. The
 /// answer as written when the task kept no list or finished it.
-pub(super) fn finished(runner: Option<&dyn ToolRunner>, answer: String) -> String {
+///
+/// And beside it smith's line for any call the answer still held, lifted
+/// out of it (`crew_hive::tools::not_run`, the harness lifts its own first):
+/// the relay says that line as smith's row (`Usage::not_run`).
+pub(super) fn finished(runner: Option<&dyn ToolRunner>, answer: String) -> (String, String) {
     let answer = crew_hive::tools::todo::finished(answer, runner.and_then(|r| r.checklist()));
-    never_ran(answer)
-}
-
-/// `answer` with one line under it when it still holds a call that never
-/// ran (`crew_hive::tools::never_ran`, where the harness finishes its own).
-pub(super) fn never_ran(answer: String) -> String {
-    crew_hive::tools::never_ran(answer)
+    let (answer, note) = crew_hive::tools::not_run(&answer);
+    (answer, note.unwrap_or_default())
 }
 
 #[cfg(test)]
