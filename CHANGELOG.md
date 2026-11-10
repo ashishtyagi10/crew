@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.7
+
+**Todos tagged `@project` become GitHub issues, and agents can reach the list.**
+
+To-do list:
+- A todo tagged `@project`, where the project is a GitHub checkout, is filed as an issue in that repo and kept in step both ways: tick it and the issue closes, close the issue and the todo ticks, rename either and the other follows. It goes through `gh` (run `gh auth login` once), so crew holds no token. `/todo issues off` stops it.
+- `crew todo` reads and writes the list from any shell, so Claude Code, Codex or smith in another pane can pick up a todo and tick it off: `crew todo list [@project] [#who] [--json]`, `crew todo add "…"`, `crew todo done <id>`.
+- An open /todo pane picks up a change made in another process within a second, instead of saving over it.
+
 ## 0.30.6
 
 **A new 3D theme, `prism`, and twenty-nine more fixes in one release.**
