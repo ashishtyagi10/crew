@@ -33,6 +33,13 @@ fn legend_falls_back_to_the_compact_form_when_narrow() {
     assert!(s.chars().count() <= 16, "{s}");
 }
 
+/// The note an install leaves says what landed and the command that applies it.
+#[test]
+fn the_ready_note_names_the_version_and_restart() {
+    let s = ready("9.9.9");
+    assert!(s.contains("v9.9.9") && s.contains("/restart"), "{s}");
+}
+
 /// A parked install blinks for as long as it is parked — it is the only thing
 /// asking for a restart, and a reminder that settles after four seconds is one
 /// the user who stepped away never sees.

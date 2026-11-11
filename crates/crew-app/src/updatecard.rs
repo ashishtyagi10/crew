@@ -1,5 +1,5 @@
 //! The left-nav UPDATE card interior: a spinner + stage line and a version
-//! transition line, shown only while a `/update` runs (and briefly after). The
+//! transition line, shown only while a typed `/update` runs (and briefly after). The
 //! bordered fieldset frame is drawn by `panelcard::push_card`; this fills it.
 use crew_render::CellView;
 
@@ -49,7 +49,11 @@ pub(crate) fn update_cells(u: &UpdateState, cols: u16, rows: u16) -> Vec<CellVie
             "downloading".to_string(),
             format!("v{current} → v{v}"),
         ),
-        Stage::Done(v) => ('✓', format!("updated v{v}"), "restarting…".to_string()),
+        Stage::Done(v) => (
+            '✓',
+            format!("installed v{v}"),
+            "/restart to apply".to_string(),
+        ),
         // Handled above.
         Stage::Note(_) => unreachable!(),
     };

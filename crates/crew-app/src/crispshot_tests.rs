@@ -167,7 +167,7 @@ fn text_px(w: u32, h: u32, c: char, rows: u16) -> Option<Vec<u8>> {
 /// A stem is not a rule — it is a typeface's own shape at a typeface's own
 /// position, so some fringe is correct and the number here is a watch rather
 /// than a target. What it is watching for is the stem darkening quietly
-/// widening: the dilation in `crew_render::smoothmask` spills coverage a
+/// widening: `crew_render`'s smoothing grows the outline a
 /// fraction of a pixel sideways, and a stem that reads across five pixels
 /// with none at full ink is a stem that has been smeared, not darkened.
 #[test]

@@ -3,12 +3,10 @@
 //! write the same `font_smooth` config key; sharing the table here is what
 //! keeps them from ever disagreeing about what "medium" means.
 
-/// The named steps, in picker order. `off` is the renderer's default now:
-/// the coverage curve behind `/gamma` delivers the outline's own light on
-/// its own, and the darkening on top of it only spread that light over 45%
-/// more pixels (see [`crew_render::DEFAULT_SMOOTH`]). The rest of the ladder
-/// is unchanged, for anyone who wants the fatter Terminal.app look back —
-/// `medium` is still the strength that look was calibrated at.
+/// The named steps, in picker order. `medium` is the renderer's default:
+/// the strength at which a stroke widens as far as CoreText's own font
+/// smoothing widens it (see [`crew_render::DEFAULT_SMOOTH`]). `off` draws the
+/// outline exactly as the font gives it, which is what Ghostty shows.
 pub(crate) const SMOOTH_LEVELS: [(&str, u8); 4] =
     [("off", 0), ("light", 40), ("medium", 70), ("heavy", 120)];
 

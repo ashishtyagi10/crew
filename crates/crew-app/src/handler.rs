@@ -122,6 +122,18 @@ impl CrewApp {
         {
             self.config.save();
         }
+        // And across 0.30.8: the weight comes from a grown outline now, so a
+        // curve still at its old default would deliver it a second time.
+        if self.first
+            && self
+                .config
+                .last_seen_version
+                .as_deref()
+                .is_some_and(|prev| crate::appregister::version_lt(prev, "0.30.8"))
+            && self.config.adopt_outline_smoothing()
+        {
+            self.config.save();
+        }
         if self.first
             && self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION)
         {

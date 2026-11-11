@@ -4,17 +4,13 @@
 //! them from ever disagreeing about what "medium" means. Sibling of
 //! [`crate::smoothlvl`], which does the same for `/smooth`.
 
-/// The named steps, in picker order. `full` is the renderer's default now —
-/// the whole sRGB correction, so the coverage a glyph asks for is the linear
-/// luminance it gets. Half was right only while the stem darkening was on by
-/// default and delivering the other half; it is off now, so the curve is the
-/// only thing cancelling the blend's error and it has to cancel all of it.
-pub(crate) const GAMMA_LEVELS: [(&str, u8); 4] = [
-    ("off", 0),
-    ("light", 65),
-    ("medium", 130),
-    ("full", crew_render::DEFAULT_TEXT_GAMMA),
-];
+/// The named steps, in picker order. `off` is the renderer's default now:
+/// text weight comes from widening the outline (`/smooth`), which keeps a
+/// glyph's soft edge, where this curve buys its weight by flattening it (see
+/// [`crew_render::DEFAULT_TEXT_GAMMA`]). `full` is the whole sRGB correction,
+/// for the physically exact rim.
+pub(crate) const GAMMA_LEVELS: [(&str, u8); 4] =
+    [("off", 0), ("light", 65), ("medium", 130), ("full", 255)];
 
 /// The amount behind a `/gamma` keyword, if it is one.
 pub(crate) fn amount_of(name: &str) -> Option<u8> {

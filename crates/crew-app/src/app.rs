@@ -47,6 +47,9 @@ pub struct CrewApp {
     /// created from a callback holding the active event loop, so the ask is a
     /// flag `canvas` answers on the next tick.
     pub(crate) want_window: bool,
+    /// This canvas asked for a restart (`/restart`, or the nav's RESTART
+    /// card). Only [`crate::canvas`] can snapshot every window, so it answers.
+    pub(crate) want_restart: bool,
     /// Panes a `/restore` found belonging to windows this canvas is not —
     /// handed to [`crate::canvas`], which opens a window for each group.
     pub(crate) pending_windows: Vec<Vec<crate::sessionsave::SavedPane>>,
@@ -248,17 +251,16 @@ pub struct CrewApp {
     /// Saved-session shell count for the welcome screen's `/restore` hint
     /// (seeded at startup, cleared once `/restore` spends the snapshot).
     pub(crate) restore_hint: Option<usize>,
-    /// In-progress background self-update (`/update`): drives the left-nav UPDATE
-    /// card and the auto-restart. `None` when no update is running.
+    /// In-progress self-update check: the quiet background one, or a typed
+    /// `/update` drawing the left-nav UPDATE card. `None` when none is running.
     pub(crate) update: Option<crate::update::UpdateState>,
     /// Pure-timing scheduler for the quiet background update check: 30 s after
-    /// launch, then every 6 h. See [`crate::autoupdate`].
+    /// launch, then every half hour. See [`crate::autoupdate`].
     pub(crate) autoupdate: crate::autoupdate::AutoUpdate,
     /// Version + parked-at (on the `anim` clock) of the most recently
     /// installed-but-not-yet-running update, set the moment any run (silent
     /// or manual) reaches `Installed`. Drives the blinking nav-legend
-    /// reminder (see [`crate::restartnote`]); the next `/update` restarts
-    /// straight into it.
+    /// reminder (see [`crate::restartnote`]) until `/restart` rides into it.
     pub(crate) parked_update: Option<(String, u64)>,
     /// In-flight `?` ask (AI command suggestion) on a worker thread. `None`
     /// when idle. See [`crate::askbar`].

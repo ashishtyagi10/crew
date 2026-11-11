@@ -36,8 +36,8 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },
     Cmd {
-        name: "/update",
-        desc: "Update crew to the latest release and restart into it (progress shows in the open nav)",
+        name: "/restart",
+        desc: "Restart crew into the newest installed release and resume every pane (updates install themselves)",
     },
     Cmd {
         name: "/broadcast",

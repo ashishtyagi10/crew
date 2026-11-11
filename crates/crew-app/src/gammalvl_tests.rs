@@ -5,7 +5,7 @@ fn keywords_map_to_their_amounts() {
     assert_eq!(amount_of("off"), Some(0));
     assert_eq!(amount_of("light"), Some(65));
     assert_eq!(amount_of("medium"), Some(130));
-    assert_eq!(amount_of("full"), Some(crew_render::DEFAULT_TEXT_GAMMA));
+    assert_eq!(amount_of("full"), Some(255));
     assert_eq!(amount_of("heavy"), None);
 }
 
@@ -13,9 +13,10 @@ fn keywords_map_to_their_amounts() {
 fn labels_name_the_ladder_and_number_the_rest() {
     assert_eq!(label_of(0), "off");
     assert_eq!(label_of(130), "medium");
+    assert_eq!(label_of(255), "full");
     assert_eq!(
         label_of(crew_render::DEFAULT_TEXT_GAMMA),
-        "full",
+        "off",
         "the default is a named step"
     );
     assert_eq!(label_of(42), "42");

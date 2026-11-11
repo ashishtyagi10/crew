@@ -82,10 +82,9 @@ fn the_readme_advertises_nothing_either_palette_lacks() {
     // Names the dispatcher still answers to but no palette advertises, each
     // for a reason the README explains where it uses them: `/crew` is
     // `/smith`'s older spelling (both run), `/m` is the composer's one-letter
-    // `/model`, and `/restart` is retired — it answers by saying it was
-    // merged into `/update`, which is exactly the sentence the README is
-    // quoting it in.
-    real.extend(["/crew", "/m", "/restart"]);
+    // `/model`. (`/update`, `/restart`'s older half, is a folded spelling
+    // and is covered with those below.)
+    real.extend(["/crew", "/m"]);
     // The look family: fifteen commands became `/look`'s subjects, and all
     // fifteen still run when typed (`cmddefs::answered`). The manuals name
     // them in their own sections, which is where the diet is explained —

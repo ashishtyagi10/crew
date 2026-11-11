@@ -6,7 +6,7 @@
 //! the running process for the binary already on disk. That used to be a line
 //! of legend text saying `/update`, which is a command for something that has
 //! already happened. It is a button now: it blinks until it is dealt with, and
-//! the whole card is the target.
+//! the whole card is the target. Pressing it is typing `/restart`.
 use crew_render::CellView;
 
 use crate::updatecard::{glyph, write};

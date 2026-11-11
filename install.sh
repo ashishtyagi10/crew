@@ -9,7 +9,7 @@ set -e
 REPO="ashishtyagi10/crew"
 BIN_NAME="crew"
 
-# Always install to ~/.local/bin so neither install nor `/update` ever
+# Always install to ~/.local/bin so neither install nor the in-app updater ever
 # needs sudo. The user can override with INSTALL_DIR=/path env var if
 # they really want a system location.
 if [ -n "${INSTALL_DIR:-}" ]; then
@@ -102,7 +102,7 @@ main() {
     echo "Agents work with no API key at all if you are already signed in to"
     echo "claude, codex or opencode — crew finds them on PATH. Otherwise open"
     echo "the model picker with '/model' and add a provider key there."
-    echo "Type '/update' inside crew to install new releases."
+    echo "crew updates itself; type '/restart' inside it to apply a new release."
 }
 
 detect_os() {

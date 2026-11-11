@@ -29,6 +29,7 @@ use crate::config::CrewConfig;
 /// Every open canvas.
 mod ask;
 mod life;
+mod restart;
 
 pub struct Crew {
     canvases: Vec<CrewApp>,
@@ -47,6 +48,9 @@ pub struct Crew {
     /// The config as it was after the last event, to notice a canvas changing
     /// it (see [`Crew::share_config`]).
     config: CrewConfig,
+    /// A `/restart` is under way: the fresh process has its own snapshot, so
+    /// the quit one is left alone on the way out.
+    restarting: bool,
 }
 
 impl Crew {
@@ -57,6 +61,7 @@ impl Crew {
             canvases: vec![first],
             active: 0,
             casts: Vec::new(),
+            restarting: false,
         }
     }
 
@@ -121,6 +126,7 @@ impl Crew {
 impl ApplicationHandler for Crew {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.open_asked(event_loop);
+        self.resume_restart(event_loop);
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
@@ -130,6 +136,7 @@ impl ApplicationHandler for Crew {
         }
         self.open_asked(event_loop);
         self.close_asked(event_loop);
+        self.restart_asked(event_loop);
         self.share_config();
     }
 
@@ -137,6 +144,7 @@ impl ApplicationHandler for Crew {
         let Some(i) = self.at(id) else { return };
         self.canvases[i].route(event_loop, id, event);
         self.close_asked(event_loop);
+        self.restart_asked(event_loop);
         self.share_config();
     }
 
@@ -144,6 +152,9 @@ impl ApplicationHandler for Crew {
     /// last window closing, `/exit`): snapshot the open shells' directories so
     /// `/restore` can reopen them next launch.
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        if self.restarting {
+            return;
+        }
         self.save_all();
     }
 }

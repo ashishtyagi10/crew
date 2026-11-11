@@ -8,6 +8,9 @@ license.workspace = true
 winit.workspace = true
 wgpu.workspace = true
 glyphon.workspace = true
+# The rasterizer under cosmic-text, named so crew can grow an outline before
+# it is drawn (`outlineink`). Must stay the version cosmic-text resolves.
+swash = "0.2.9"
 anyhow.workspace = true
 unicode-width = { workspace = true }
 pollster = "0.4"

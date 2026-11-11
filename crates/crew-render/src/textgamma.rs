@@ -36,22 +36,17 @@ pub(crate) fn light_ink(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> bool {
 /// Display gamma the encoded blend is losing to.
 const GAMMA: f32 = 2.2;
 
-/// Default correction amount (0–255) — the **full** sRGB correction.
+/// Default correction amount (0–255) — **off**.
 ///
-/// This was 130, about half, and half was the right answer while the stem
-/// darkening in [`crate::smoothmask`] was still on by default and delivering
-/// the other half. With the darkening off (see [`crate::smoothing::DEFAULT_SMOOTH`])
-/// the blend's error is this curve's alone to cancel, and cancelling it
-/// completely is what puts a glyph's delivered light exactly on the light
-/// its outline asked for — 100.0% on a dark page and 100.0% on a bright one,
-/// measured over eight glyphs at two sizes.
-///
-/// Full does not mean heavy: the curve fixes 0 and 1, so it moves only the
-/// antialiased rim, and it moves it in whichever direction that rim is
-/// wrong. On a bright page it takes ink AWAY (the old pair delivered 145% of
-/// what the outline asked for there), which is the correction reading as
-/// *crisper*, not bolder.
-pub const DEFAULT_TEXT_GAMMA: u8 = 255;
+/// The curve delivers the outline's exact linear light, and on a dark page
+/// it does so by lifting every faint edge pixel most of the way to solid: a
+/// coverage of 0.05 becomes 0.26. Measured against CoreText (2026-11-11) that
+/// left 12% of inked pixels below 40% coverage where CoreText keeps 24% —
+/// the right amount of light, on an edge with half its steps gone, which
+/// reads as rough. CoreText does not correct the blend this way; it widens
+/// the outline, and so does [`crate::smoothing`] now. The curve stays behind
+/// `/gamma` for anyone who wants the physically exact rim.
+pub const DEFAULT_TEXT_GAMMA: u8 = 0;
 
 /// The share of the full correction a run's OWN colours ask for, as a
 /// 0.0–1.0 factor on the amount.

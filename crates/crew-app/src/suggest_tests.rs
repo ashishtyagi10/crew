@@ -53,14 +53,14 @@ fn slash_completes_look_and_font_is_answered_unadvertised() {
 }
 
 #[test]
-fn slash_completes_restore_and_restart_is_gone() {
-    // /restart merged into /update, so /res now belongs to /restore.
-    assert_eq!(suggest("/res", &[]).as_deref(), Some("tore"));
+fn slash_res_offers_restart_and_restore_and_update_is_gone() {
+    // /restart is the command now; /update still answers, but is not offered.
     let names: Vec<&str> = matches("/res").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/restore"));
+    assert!(names.contains(&"/restore") && names.contains(&"/restart"));
+    assert_eq!(suggest("/resta", &[]).as_deref(), Some("rt"));
     assert!(
-        !crate::cmddefs::commands().any(|c| c.name == "/restart"),
-        "/restart should be dropped from the palette"
+        !crate::cmddefs::commands().any(|c| c.name == "/update"),
+        "/update should be dropped from the palette"
     );
 }
 

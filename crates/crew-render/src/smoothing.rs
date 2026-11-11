@@ -1,7 +1,7 @@
 //! CoreText-style glyph smoothing for the swash raster path.
 //!
 //! Ghostty, Warp, kitty and Terminal.app all rasterize through CoreText,
-//! which never hints and (with "font smoothing" on) dilates strokes by a
+//! which never hints and (with "font smoothing" on) widens strokes by a
 //! fraction of a pixel — Apple's stem darkening. swash hints by default and
 //! draws exact outlines, so the same font reads thinner and rougher in crew
 //! than in any native terminal. This module closes that gap:
@@ -11,51 +11,71 @@
 //! - the smoothing strength rides in the cache key's spare high bits, so a
 //!   `/smooth` change mints new keys and stale atlas entries simply age out,
 //! - [`presmooth`] rasterizes every glyph a frame needs *before* glyphon
-//!   does, applies [`smooth_mask`], and pre-fills `SwashCache.image_cache`
-//!   (a public field) — glyphon's own `get_image` then hits our entry, so
-//!   no fork of glyphon or cosmic-text is needed.
+//!   does, with its outline grown by [`grow_px`] ([`crate::outlineink`]),
+//!   and pre-fills `SwashCache.image_cache` (a public field) — glyphon's own
+//!   `get_image` then hits our entry.
 //!
-//! The kernel that does the darkening lives in [`crate::smoothmask`], and
-//! the coverage curve that follows it in [`crate::textgamma`] — the flags
-//! carry that curve's amount and the page's polarity too, for the same
-//! reason they carry the strength: a theme switch or a `/gamma` change
-//! has to re-key every glyph or the atlas would keep serving the old ink.
+//! # The widening is done to the outline, not to the bitmap
+//!
+//! Reported (2026-11-11): "fonts are not smooth enough". Measured against a
+//! CoreText rendering of the same line, the glyphs were the right weight and
+//! had almost no edge left: on a dark page 2% of inked pixels sat below 40%
+//! coverage, where CoreText keeps 20% there. The weight had been bought by
+//! pushing the antialiased rim toward solid — a kernel that deepened covered
+//! pixels, then a coverage curve that lifted them again — and a rim with two
+//! levels in it is a staircase.
+//!
+//! CoreText gets the same weight by moving the outline out and rasterizing
+//! THAT, so every edge keeps its whole ramp. So does crew now. With no grow
+//! and no curve, swash's coverage matches CoreText's unsmoothed output to
+//! within half a percent of ink, level for level; growing the outline by
+//! [`GROW_AT_MEDIUM`] lands on its smoothed output the same way.
+//!
+//! The flags still carry [`crate::textgamma`]'s amount and the run's
+//! polarity: the curve is opt-in now, and the polarity also decides how far
+//! the outline grows.
 use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SwashCache, SwashContent};
 use glyphon::FontSystem;
 
 use crate::scene::PaneBuffer;
-use crate::sizeramp::strength_at;
-use crate::smoothmask::smooth_mask;
 use crate::textgamma::Curve;
 
-/// Default smoothing strength (0–255) — **off**.
-///
-/// The stem darkening was added when it was the only correction crew had,
-/// and it was doing two jobs: its own optical widening, and quietly covering
-/// the deficit of the gamma-encoded blend. [`crate::textgamma`] took the
-/// second job over honestly in 0.19.25, and 0.19.28 rebalanced the pair to
-/// stop them double-counting. What that rebalance did not ask is whether the
-/// darkening was still earning its place at all.
-///
-/// Swept over eight glyphs at two sizes and both polarities, it is not:
-///
-/// | pair | light delivered | inked pixels |
-/// |------|-----------------|--------------|
-/// | smooth 70, gamma 130 (the old default) | 98% dark / **145% light** | 584 |
-/// | smooth 0, gamma 255 | **100% / 100%** | **322** |
-///
-/// The curve alone lands on the outline's own light exactly, on both a dark
-/// page and a bright one, and puts that light on 45% FEWER pixels. Every one
-/// of those extra pixels is a fraction of a stem's coverage sitting one
-/// pixel out from the stem — which is the definition of a soft edge. (The
-/// bright-page overshoot had never been measured: the calibration contract
-/// only ever rendered white ink on a black page, and the same pair delivers
-/// half again the ink it should the other way up.)
-///
-/// `/smooth` keeps the whole ladder for anyone who wants the fatter
-/// Terminal.app look back; what changed is which end of it is the default.
-/// `the_default_pair_delivers_the_outlines_light` holds both polarities now.
-pub const DEFAULT_SMOOTH: u8 = 0;
+/// Default smoothing strength (0–255): `medium`, the strength at which the
+/// grown outline matches CoreText's own font smoothing.
+pub const DEFAULT_SMOOTH: u8 = 70;
+
+/// How much wider, in pixels, a stroke gets at [`DEFAULT_SMOOTH`] on a dark page
+/// at [`REFERENCE_PX`]. Measured, not chosen: JetBrains Mono Medium, white on
+/// near-black, against CoreText with font smoothing on — this grow gives the
+/// same count of inked pixels (within 2%), the same share of them solid, and
+/// the same spread across the levels between.
+const GROW_AT_MEDIUM: f32 = 0.64;
+
+/// The glyph size, in physical pixels, that figure was measured at: 12 pt
+/// on a Retina display.
+const REFERENCE_PX: f32 = 24.0;
+
+/// Where the grow stops following the size, per polarity `(dark, bright)`.
+/// CoreText's widening is a fixed share of the glyph up to a size and a
+/// fixed distance past it: light ink gains 27–33% from 10 px to 24 px and
+/// then tails off (16% at 48 px), dark ink gains 14–15% all the way to 48.
+const GROW_CAP_PX: (f32, f32) = (24.0, 48.0);
+
+/// The share of the grow a bright page takes. CoreText widens dark ink on a
+/// bright ground about half as far: dark strokes already read heavier than
+/// light ones of the same width.
+const BRIGHT_SHARE: f32 = 0.5;
+
+/// How much wider a glyph's strokes are drawn, in pixels, for a `/smooth`
+/// strength at a glyph size of `px` physical pixels.
+pub(crate) fn grow_px(strength: u8, px: f32, dark: bool) -> f32 {
+    let (cap, share) = match dark {
+        true => (GROW_CAP_PX.0, 1.0),
+        false => (GROW_CAP_PX.1, BRIGHT_SHARE),
+    };
+    let level = f32::from(strength) / f32::from(DEFAULT_SMOOTH);
+    level * GROW_AT_MEDIUM * share * px.clamp(0.0, cap) / REFERENCE_PX
+}
 
 /// Strength byte's position inside the cache-key flag bits. Bits 0–2 are
 /// cosmic-text's own flags; 8..16 are unused by it and survive the trip
@@ -123,7 +143,7 @@ pub(crate) fn presmooth(
                 }
                 // Frames, rules, bars and shades are drawn, not read from the
                 // font: `boxglyph` says so first, and what it returns skips
-                // both the darkening and the coverage curve below — a
+                // both the widening and the coverage curve below — a
                 // rectangle asked for neither. The cell box comes off the
                 // layout itself (the advance is snapped to one cell, the line
                 // height IS the cell height), so nothing has to be plumbed in.
@@ -141,25 +161,20 @@ pub(crate) fn presmooth(
                     swash.image_cache.insert(key, Some(image));
                     continue;
                 }
-                let image = swash.get_image_uncached(font_system, key).map(|image| {
-                    if image.content != SwashContent::Mask {
-                        // Colour glyphs (emoji) carry their own pixels; the
-                        // stem darkening and the coverage curve are both
-                        // statements about alpha, so they pass through.
-                        return image;
+                // The size is right here in the key — no plumbing needed to
+                // ask what the glyph was shaped at.
+                let px = f32::from_bits(key.font_size_bits);
+                let grow = grow_px(strength_of(&key), px, dark_of(&key));
+                let raw = match grow > 0.0 {
+                    true => crate::outlineink::render(font_system, key, grow),
+                    false => swash.get_image_uncached(font_system, key),
+                };
+                let image = raw.map(|mut image| {
+                    // Colour glyphs (emoji) carry their own pixels; the
+                    // coverage curve is a statement about alpha.
+                    if image.content == SwashContent::Mask {
+                        curve.apply(&mut image.data, dark_of(&key), gamma_of(&key));
                     }
-                    // The strength the ladder names is the one calibrated at
-                    // body size; a smaller glyph takes proportionally less of
-                    // it (see `size_scale`). The size is right here in the
-                    // key — no plumbing needed to ask what it was shaped at.
-                    let strength =
-                        strength_at(strength_of(&key), f32::from_bits(key.font_size_bits));
-                    let mut image = if strength > 0 {
-                        smooth_mask(&image, strength)
-                    } else {
-                        image
-                    };
-                    curve.apply(&mut image.data, dark_of(&key), gamma_of(&key));
                     image
                 });
                 swash.image_cache.insert(key, image);

@@ -1,12 +1,29 @@
 # Changelog
 
 Notable changes per release, newest first. Versions are the workspace version
-in `Cargo.toml`; every tag builds a release the app picks up through
-`/update`.
+in `Cargo.toml`; every tag builds a release the app installs by itself and
+applies on `/restart`.
 
 The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
+
+## 0.30.8
+
+**Updates install themselves, `/restart` brings every pane back, and text is drawn the way macOS draws it.**
+
+Updates and restart:
+- `/update` is now `/restart`. Crew checks for a release 30 seconds after launch and every 30 minutes after, and installs it in the background. It never restarts by itself.
+- When an install lands, a toast and the status line say `crew vX is ready — /restart to apply`, and the nav's RESTART card blinks. Pressing the card does the same as typing `/restart`.
+- `/restart` relaunches crew and reopens every window as it was: each shell in its folder, each Far panel, file viewer, todo and smith pane, in its tab and window, minimized if it was, with the focus where it sat. Two shells in the same folder come back as two.
+- Programs running inside a shell end with the old process, and a smith conversation is not continued. Settings, inbox, usage, disk and dashboard panes are not reopened.
+- `/update` still answers as an old spelling: it checks right now, then waits for `/restart`.
+
+Text:
+- Reported: "fonts are not smooth enough." Glyphs had the right weight and a hard edge: on a dark page 2% of a glyph's pixels were in the faint part of its edge, where CoreText keeps 20%.
+- Strokes are now widened on the glyph's outline before it is drawn, as CoreText does, so every edge keeps its full gradient. A stem's pixel profile reads 0.29 / 1.00 / 1.00 / 0.73 against CoreText's 0.28 / 1.00 / 1.00 / 0.72.
+- The widening follows the glyph's size, so small text on a non-Retina display is not over-inked, and dark text on a bright page takes half of it.
+- `/smooth` now defaults to `medium` and `/gamma` to `off`. A config still on the old defaults is moved once; a value you chose stays. `/smooth off` draws the outline exactly as the font gives it.
 
 ## 0.30.7
 

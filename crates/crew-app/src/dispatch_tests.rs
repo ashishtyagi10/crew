@@ -18,20 +18,19 @@ fn an_unknown_command_says_so_and_guesses() {
     assert!(!s.contains("did you mean"), "no guess from nonsense: {s}");
 }
 
-/// `/restart` is gone (merged into `/update`), but typing it must teach,
-/// not fall through to the fuzzy matcher — which would suggest /restore,
-/// a different action entirely.
+/// `/update` left the palette for `/restart`, but the old spelling still
+/// answers: with an install already waiting it says how to apply it, and it
+/// never restarts anything itself.
 #[test]
-fn restart_is_a_migration_stub_pointing_at_update() {
+#[allow(clippy::field_reassign_with_default)]
+fn update_with_an_install_waiting_points_at_restart() {
     let mut app = CrewApp::default();
-    let exit = app.run_slash_command("restart");
-    assert!(!exit, "the stub must not exit or relaunch anything");
+    app.parked_update = Some(("9.9.9".into(), 0));
+    let exit = app.run_slash_command("update");
+    assert!(!exit && !app.want_restart, "/update never restarts");
+    assert!(app.update.is_none(), "nothing to fetch: it is already here");
     let s = app.status.clone().expect("a status was set").0;
-    assert!(s.contains("/update"), "{s}");
-    assert!(
-        !s.contains("unknown"),
-        "not an unknown command, a merged one: {s}"
-    );
+    assert!(s.contains("v9.9.9") && s.contains("/restart"), "{s}");
 }
 
 /// `/help` is what a new hand types first; it must open the overlay, not

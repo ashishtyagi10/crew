@@ -38,8 +38,7 @@ fn smooth_defaults_on_and_named_steps_set_it() {
     assert_eq!(
         app.config.font_smooth,
         crew_render::DEFAULT_SMOOTH,
-        "the darkening is off out of the box — the coverage curve \
-         delivers the outline's light on its own"
+        "strokes are widened out of the box, as CoreText widens them"
     );
     app.smooth_command("heavy");
     assert_eq!(app.config.font_smooth, 120);
@@ -48,7 +47,7 @@ fn smooth_defaults_on_and_named_steps_set_it() {
     app.smooth_command("medium");
     assert_eq!(app.config.font_smooth, 70);
     app.smooth_command("off");
-    assert_eq!(app.config.font_smooth, crew_render::DEFAULT_SMOOTH);
+    assert_eq!(app.config.font_smooth, 0);
 }
 
 #[test]
@@ -73,15 +72,15 @@ fn settings_apply_adopts_the_forms_smoothing() {
         .iter()
         .position(|&f| f == crate::settingspane::Field::Smooth)
         .unwrap();
-    crate::settingspane::cycle_value(&mut pane, false); // off → light
+    crate::settingspane::cycle_value(&mut pane, false); // medium → heavy
     let crate::settingspane::SettingsAction::Apply(cfg) = pane.save() else {
         panic!("save must apply");
     };
     app.apply_settings(*cfg);
-    assert_eq!(app.config.font_smooth, 40);
+    assert_eq!(app.config.font_smooth, 120);
     app.smooth_command("");
     let s = app.active_status().unwrap();
-    assert!(s.contains("light"), "/smooth reports the form's value: {s}");
+    assert!(s.contains("heavy"), "/smooth reports the form's value: {s}");
 }
 
 #[test]
@@ -101,7 +100,7 @@ fn gamma_keywords_and_numbers_both_land() {
     app.gamma_command("off");
     assert_eq!(app.config.font_gamma, 0);
     app.gamma_command("full");
-    assert_eq!(app.config.font_gamma, crew_render::DEFAULT_TEXT_GAMMA);
+    assert_eq!(app.config.font_gamma, 255);
     app.gamma_command("medium");
     assert_eq!(app.config.font_gamma, 130);
     app.gamma_command("42");
@@ -130,13 +129,13 @@ fn settings_apply_adopts_the_forms_text_gamma() {
         .iter()
         .position(|&f| f == crate::settingspane::Field::FontGamma)
         .unwrap();
-    crate::settingspane::cycle_value(&mut pane, false); // full → off
+    crate::settingspane::cycle_value(&mut pane, false); // off → light
     let crate::settingspane::SettingsAction::Apply(cfg) = pane.save() else {
         panic!("save must apply");
     };
     app.apply_settings(*cfg);
-    assert_eq!(app.config.font_gamma, 0);
+    assert_eq!(app.config.font_gamma, 65);
     app.gamma_command("");
     let s = app.active_status().unwrap();
-    assert!(s.contains("off"), "/gamma reports the form's value: {s}");
+    assert!(s.contains("light"), "/gamma reports the form's value: {s}");
 }

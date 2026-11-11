@@ -15,7 +15,7 @@ fn labels_name_the_ladder_and_number_the_rest() {
     assert_eq!(label_of(70), "medium");
     assert_eq!(
         label_of(crew_render::DEFAULT_SMOOTH),
-        "off",
+        "medium",
         "the default is a named step"
     );
     assert_eq!(label_of(42), "42");
