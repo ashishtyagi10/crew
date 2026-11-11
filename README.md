@@ -58,7 +58,7 @@ irm https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.ps1 | iex
 Installs `crew.exe` to `%LOCALAPPDATA%\Programs\crew` and adds it to your
 **user** `PATH`. Nothing is written outside your profile — no Program Files,
 no `HKLM`, no MSI, no UAC prompt — so it works on a locked-down or managed
-machine, and `/update` stays admin-free too. Open a new terminal afterwards so
+machine, and the in-app updater stays admin-free too. Open a new terminal afterwards so
 the `PATH` change reaches it.
 
 Options: `-InstallDir <path>` (or `$env:CREW_INSTALL_DIR`) to install
@@ -115,13 +115,19 @@ How you update depends on how you installed:
   `crew.exe` aside rather than failing on the lock.
 - **cargo:** `cargo install --git https://github.com/ashishtyagi10/crew crew-app --force`
 - **Source checkout:** `git pull && cargo build --release -p crew-app`.
-- **In-app:** the **`/update`** command downloads the latest release binary for
-  your platform over the running one and **restarts crew into it**. Progress
-  streams into a dedicated **UPDATE card in the left nav** (checking →
-  downloading → installed → restarting) — no separate shell or checkout. The
-  old `/restart` command was merged into `/update`; an update the background
-  check installed quietly is applied by the next `/update` too. A standalone
-  `crew --self-update` CLI path remains as a headless fallback.
+- **In-app:** crew **updates itself**. It checks for a release shortly after
+  launch and every half hour, and downloads a new one over the running binary
+  in the background — nothing to run. When it lands, a note names the version
+  and a blinking **RESTART card** takes the top of the left nav. Crew never
+  restarts by itself: type **`/restart`** (or press the card) when you are
+  ready, and it relaunches into the new build and **resumes every pane** —
+  each shell in its directory, Far panels, viewers, the todo and smith panes,
+  in the same tabs and windows, with the focus where it was. (Programs that
+  were running in a shell end with the old process.) `/restart` works with no
+  update waiting too. The older `/update` still answers: it checks right now,
+  showing progress in an **UPDATE card**, and then waits for `/restart` like
+  any other install. A standalone `crew --self-update` CLI path remains as a
+  headless fallback.
 
 The prebuilt path only sees a version once its release assets are published.
 
@@ -130,7 +136,7 @@ The prebuilt path only sees a version once its release assets are published.
 Crew registers itself in your OS app menu on first GUI launch (Spotlight and
 Launchpad on macOS, the Start menu on Windows, the applications menu on
 Linux). The entry launches the installed binary (`~/.local/bin/crew`) when
-present, so `/update` keeps it current.
+present, so the in-app updater keeps it current.
 
 - `crew install-app` — create or refresh the entry explicitly
 - `crew install-app --remove` — remove it
@@ -326,7 +332,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 `/out`, `/marks`, `/name <text>`, `/tab`, `/pin`, `/clear`, `/close`,
 `/copy`, `/dump`, `/reopen`,
 `/restore`, `/blame`, `/lsp`, `/pwd`, `/about`, `/log`, `/nav`,
-`/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
+`/model`, `/restart`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/todo`, `/dash`, `/usage`, `/disk`, `/inbox`, `/focus`, `/notify` — then
 `/exit`.
 

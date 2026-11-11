@@ -13,8 +13,6 @@ pub(crate) enum Press {
     Miss,
     /// Handled (and already repainted): the click does nothing else.
     Done,
-    /// Handled by riding a newly installed binary — this process is finished.
-    Exit,
 }
 
 impl CrewApp {
@@ -23,7 +21,7 @@ impl CrewApp {
     ///
     /// The nav's RESTART card leads: it sits in the sidebar, above every
     /// pane-row path, and it is the only one of the three whose outcome is to
-    /// stop being this process.
+    /// stop being this process — it asks for the same restart `/restart` does.
     pub(crate) fn docked_press(&mut self) -> Press {
         // The nav's chevron first: it sits on the card's legend row, above
         // every row the sidebar answers for.
@@ -31,8 +29,9 @@ impl CrewApp {
             self.toggle_nav_collapsed();
             return Press::Done;
         }
-        if self.restart_btn_at_cursor() && self.restart_crew() {
-            return Press::Exit;
+        if self.restart_btn_at_cursor() {
+            self.want_restart = true;
+            return Press::Done;
         }
         if let Some(i) = self.close_btn_at_cursor() {
             self.close_pane(i);

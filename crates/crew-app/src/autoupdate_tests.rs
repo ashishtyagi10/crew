@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn first_check_waits_the_launch_delay_then_rearms_six_hourly() {
+fn first_check_waits_the_launch_delay_then_rearms_on_the_steady_cadence() {
     let t0 = Instant::now();
     let mut a = AutoUpdate::new(t0);
     assert!(!a.take_due(t0), "not due immediately at launch");

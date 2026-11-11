@@ -149,7 +149,9 @@ pub(crate) const FOLDED: &[&str] = &[
     "only",
     // Aliases the dispatcher answers with no row of their own: `/help` is
     // `/keys`, `/crew` is `/smith`, `/shell` is Cmd+T, `/run` is `!`. The
-    // bar coloured them as typos while they ran.
+    // bar coloured them as typos while they ran. `/update` is `/restart`'s
+    // older half: updates install themselves now, and it checks on demand.
+    "update",
     "help",
     "crew",
     "shell",

@@ -10,7 +10,7 @@
 //!   whatever position in its em box, so a rule lands wherever the fractional
 //!   arithmetic puts it and is antialiased across two pixels at each edge.
 //! * Crew then runs it through the CoreText-style stem darkening in
-//!   [`crate::smoothmask`] and the coverage curve in [`crate::textgamma`].
+//!   [`crate::smoothing`] and the coverage curve in [`crate::textgamma`].
 //!   Both are calibrated for *letterforms* — a curve wants its flanks filled
 //!   out. A rule is a rectangle and wants nothing of the sort: the dilation
 //!   spills a hairline into its neighbours and the curve lifts the spill.

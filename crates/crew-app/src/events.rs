@@ -137,7 +137,6 @@ impl CrewApp {
                 // RESTART card, a tile's [x] or [-] — wins over the focus and
                 // drag paths below, so the click does nothing else.
                 match self.docked_press() {
-                    crate::btnpress::Press::Exit => return event_loop.exit(),
                     crate::btnpress::Press::Done => return,
                     crate::btnpress::Press::Miss => {}
                 }

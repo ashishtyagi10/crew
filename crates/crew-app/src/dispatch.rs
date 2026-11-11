@@ -73,14 +73,13 @@ impl CrewApp {
             // Undo the last close, this session — `/restore` is the same idea
             // across a quit. See `reopen`.
             "reopen" => self.reopen_pane(),
-            // Self-update in the background: progress shows in the left-nav UPDATE
-            // card; once the install lands, Crew restarts itself into the new
-            // build (an already-parked install restarts immediately).
-            "update" => return self.start_update(),
-            // Absorbed into /update (which now restarts after installing). A
-            // bare status beats the fuzzy matcher here, which would otherwise
-            // suggest /restore — a different action entirely.
-            "restart" => self.set_status("/restart merged into /update — it installs and restarts"),
+            // Relaunch into the newest installed build and resume every pane
+            // (`restart`). Updates install themselves; this is the one step
+            // left to type. `canvas` answers the ask — it sees every window.
+            "restart" => self.want_restart = true,
+            // The old spelling: check for a release NOW instead of waiting
+            // for the background check. It installs and waits for /restart.
+            "update" => self.start_update(),
             "clear" => self.clear_focused_scrollback(),
             // The folded verbs' bare forms; their subjects are arguments now
             // (`dispatchargs`), and the old one-word spellings still answer.

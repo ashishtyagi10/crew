@@ -34,6 +34,12 @@ impl CrewApp {
     /// the `/crew` chat pane (routing label "crew") its presence, a file
     /// viewer the full resolved path it has open.
     pub(crate) fn session_panes(&self) -> Vec<SavedPane> {
+        let all = self.session_panes_indexed();
+        all.into_iter().map(|(_, sp)| sp).collect()
+    }
+
+    /// [`Self::session_panes`], each with the index of the live pane it is.
+    pub(crate) fn session_panes_indexed(&self) -> Vec<(usize, SavedPane)> {
         let pids: Vec<Pid> = self
             .panes
             .iter()
@@ -52,7 +58,8 @@ impl CrewApp {
         }
         self.panes
             .iter()
-            .filter_map(|p| {
+            .enumerate()
+            .filter_map(|(i, p)| {
                 let sp = match &p.content {
                     PaneContent::Terminal(t) => t
                         .pty
@@ -90,16 +97,12 @@ impl CrewApp {
                 sp.map(|mut sp| {
                     sp.min = p.hidden;
                     self.stamp_tab(&mut sp, p.tab);
-                    sp
+                    (i, sp)
                 })
             })
-            .collect::<Vec<SavedPane>>()
+            .collect()
     }
 
-    /// Persist the snapshot at quit. Overwrite (or, when empty, delete) it
-    /// only when this session actually ran restorable panes — otherwise a
-    /// welcome-screen quit or a GPU-init failure exit would wipe the very
-    /// snapshot /restore exists to keep.
     /// `/restore` — reopen the saved panes, consuming the snapshot (so a
     /// second `/restore` can't double the panes; the next quit re-saves
     /// from the live panes anyway).

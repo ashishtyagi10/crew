@@ -16,10 +16,10 @@ fn downloading_shows_version_transition() {
 }
 
 #[test]
-fn done_says_a_restart_is_coming() {
+fn done_says_how_to_apply_it() {
     let cells = stage_cells(Stage::Done("9.9.9".into()));
     assert!(cells.iter().any(|c| c.c == '✓'), "success glyph present");
-    assert!(row_text(&cells, 1).contains("restarting"));
+    assert!(row_text(&cells, 1).contains("/restart"));
 }
 
 /// The one place an update reports a failure used to clip the failure:

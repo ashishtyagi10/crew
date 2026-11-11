@@ -74,9 +74,8 @@ fn prewarm_buffer_seeds_smoothed_masks_for_every_glyph() {
             "prewarm glyph {c:?} was not seeded"
         );
     }
-    // The seeds went through smooth_mask, not a raw raster: at this test's
-    // strength of 200 a sample stroke glyph is 2px padded (1px dilation
-    // border per side) vs the raw image.
+    // The seeds are the grown outline, not a raw raster: at this test's
+    // strength of 200 a sample stroke glyph carries visibly more ink.
     let (_, key) = keys
         .iter()
         .find(|(c, _)| *c == 'M')
@@ -89,8 +88,8 @@ fn prewarm_buffer_seeds_smoothed_masks_for_every_glyph() {
         .expect("M rasterizes");
     let raw = swash.get_image_uncached(&mut fs, *key).expect("M rasters");
     assert_eq!(seeded.content, SwashContent::Mask);
-    assert_eq!(seeded.placement.width, raw.placement.width + 2);
-    assert_eq!(seeded.placement.height, raw.placement.height + 2);
+    let ink = |d: &[u8]| d.iter().map(|&a| u64::from(a)).sum::<u64>();
+    assert!(ink(&seeded.data) > ink(&raw.data), "the seed was not grown");
 }
 
 /// The prewarm scheme only helps if the vendored glyphon still (a) starts
@@ -179,8 +178,7 @@ fn cellgrid_prepare_prewarms_before_any_scene() {
         );
     }
     // The seeded 'M' is the finished glyph, not a raw rasterization: at the
-    // default strength of 0 the dilation is a no-op and it is the same size
-    // as the outline, but the coverage curve has already been applied to it.
+    // default strength its outline has been grown, so it carries more ink.
     let (_, key) = keys.iter().find(|(c, _)| *c == 'M').expect("has M");
     let seeded = grid
         .swash
@@ -192,9 +190,11 @@ fn cellgrid_prepare_prewarms_before_any_scene() {
     let raw = SwashCache::new()
         .get_image_uncached(&mut grid.font_system, *key)
         .expect("M rasters raw");
-    assert_eq!(seeded.placement.width, raw.placement.width);
-    assert_eq!(seeded.placement.height, raw.placement.height);
-    assert_ne!(seeded.data, raw.data, "the seeded glyph is not the raw one");
+    let ink = |d: &[u8]| d.iter().map(|&a| u64::from(a)).sum::<u64>();
+    assert!(
+        ink(&seeded.data) > ink(&raw.data),
+        "the seed is the raw glyph"
+    );
 
     // The warm is one-shot until a font-affecting knob re-arms it.
     assert!(!grid.needs_prewarm, "prepare must consume the arm flag");

@@ -1,11 +1,14 @@
-use super::{amount_for, build, contrast_factor, Curve, DEFAULT_TEXT_GAMMA, GAMMA};
+use super::{amount_for, build, contrast_factor, Curve, GAMMA};
+
+/// The whole correction — what `/gamma full` asks for.
+const FULL: u8 = 255;
 /// Both curves must fix the endpoints: an empty pixel stays empty and a
 /// solid one stays solid, at every amount and either polarity. Only the
 /// antialiased rim is the blend's problem, and only the rim may move.
 #[test]
 fn endpoints_never_move() {
     for dark in [true, false] {
-        for amount in [1u8, 60, DEFAULT_TEXT_GAMMA, 255] {
+        for amount in [1u8, 60, FULL, 255] {
             let lut = build(dark, amount);
             assert_eq!(lut[0], 0, "dark={dark} amount={amount}");
             assert_eq!(lut[255], 255, "dark={dark} amount={amount}");
@@ -18,7 +21,7 @@ fn endpoints_never_move() {
 #[test]
 fn the_curve_is_monotone() {
     for dark in [true, false] {
-        for amount in [1u8, DEFAULT_TEXT_GAMMA, 255] {
+        for amount in [1u8, FULL, 255] {
             let lut = build(dark, amount);
             for i in 1..256 {
                 assert!(
@@ -37,8 +40,8 @@ fn the_curve_is_monotone() {
 /// back; dark ink on a bright page has gained it and must give it up.
 #[test]
 fn polarity_decides_which_way_the_rim_bends() {
-    let dark = build(true, DEFAULT_TEXT_GAMMA);
-    let light = build(false, DEFAULT_TEXT_GAMMA);
+    let dark = build(true, FULL);
+    let light = build(false, FULL);
     assert!(
         dark[128] > 128,
         "dark page must lift the rim: {}",
@@ -92,9 +95,9 @@ fn amount_zero_is_the_identity() {
 fn the_curve_follows_a_polarity_switch() {
     let mut curve = Curve::new();
     let mut on_dark = vec![128u8];
-    curve.apply(&mut on_dark, true, DEFAULT_TEXT_GAMMA);
+    curve.apply(&mut on_dark, true, FULL);
     let mut on_light = vec![128u8];
-    curve.apply(&mut on_light, false, DEFAULT_TEXT_GAMMA);
+    curve.apply(&mut on_light, false, FULL);
     assert!(
         on_dark[0] > 128 && on_light[0] < 128,
         "cached curve leaked across the switch: {} then {}",

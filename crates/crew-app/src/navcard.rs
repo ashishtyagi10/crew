@@ -25,7 +25,7 @@ impl CrewApp {
         if self.config.nav_collapsed {
             return self.push_rail(scenes, sh, scale, cw, ch);
         }
-        // While a LOUD `/update` runs, dock a distinct UPDATE card on top of the
+        // While a LOUD (typed) `/update` runs, dock a distinct UPDATE card on top of the
         // stats card, shrinking the stats card below it (chrome::stats_card_rect —
         // the same rect the PANES hit-test uses). A silent background run (see
         // `crate::autoupdate`) stays invisible — no card, no reserved space —

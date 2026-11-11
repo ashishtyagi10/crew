@@ -8,8 +8,8 @@
 /// Even the compact form is prefix-truncated by `titled_card` if it still
 /// overflows — acceptable, the new version leads the string.
 ///
-/// There is no `/update` call-to-action any more: the update has already
-/// installed itself, and the thing left to do is a button, not a command.
+/// It names no command: the update has already installed itself, and the
+/// RESTART card beside it is the thing to press (`/restart` does the same).
 pub(crate) fn legend(new_version: &str, max_cols: usize) -> String {
     let full = format!(
         concat!("crew v", env!("CARGO_PKG_VERSION"), " \u{2192} v{}"),
@@ -19,6 +19,13 @@ pub(crate) fn legend(new_version: &str, max_cols: usize) -> String {
         return full;
     }
     format!("\u{2192} v{}", new_version)
+}
+
+/// The one-line note an install leaves when it lands: what is ready, and the
+/// command that applies it. The toast and the status line both say this; the
+/// nav legend above does not need to, with the RESTART card beside it.
+pub(crate) fn ready(new_version: &str) -> String {
+    format!("crew v{new_version} is ready \u{2014} /restart to apply")
 }
 
 /// Whether the restart button is currently blinking — true whenever an

@@ -590,6 +590,7 @@ mod restartnote;
 #[cfg(test)]
 #[path = "restartshot_tests.rs"]
 mod restartshot_tests;
+mod restartsnap;
 #[cfg(test)]
 #[path = "reviewshot_tests.rs"]
 mod reviewshot_tests;

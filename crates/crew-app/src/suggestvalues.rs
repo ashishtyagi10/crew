@@ -187,13 +187,16 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
         "/smooth" => Some(vec![
             (
                 "off".to_string(),
+                "0 — the outline's own weight, Ghostty-like".to_string(),
+            ),
+            ("light".to_string(), "40 — a hint of fullness".to_string()),
+            (
+                "medium".to_string(),
                 format!(
-                    "{} — the default: the outline's own weight",
+                    "{} — the default: Terminal.app-like",
                     crew_render::DEFAULT_SMOOTH
                 ),
             ),
-            ("light".to_string(), "40 — a hint of fullness".to_string()),
-            ("medium".to_string(), "70 — Terminal.app-like".to_string()),
             (
                 "heavy".to_string(),
                 "120 — thick, high-contrast".to_string(),
@@ -202,7 +205,10 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
         "/gamma" => Some(vec![
             (
                 "off".to_string(),
-                "0 — the blend as the GPU makes it".to_string(),
+                format!(
+                    "{} — the default: soft edges, as CoreText draws them",
+                    crew_render::DEFAULT_TEXT_GAMMA
+                ),
             ),
             (
                 "light".to_string(),
@@ -214,10 +220,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             ),
             (
                 "full".to_string(),
-                format!(
-                    "{} — the default: the whole sRGB correction",
-                    crew_render::DEFAULT_TEXT_GAMMA
-                ),
+                "255 — the whole sRGB correction".to_string(),
             ),
         ]),
         // Model picker for the agent smith pane — the catalog grouped by

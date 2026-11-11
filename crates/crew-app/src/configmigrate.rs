@@ -21,6 +21,13 @@ pub const SMOOTH_AFTER_GAMMA: u8 = 70;
 /// correction, because the darkening was delivering the other half.
 pub const GAMMA_WITH_DILATION: u8 = 130;
 
+/// What `font_smooth` defaulted to from 0.19.62 until the widening moved to
+/// the outline: off.
+pub const SMOOTH_BEFORE_OUTLINE: u8 = 0;
+
+/// What `font_gamma` defaulted to over the same span: the full correction.
+pub const GAMMA_BEFORE_OUTLINE: u8 = 255;
+
 impl CrewConfig {
     /// One-shot upgrade heal: a config still carrying the pre-gamma default
     /// takes the rebalanced one, because `/gamma` now does the half of the
@@ -51,6 +58,24 @@ impl CrewConfig {
         self.font_smooth = crew_render::DEFAULT_SMOOTH;
         self.font_gamma = crew_render::DEFAULT_TEXT_GAMMA;
         true
+    }
+
+    /// One-shot upgrade heal for 0.30.8: text weight now comes from growing
+    /// the glyph's outline, and the coverage curve that used to supply it is
+    /// off by default (see [`crew_render::DEFAULT_SMOOTH`]). Each key still
+    /// at its old default takes the new one; the curve left on over a grown
+    /// outline would deliver the weight twice and flatten the edge it was
+    /// moved to protect. A value the user chose stays. Returns true when
+    /// anything changed.
+    pub fn adopt_outline_smoothing(&mut self) -> bool {
+        let before = (self.font_smooth, self.font_gamma);
+        if self.font_smooth == SMOOTH_BEFORE_OUTLINE {
+            self.font_smooth = crew_render::DEFAULT_SMOOTH;
+        }
+        if self.font_gamma == GAMMA_BEFORE_OUTLINE {
+            self.font_gamma = crew_render::DEFAULT_TEXT_GAMMA;
+        }
+        before != (self.font_smooth, self.font_gamma)
     }
 }
 

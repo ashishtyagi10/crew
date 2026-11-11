@@ -83,7 +83,7 @@ fn shaped_glyphs_carry_the_flags_through_to_their_cache_keys() {
 }
 
 #[test]
-fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
+fn presmooth_seeds_the_cache_with_heavier_masks() {
     let mut fs = crate::embedfont::font_system();
     let mut swash = SwashCache::new();
     let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
@@ -131,12 +131,10 @@ fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
         .get_image_uncached(&mut fs, key)
         .expect("M rasterizes raw");
     assert_eq!(seeded.content, SwashContent::Mask);
-    assert_eq!(seeded.placement.width, raw.placement.width + 2);
-    assert_eq!(seeded.placement.height, raw.placement.height + 2);
     let coverage = |d: &[u8]| d.iter().map(|&a| u64::from(a)).sum::<u64>();
     assert!(
         coverage(&seeded.data) > coverage(&raw.data),
-        "stem darkening must add coverage: {} vs {}",
+        "a grown outline must add coverage: {} vs {}",
         coverage(&seeded.data),
         coverage(&raw.data)
     );

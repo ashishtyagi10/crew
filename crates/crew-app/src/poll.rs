@@ -521,27 +521,19 @@ impl CrewApp {
                 self.set_status(format!("todo due: {title}"));
             }
         }
-        // Quiet auto-update: fire the same worker the manual /update uses,
-        // silently, shortly after launch and then six-hourly. A silent install
-        // only parks the nav-legend reminder — the restart below is reserved
-        // for runs the user typed. The silent state is poll-driven immediately
-        // below in the same frame (first drain is empty, no side effects
-        // beyond spawning the worker).
+        // Quiet auto-update: fire the same worker a typed /update uses,
+        // silently, shortly after launch and then every half hour. An install
+        // only parks — a note, and the nav's RESTART card — and waits for
+        // /restart. The silent state is poll-driven immediately below in the
+        // same frame (first drain is empty, no side effects beyond spawning
+        // the worker).
         if self.autoupdate.take_due(Instant::now()) {
             self.start_auto_update();
         }
-        // Drive the background self-update: animate its card and dismiss it
-        // when done. A loud (manual) run's install ends in a restart — spawn
-        // the fresh detached crew and wind this one down; on spawn failure
-        // `restart_crew` leaves a status and the parked nav reminder stands,
-        // so a later /update can retry the restart without re-downloading.
+        // Drive the background self-update: animate its card, park the
+        // install and dismiss the card when done.
         if self.update.is_some() {
-            let tick = self.poll_update(Instant::now());
-            any_changed |= tick.redraw;
-            if tick.restart && self.restart_crew() {
-                event_loop.exit();
-                return;
-            }
+            any_changed |= self.poll_update(Instant::now());
         }
         // Keep the nav's RESTART button blinking for as long as the install
         // sits unclaimed. It does not settle after a pulse the way a passive

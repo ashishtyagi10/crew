@@ -59,7 +59,7 @@ cargo run --release -p crew-app
 Crew runs as a GUI by default; these command-line modes offer headless operation or setup:
 
 - `crew --list-fonts` — print the list of installed monospace fonts that Crew can use
-- `crew --self-update` — fetch and install the latest release binary (headless alternative to `/update`)
+- `crew --self-update` — fetch and install the latest release binary (headless alternative to the in-app updater)
 - `crew install-app` — create or refresh the OS app menu entry (macOS ~/Applications, Spotlight, Windows Start menu, Linux applications menu)
 - `crew install-app --remove` — remove the OS app menu entry
 - `crew panes` — list the running instance's addressable panes (for inter-pane ask)
@@ -811,7 +811,7 @@ The docked command bar supports:
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>` (`/find all <text>`), `/name <text>`, `/clear`
   (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav` (`/nav weather <place>`), `/copy`, `/dump`,
-  `/font`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
+  `/font`, `/theme`, `/notify`, `/restart`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
   then subsequence matches (typing `dmp` after the slash finds `/dump`) — and **scrolls** to the
@@ -920,14 +920,17 @@ The docked command bar supports:
   actually renders `i`, `m` and `0` at one shared advance — which is why
   proportional Unicode fallbacks and icon/symbol fonts that ship mis-flagged
   as monospace (Arial Unicode MS, Symbols Nerd Font Mono) don't appear.
-- **`/update`** — downloads the latest release binary over the running one and
-  **restarts crew into it** (a fresh detached process; the old process exits
-  after a brief "restarting…" beat). Progress streams into the left-nav UPDATE
-  card. The quiet background check installs updates without restarting — a
-  blinking nav legend (`crew vA → vB · /update`) says one is waiting, and the
-  next `/update` applies it instantly. The old `/restart` command merged into `/update`.
-  The fresh process re-reads `config.toml`, so external config edits ride
-  along too.
+- **`/restart`** — relaunches crew as a fresh process and **resumes every
+  pane**: each shell in its directory, Far panels, viewers, the todo and smith
+  panes, in the same tabs and windows, minimized if they were, with the focus
+  where it sat. Programs running inside a shell do not survive it. Updates
+  need no command: crew checks for a release 30 s after launch and every half
+  hour, installs it in the background, and then says so — a toast and status
+  note (`crew vB is ready — /restart to apply`) and a blinking RESTART card
+  in the nav (pressing it is `/restart`). It never restarts by itself. The
+  older **`/update`** still answers: it runs the check now, with progress in
+  the left-nav UPDATE card, and likewise waits for `/restart`. The fresh
+  process re-reads `config.toml`, so external config edits ride along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
   nine themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
   **`classic`**, **`purple`**, **`prism`** and **`auto`** — and each one *rotates* through a pool of
@@ -958,48 +961,31 @@ The docked command bar supports:
   low-contrast display. No argument reports the current weight; selecting
   `/weight` in the palette opens a value picker.
 - **`/smooth [off|light|medium|heavy|<0-255>]`** — CoreText-style font
-  smoothing: a fractional stem darkening applied to every glyph, emulating what
-  macOS terminals get natively so the same font reads as full here as in
-  Terminal.app or Ghostty (crew also renders unhinted, like CoreText, at every
-  strength — including `off`). Live and persisted; no argument reports the
-  current strength; selecting `/smooth` in the palette opens a value picker.
-  The named ladder is also the **Smoothing** field in `/settings` — both write
-  the same `font_smooth` key. **The default is `off` as of 0.19.62.** The
-  darkening was added when it was crew's only text correction and was quietly
-  covering the encoded blend's deficit as well as doing its own job; `/gamma`
-  took that over honestly in 0.19.25, and 0.19.28 rebalanced the pair from 100
-  to 70 so they stopped stacking. What that rebalance never asked is whether
-  the darkening still earned anything. Swept over eight glyphs at two sizes and
-  both polarities, it does not: the curve alone delivers **100%** of the
-  outline's light on a dark page and 100% on a bright one, where `smooth 70,
-  gamma 130` delivered 98% and **145%** — and it does it on **45% fewer inked
-  pixels**. Every one of those extra pixels was a fraction of a stem's coverage
-  sitting one pixel out from the stem, which is a soft edge with nothing bought
-  for it. A config still carrying either old default is moved once on upgrade,
-  and only when both halves are untouched; a strength you chose is left alone.
-  **Since 0.22.57 the ladder makes ink DENSER rather than wider.** Reported:
-  "even with heavy smoothing font should be darker, or brighter on dark." It
-  was not — the spill landed on empty pixels as well as inked ones, so every
-  level painted a faint halo a pixel out from every stroke, and while the
-  total ink rose the ink *per pixel* fell: 0.538 at `off`, 0.364 at `light`,
-  and only 0.427 at `heavy`, still short of what `off` already had. More ink
-  spread thinner is not darker; it is greyer, which is what the report was
-  describing. The spill no longer reaches a pixel the outline never touched —
-  the stroke is filled, not spread — and a pixel already holding ink deepens
-  with the strength, so the knob has somewhere to go once the rim is full.
-  The same sweep now reads 0.538 → 0.590 → 0.632 → **0.702**, on exactly the
-  outline's own pixels at every level, so *nothing inks a pixel the outline
-  did not reach* now holds the whole way up the ladder instead of only at
-  `off`. Both polarities come right from the one change: coverage is how much
-  ink a pixel holds, and ink is dark on a bright page and light on a dark one. The darkening *accumulates* coverage rather than
-  taking the brighter of a pixel and its neighbour's spill, so the letters
-  built from curves take the same widening as the ones built from stems — a
-  saturating dilation cannot darken a pixel whose own coverage already beats
-  what its neighbour lends it, which is every pixel on the flank of an `o`, an
-  `s` or a `/`, and those letters used to read a shade lighter than an `l` in
-  the same word. A strength still means what it always meant: the spill is
-  calibrated so the ink a given number lays down is unchanged, and only where
-  it lands moved.
+  smoothing: every stroke is drawn a fraction of a pixel wider, as macOS
+  terminals get natively, so the same font reads as full here as in
+  Terminal.app (crew also renders unhinted, like CoreText, at every strength —
+  including `off`, which draws the outline exactly as the font gives it, the
+  Ghostty look). Live and persisted; no argument reports the current strength;
+  selecting `/smooth` in the palette opens a value picker. The named ladder is
+  also the **Smoothing** field in `/settings` — both write the same
+  `font_smooth` key. **The default is `medium` as of 0.30.8**, and the
+  widening is done to the glyph's OUTLINE before it is rasterized, not to the
+  bitmap after. Reported: "fonts are not smooth enough." Measured against a
+  CoreText rendering of the same line, the glyphs had the right weight and
+  almost no edge left: on a dark page 2% of inked pixels sat below 40%
+  coverage where CoreText keeps 20% there, because the weight was being bought
+  by pushing the antialiased rim toward solid, and a rim with two levels in it
+  is a staircase. A grown outline is still an exact coverage mask, so every
+  edge keeps its whole ramp. At `medium` a stroke is 0.64 px wider at 12 pt on
+  a Retina display — half on each side of a stem, all of it on top of a bar,
+  so every foot stays on the baseline — which lands on CoreText's own smoothed
+  output level for level (a stem's profile reads 0.29 / 1.00 / 1.00 / 0.73
+  against CoreText's 0.28 / 1.00 / 1.00 / 0.72). As in CoreText the widening
+  follows the glyph's size up to 24 px, so small text is not drowned (about
+  30% more ink at 10, 14 and 24 px alike), and dark ink on a bright page takes
+  half of it. A config still on the old defaults (`font_smooth = 0`,
+  `font_gamma = 255`) is moved once on upgrade, one key at a time; a value you
+  chose is left alone.
 - **`/gamma [off|light|medium|full|<0-255>]`** — the other half of the CoreText
   look: the coverage curve. Crew picks a non-sRGB surface on purpose, so text
   blends on gamma-encoded values — the web and CoreText look — and that costs a
@@ -1008,11 +994,12 @@ The docked command bar supports:
   its correct linear luminance**, and reads thin for it; dark text on a bright
   page has the same error with the sign flipped and reads blotted. `/gamma`
   bends the mask back, by polarity: up on a dark page, down on a bright one.
-  `full` (**the default** as of 0.19.62) is the whole sRGB correction — the
-  coverage a glyph asks for is exactly the light it gets. `medium` is about
-  half of it, which puts the midtone at Apple's historical text gamma; half was
-  the right answer only while the stem darkening was on by default and
-  delivering the other half.
+  **The default is `off` as of 0.30.8**: the curve delivers the right amount
+  of light by lifting every faint edge pixel most of the way to solid, which
+  costs a glyph half the steps in its edge, and `/smooth` now supplies the
+  weight by widening the outline instead. `full` is the whole sRGB correction
+  — the coverage a glyph asks for is exactly the light it gets — for anyone
+  who wants the physically exact rim; `medium` is about half of it.
 
   The amount is then scaled by **each run's own contrast**. `a^(1/2.2)` is
   exact for white ink on a black page and for nothing else: over a narrower

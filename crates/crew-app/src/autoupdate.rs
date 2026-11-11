@@ -5,8 +5,11 @@ use std::time::{Duration, Instant};
 
 /// Launch settles first; the first quiet check runs shortly after startup.
 pub(crate) const FIRST_CHECK: Duration = Duration::from_secs(30);
-/// Steady-state cadence between quiet checks.
-pub(crate) const CHECK_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
+/// Steady-state cadence between quiet checks. Half an hour: a release is on
+/// disk and asking for `/restart` within the hour it is published, and one
+/// request per check is far under GitHub's 60-an-hour unauthenticated limit
+/// (it was six hours, which made "auto-update" mean "by tomorrow").
+pub(crate) const CHECK_EVERY: Duration = Duration::from_secs(30 * 60);
 
 /// The next-check deadline. `take_due` answers "fire now?" and re-arms.
 pub(crate) struct AutoUpdate {
@@ -19,7 +22,7 @@ impl AutoUpdate {
             next_check: now + FIRST_CHECK,
         }
     }
-    /// True once per elapsed deadline; re-arms to the 6 h cadence.
+    /// True once per elapsed deadline; re-arms to the steady cadence.
     pub(crate) fn take_due(&mut self, now: Instant) -> bool {
         if now < self.next_check {
             return false;
