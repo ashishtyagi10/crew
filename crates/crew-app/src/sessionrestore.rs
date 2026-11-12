@@ -161,7 +161,7 @@ impl CrewApp {
             "dash" => self.spawn_dash_pane(),
             "view" => {
                 if let Some(path) = sp.dir.as_deref() {
-                    self.open_view(path);
+                    self.open_view_here(path);
                 }
             }
             _ => {} // load_at filters unknown kinds; belt for callers

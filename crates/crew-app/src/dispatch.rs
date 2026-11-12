@@ -48,7 +48,7 @@ impl CrewApp {
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "invisibles" => self.invisibles_command(""),
-            "far" => self.spawn_far_pane(),
+            "far" => self.far_in_own_tab(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint

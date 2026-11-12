@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.9
+
+**An `i` is drawn at full weight again, and `/far`, `/inbox` and opened files each get a tab of their own.**
+
+Text:
+- Reported: "letter i rendering in different color." It was the same colour with about a third of its ink missing, so it read dimmer than the letters beside it. The stroke widening added in 0.30.8 thinned any glyph made of separate parts whose direction it misread, instead of thickening it.
+- In SF Mono, JetBrains Mono, PT Mono and Operator Mono the `i` was drawn at 55–75% of its plain weight beside neighbours at about 130%. Thin faces of IBM Plex Mono and Roboto Mono lost `p`, `b`, `%` and `$` almost entirely.
+- Every letter now gains the same share of weight, in every installed monospace face.
+
+Tabs:
+- `/far` and `/inbox` open in a fresh tab instead of splitting the grid with what was there. On an empty window they use the tab already on screen, and `/inbox` asked for again brings its tab forward.
+- A file opened to be read — `/view`, a Cmd+click on a path, a hint, Far's F3, `/out`, `/about` — opens the viewer in a fresh tab. The panes it came from stay as they were, and closing the viewer returns to them.
+- Far's Enter opens text, markdown, code, data and pictures in the viewer instead of the system's default app. Binaries and documents that need converting (PDF, Word) still go to the system.
+- A restored Far pane or viewer goes back to the tab it was saved in.
+
+Releases:
+- A release is now cut unattended each evening from what is merged on main, at most one a day.
+
 ## 0.30.8
 
 **Updates install themselves, `/restart` brings every pane back, and text is drawn the way macOS draws it.**

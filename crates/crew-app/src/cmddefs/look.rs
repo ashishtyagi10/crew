@@ -57,7 +57,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/far",
-        desc: "Open a dual-pane file manager",
+        desc: "Open a dual-pane file manager in a tab of its own",
     },
     Cmd {
         name: "/todo",
@@ -73,7 +73,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/inbox",
-        desc: "Gmail, read-only, in a pane — the list, / search in Gmail's syntax, enter reads a thread; /inbox signout",
+        desc: "Gmail, read-only, in a tab of its own — the list, / search in Gmail's syntax, enter reads a thread; /inbox signout",
     },
     Cmd {
         name: "/disk",
@@ -93,7 +93,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/view",
-        desc: "The file viewer: /view <path>, or /view diff | blame | log",
+        desc: "The file viewer, in a tab of its own: /view <path>, or /view diff | blame | log",
     },
     Cmd {
         name: "/doc",

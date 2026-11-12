@@ -109,11 +109,25 @@ impl CrewApp {
     /// Cmd+T — a new tab holding one fresh shell. With the tab on screen
     /// still empty (the welcome screen) the shell simply opens there.
     pub(crate) fn new_tab(&mut self) {
+        self.own_tab();
+        self.spawn_new_pane();
+    }
+
+    /// Bring a fresh tab on screen for the pane about to be opened, unless
+    /// the one on screen is still empty. A spawn that then fails leaves no
+    /// trace: `sync_tabs` drops a tab with nothing in it.
+    pub(crate) fn own_tab(&mut self) {
         if (0..self.panes.len()).any(|i| self.in_active_tab(i)) {
             let id = self.tabs.add();
             self.switch_grid(id);
         }
-        self.spawn_new_pane();
+    }
+
+    /// `/far`: the file manager wants the whole window, so it opens in a
+    /// tab of its own. (A restored Far pane goes back to the tab it was in.)
+    pub(crate) fn far_in_own_tab(&mut self) {
+        self.own_tab();
+        self.spawn_far_pane();
     }
 
     /// What the nav calls tab `id`: its `/tab rename` name, else the title of
@@ -148,6 +162,9 @@ impl CrewApp {
     }
 }
 
+#[cfg(test)]
+#[path = "owntab_tests.rs"]
+mod own_tests;
 #[cfg(test)]
 #[path = "tabsapp_tests.rs"]
 mod tests;

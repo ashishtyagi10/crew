@@ -23,6 +23,7 @@ mod gridbase;
 pub mod holo;
 mod images;
 pub mod notch;
+mod outlinegrow;
 mod outlineink;
 mod paint;
 mod picture;
