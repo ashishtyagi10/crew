@@ -7,6 +7,19 @@ use crate::spawn::PLACEHOLDER_RECT;
 use crate::viewpane::ViewPane;
 
 impl CrewApp {
+    /// Open `path` in the viewer, focused, in a tab of its own: a file is
+    /// read over the whole window, and the panes it was opened from are one
+    /// tab away, exactly as they were. Closing it comes back to them.
+    pub(crate) fn open_view(&mut self, path: &str) {
+        self.open_view_in(path, true);
+    }
+
+    /// The same viewer in the tab on screen — a restore puts a saved viewer
+    /// back in the tab it was in, not a new one.
+    pub(crate) fn open_view_here(&mut self, path: &str) {
+        self.open_view_in(path, false);
+    }
+
     /// Open `path` in the viewer, focused (a viewer is zoomed by kind). An
     /// empty path is a usage hint; a path that does not resolve to a file
     /// reports why in the status bar rather than opening an empty pane.
@@ -14,7 +27,7 @@ impl CrewApp {
     /// The `is_file` check is the one filesystem call this makes on the winit
     /// thread — the same one `clickopen::open_path_token` already makes. Every
     /// byte after it is read on a worker (`viewpane::load`).
-    pub(crate) fn open_view(&mut self, path: &str) {
+    fn open_view_in(&mut self, path: &str, own_tab: bool) {
         let path = path.trim();
         if path.is_empty() {
             self.set_status("usage: /view <path>");
@@ -24,6 +37,9 @@ impl CrewApp {
         if !resolved.is_file() {
             self.set_status(format!("view: not a file: {path}"));
             return;
+        }
+        if own_tab {
+            self.own_tab();
         }
         let grid = self
             .renderer

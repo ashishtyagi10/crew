@@ -20,7 +20,8 @@ impl CrewApp {
         }
     }
 
-    /// The one inbox pane: focused when open, made when not.
+    /// The one inbox pane: focused when open, made — in a tab of its own —
+    /// when not.
     fn spawn_inbox_pane(&mut self) -> usize {
         if let Some(i) = self
             .panes
@@ -31,6 +32,7 @@ impl CrewApp {
             self.input.focused = false;
             return i;
         }
+        self.own_tab();
         let grid = self
             .renderer
             .as_ref()

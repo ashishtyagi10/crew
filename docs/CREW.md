@@ -1212,7 +1212,11 @@ longer aim at.
   back into your shell), so Crew can tell "a command is running" from "a
   prompt is waiting" — that signal is what makes bare input divert away from
   a busy pane instead of typing into a running program.
-- **`/view <file>`** — opens a zoomed **file viewer** pane: a
+- **`/view <file>`** — opens a zoomed **file viewer** pane, **in a tab of its
+  own** (as does every other way a file is opened to be read: a Cmd+click on a
+  path in any pane, a hint, Far's Enter and F3, `/out`, `/about`), so the
+  panes it was opened from stay as they were, one tab away, and closing the
+  viewer comes back to them: a
   single, read-only pane over the file, rendered by format (markdown,
   numbered-gutter code, plain un-numbered text for `.txt` and the listings
   crew writes itself — `/out`, `/out list`, `/tools` — aligned CSV, colored
@@ -1681,8 +1685,10 @@ longer aim at.
   (see below): two side-by-side directory listings with a Far
   function-key bar and a **command line** at the bottom. `Tab` switches the active
   panel **only while the command line is empty**; `↑`/`↓`/`PgUp`/`PgDn`/`Home`/`End`
-  move the cursor, `Enter` descends into a folder (or `..`) or opens a file with
-  the OS default, `Backspace` climbs to the parent, `F5` copies to the other
+  move the cursor, `Enter` descends into a folder (or `..`) or opens a file: text,
+  markdown, code, data and pictures in crew's own viewer, in a tab of its own
+  (`o` there hands it to the OS default app), and anything the viewer cannot
+  read (a binary, a PDF, a Word file) with the OS default, `Backspace` climbs to the parent, `F5` copies to the other
   panel, `F6` opens Far's **rename-or-move box** offering the other panel's
   folder — `Enter` as offered moves there, a new name renames in place, a path
   (relative to the active panel, `~` for home) moves there, `Esc` cancels, and
@@ -2153,7 +2159,9 @@ longer aim at.
 - **`/name <text>`** titles the focused pane (shown in its title bar); bare
   `/name` clears it back to the program title.
 - **Tabs** group panes. **Cmd+T** opens a tab with a fresh shell, **Cmd+D**
-  adds a shell to the tab you are in, **Cmd+{** / **Cmd+}** step between tabs
+  adds a shell to the tab you are in, **`/far` and `/inbox` open in a tab of
+  their own** (on an empty window, in the tab already there; `/inbox` asked
+  for again brings its tab forward), **Cmd+{** / **Cmd+}** step between tabs
   and **Cmd+Opt+1 … 9** jump to one. Only the tab on screen is on the grid;
   the others keep running exactly as minimized panes do. With more than one
   tab the nav's PANES list becomes a bordered card per tab — `╭─ 2 · web ── 3 ─╮`

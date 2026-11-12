@@ -7,10 +7,10 @@
 //! coverage mask, with the whole soft ramp on every edge.
 use std::cell::RefCell;
 
-use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SwashImage};
+use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SwashContent, SwashImage};
 use glyphon::FontSystem;
 use swash::scale::{Render, ScaleContext, Source, StrikeWith};
-use swash::zeno::{Angle, Format, Transform, Vector};
+use swash::zeno::{Angle, Format, Mask, Origin, Transform, Vector};
 
 thread_local! {
     static CONTEXT: RefCell<ScaleContext> = RefCell::new(ScaleContext::new());
@@ -33,29 +33,54 @@ pub(crate) fn render(fs: &mut FontSystem, key: CacheKey, grow: f32) -> Option<Sw
             scaler = scaler.variations(std::iter::once(swash::Setting { tag: WGHT, value }));
         }
         let mut scaler = scaler.build();
-        // swash's embolden moves every edge out by its strength and then the
-        // whole outline up and right by the same: a stroke comes back two
-        // strengths wider with its left and bottom edges where they were. So
-        // half the grow is the strength. Sideways that half comes back off
-        // the offset, which centres a stem on where the font put it. Upward
-        // it stays, as it does in CoreText: a bar grows from its top, and
-        // every glyph's foot stays exactly on the baseline it sat on.
+        // Half the grow is the strength: `outlinegrow` moves every edge out
+        // by it and then the whole outline up and right by the same, so a
+        // stroke comes back two strengths wider with its left and bottom
+        // edges where they were. Sideways that half comes back off the
+        // offset, which centres a stem on where the font put it. Upward it
+        // stays, as it does in CoreText: a bar grows from its top, and every
+        // glyph's foot stays exactly on the baseline it sat on.
         let side = grow / 2.0;
         let offset = Vector::new(key.x_bin.as_float() - side, key.y_bin.as_float());
         let skew = key
             .flags
             .contains(CacheKeyFlags::FAKE_ITALIC)
             .then(|| Transform::skew(Angle::from_degrees(14.0), Angle::from_degrees(0.0)));
-        Render::new(&[
+        // A colour glyph carries its own pixels and is drawn as the font
+        // made it — swash does not grow those either.
+        let colour = Render::new(&[
             Source::ColorOutline(0),
             Source::ColorBitmap(StrikeWith::BestFit),
-            Source::Outline,
         ])
         .format(Format::Alpha)
         .offset(offset)
         .transform(skew)
-        .embolden(side)
-        .render(&mut scaler, key.glyph_id)
+        .render(&mut scaler, key.glyph_id);
+        if colour.is_some() {
+            return colour;
+        }
+        // The rest is swash's own outline path with one call changed: the
+        // grow is `outlinegrow`'s, not `Render::embolden`, which thins any
+        // glyph whose winding it misreads (an `i`, for one).
+        let mut outline = scaler.scale_outline(key.glyph_id)?;
+        if side != 0.0 {
+            let verbs = outline.verbs().to_vec();
+            crate::outlinegrow::grow(outline.points_mut(), &verbs, side);
+        }
+        if let Some(skew) = &skew {
+            outline.transform(skew);
+        }
+        let mut image = SwashImage::new();
+        image.placement = Mask::new(outline.path())
+            .format(Format::Alpha)
+            .origin(Origin::BottomLeft)
+            .offset(offset)
+            .render_offset(offset)
+            .inspect(|format, w, h| image.data.resize(format.buffer_size(w, h), 0))
+            .render_into(&mut image.data, None);
+        image.content = SwashContent::Mask;
+        image.source = Source::Outline;
+        Some(image)
     })
 }
 

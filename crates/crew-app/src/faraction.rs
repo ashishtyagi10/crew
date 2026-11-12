@@ -3,8 +3,8 @@
 //! background remote op landing this tick (`FarPane::poll_ops`, routed via
 //! `poll.rs`) — e.g. a finished `rclone` download opening its temp file.
 //! Both paths share this one match so the behaviour (close the pane, open
-//! the help overlay, show a file in the viewer or `$EDITOR`, hand a
-//! downloaded remote temp file to the OS default app, flash a status) never
+//! the help overlay, show a file in the viewer or `$EDITOR`, hand what the
+//! viewer cannot read to the OS default app, flash a status) never
 //! drifts between the two call sites.
 use crate::app::CrewApp;
 use crate::farpane::FarAction;
@@ -17,6 +17,11 @@ impl CrewApp {
                 self.close_pane(focused);
             }
             FarAction::Help => self.open_help(),
+            // Enter on a file that can be read is read here, in the viewer;
+            // anything else is the system's to open (`viewpane::readable`).
+            FarAction::Open(path) if crate::viewpane::readable(&path) => {
+                self.open_view(&path.to_string_lossy())
+            }
             FarAction::Open(path) => {
                 // `that_detached`, never `that`: the blocking form waits for
                 // the opener to exit, and this runs on the winit thread, so
