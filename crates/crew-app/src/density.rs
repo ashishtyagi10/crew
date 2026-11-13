@@ -52,6 +52,11 @@ pub(crate) fn gap() -> f32 {
 /// gutter between every two cards' lines and the same margin at the window's
 /// edges (see [`crate::layout::Gutter`]).
 pub(crate) fn gutter(cell_w: f32, cell_h: f32) -> crate::layout::Gutter {
+    // A neumorphic card has no line: it fills its rect, and the gutter is
+    // card to card, with room added for the two shadows that shape it.
+    if crew_theme::theme().relief() > 0.0 {
+        return (gap() + crew_render::RELIEF_SHADOW_ROOM).into();
+    }
     crate::layout::Gutter::between_strokes(gap(), crew_render::stroke_inset(cell_w, cell_h))
 }
 

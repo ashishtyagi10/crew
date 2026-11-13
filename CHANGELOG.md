@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.10
+
+**Soft neumorphic themes, and `auto` walks all 20 themes.**
+
+Soft themes:
+- A new look, `/theme soft` (also `neumorphism` or `relief`), with four palettes: `porcelain`, `sand` and `mist` are light, `slate` is dark. It sits after `prism` in Ctrl+Shift+L.
+- No frame is drawn on these. Every card is the page's own colour, raised out of it by a light shadow up-left and a dark one down-right, with rounder corners and a slightly convex face. Titles stand on the card, and the gap between cards is wider to leave room for the shadows.
+- The focused card is told by its height: it throws twice the shadow of a card at rest. No shadow carries the accent colour.
+- The input bar is a shallow well pressed into the page, and it is pressed deeper while you type in it than while a pane has the keys.
+- The command palette, toasts and other pop-ups are raised cards too, unframed and lifted above every pane.
+- Rules inside a card, such as a panel's box or a divider, stay quiet grey lines instead of the hardest lines on the page.
+- Each palette leads with its own font: Comic Mono on porcelain, IBM Plex Mono on sand, JetBrains Mono on mist, SF Mono on slate.
+
+Theme auto:
+- `/theme auto` now steps through every theme: the looks in order and every palette inside each, one every 10 minutes. A lap shows all 20 themes and takes 200 minutes.
+- Before, most looks got one step a lap on a palette picked at random, so seeing every glass or tube palette took several laps.
+- `glass-night` now leads with MonoLisa, so each step through the glass palettes changes the font as well as the colours.
+
 ## 0.30.9
 
 **An `i` is drawn at full weight again, and `/far`, `/inbox` and opened files each get a tab of their own.**

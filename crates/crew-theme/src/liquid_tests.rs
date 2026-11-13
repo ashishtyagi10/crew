@@ -26,6 +26,14 @@ fn glass_lets_the_desktop_through() {
         // (`ThemeId::scene`): the window keeps most of the desktop out, and
         // the panes are thinner glass over what the room shows, which shows
         // through them.
+        // Relief is not glass: its cards are solid slabs, and the window
+        // keeps nearly all of the desktop out, because the two shadows that
+        // shape a card need the page to fall on. Still a little sheer.
+        if l.relief > 0.0 {
+            assert!((0.9..1.0).contains(&l.window), "{name}: window");
+            assert_eq!(l.body, 1.0, "{name}: a solid slab");
+            continue;
+        }
         if l.holo > 0.0 || id.scene().is_some() {
             assert!((0.6..=0.9).contains(&l.window), "{name}: window");
             assert!(l.body < 0.5 && l.pane_cover() < 0.95, "{name}: body");

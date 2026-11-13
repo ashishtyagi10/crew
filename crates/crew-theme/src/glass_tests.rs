@@ -99,8 +99,9 @@ fn off_draws_nothing() {
 fn fill_is_brightest_at_the_top() {
     for id in ALL_THEMES {
         let s = style_for(id.theme());
-        // A tube's glass is lit by its own phosphor, from above.
-        if id.theme().liquid.is_some() && !id.is_crt() {
+        // A tube's glass is lit by its own phosphor, from above; a relief
+        // card is no glass at all, a solid slab, top to bottom.
+        if id.theme().liquid.is_some() && !id.is_crt() && id.theme().relief() == 0.0 {
             assert!(s.alpha_top < s.alpha_bottom, "{}: smoke", id.as_str());
             continue;
         }
@@ -158,7 +159,8 @@ fn high_never_exceeds_opaque() {
 fn liquid_glass_shows_its_wallpaper_at_every_level() {
     for id in ALL_THEMES
         .into_iter()
-        .filter(|id| id.theme().liquid.is_some())
+        // A relief card is solid by design: there is no wallpaper to show.
+        .filter(|id| id.theme().liquid.is_some() && id.theme().relief() == 0.0)
     {
         let base = style_for(id.theme());
         let at = |l: GlassLevel| base.scaled_by(l.liquid_scale());

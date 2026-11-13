@@ -430,7 +430,7 @@ way that machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → glass → neon → classic → purple → prism → auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → glass → neon → classic → purple → prism → soft → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -933,20 +933,25 @@ The docked command bar supports:
   process re-reads `config.toml`, so external config edits ride along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
   nine themes — **`dark`**, **`light`**, **`crt`**, **`glass`**, **`neon`**,
-  **`classic`**, **`purple`**, **`prism`** and **`auto`** — and each one *rotates* through a pool of
+  **`classic`**, **`purple`**, **`prism`**, **`soft`** and **`auto`** — and each one *rotates* through a pool of
   palettes every 10 minutes (dark paper palettes, light paper palettes, CRT
   phosphor palettes, the iPhone's light liquid glass over your desktop, five
-  editor classics, a royal-purple page, a jade page with its own 3D scene;
+  editor classics, a royal-purple page, a jade page with its own 3D scene, and `soft`:
+  neumorphism — four palettes (`porcelain`, `sand`, `mist`, and the dark
+  `slate`) whose cards have no frame at all: each is the page's own colour,
+  raised out of it by a light shadow and a dark one, with the input bar
+  pressed in;
   `auto` **walks every look in turn** —
-  `dark → light → crt → glass → neon → classic → purple → prism` — a new one every 10
-  minutes, and all five classics one after another (tokyo-night → solarized →
-  everforest → gruvbox → monokai), so a lap takes 120 minutes, whatever the
+  `dark → light → crt → glass → neon → classic → purple → prism → soft` — a new one every 10
+  minutes, and inside each look every palette one after another (both
+  tubes, the four glass palettes, the five classics, the four soft
+  palettes), so a lap shows all 20 themes and takes 200 minutes, whatever the
   clock or the OS appearance). A fresh install with no
   saved theme starts on `auto`. No argument reports the current selection —
   for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
-  the nine themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → neon → classic → purple → prism → auto`. The old names — `paper-dark` and
+  the ten themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → glass → neon → classic → purple → prism → soft → auto`. The old names — `paper-dark` and
   `paper-light` (now simply `dark` and `light`) and the pre-consolidation
   rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).
@@ -4488,10 +4493,10 @@ Crew offers **nine themes**: **`light`**, **`dark`**, **`glass`**,
 **`crt`**, **`neon`**, **`classic`**, **`purple`**, **`prism`** and **`auto`**. `light` and `dark` are one page each.
 `glass`, `crt` and `classic` are *rotations*, changing palette every 10 minutes. `neon`, `purple` and `prism` are one dark
 page each, whatever the OS appearance or the clock. `auto` **walks every look in
-turn** — `dark → light → crt → glass → neon → classic → purple → prism`, then `dark` again — moving on
+turn** — `dark → light → crt → glass → neon → classic → purple → prism → soft`, then `dark` again — moving on
 every 10 minutes (through the develop-fade), whatever the clock or the OS appearance. Inside
-`classic` it shows all five in turn, `tokyo-night → solarized → everforest → gruvbox →
-monokai`, rather than one at random, so every lap (120 minutes) shows every classic. Switching to it moves off the look on screen at once.
+a look with several palettes (`crt`, `glass`, `classic`, `soft`) it shows each in turn rather
+than one at random, so every lap (200 minutes) shows all 20 themes. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
 
 Every glass theme's focused pane wears a gradient ring between its two

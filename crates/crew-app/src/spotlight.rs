@@ -54,8 +54,23 @@ pub(crate) fn lift_for(i: usize, spot: usize, prev: usize, t: f32) -> f32 {
 /// pane — the composer is the thing in front. (It was a well once, pressed
 /// into the glass; on a dark page an inner shadow on a near-black sheet drew
 /// nothing, and the bar read as a flat outline.)
+///
+/// On a neumorphic theme (`Theme::relief`) it IS a well again: an input
+/// pressed into the page is that look's text field, and its pages are mid
+/// tones, where an inner shadow has something to darken.
+/// How deep the input bar's well is on a relief theme while the keys are
+/// elsewhere, as a share of its depth while typing.
+const RELIEF_REST_WELL: f32 = -0.65;
+
 pub(crate) fn composer_lift(typing: bool) -> f32 {
-    if typing {
+    if crew_theme::theme().relief() > 0.0 {
+        // Pressed deeper while it holds the keys: the well's focus.
+        if typing {
+            -1.0
+        } else {
+            RELIEF_REST_WELL
+        }
+    } else if typing {
         1.5
     } else {
         1.0

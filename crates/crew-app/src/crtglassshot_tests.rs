@@ -76,6 +76,7 @@ pub(crate) fn window_sized(
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
         app.focused = 1;
+        app.focus_prev = 1;
         app.input.focused = false;
         for p in &mut app.panes {
             p.born_ms = 0;

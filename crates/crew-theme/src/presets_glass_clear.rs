@@ -108,4 +108,5 @@ pub(crate) const CLEAR_LIQUID: LiquidStyle = LiquidStyle {
     body: 0.45,
     desktop_blur: 20.0,
     holo: 0.0,
+    relief: 0.0,
 };

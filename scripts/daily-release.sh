@@ -50,7 +50,7 @@ claude -p "You are writing the notes for an unattended crew release. Do not chan
 Read what is merged since the last release: \`git log --no-merges $TAG..main\` and \`git diff --stat $TAG..main\`, and \`git diff $TAG..main -- <path>\` for anything the log leaves unclear. Read the top two entries of CHANGELOG.md for the house style.
 
 Write exactly three files:
-1. $OUT/ENTRY.md — the CHANGELOG entry BODY, with no '## version' heading (the release script adds it). One bold headline sentence saying what the release is, then short sections of bullets written for a user of the app: what they will see, in plain words, no file names. Every claim must come from the log or the diff.
+1. $OUT/ENTRY.md — the CHANGELOG entry BODY, with no '## version' heading (the release script adds it). One bold headline sentence saying what the release is, UNDER 70 CHARACTERS (the app's welcome card shows it and a test in the release gate fails on a longer one), then short sections of bullets written for a user of the app: what they will see, in plain words, no file names. Every claim must come from the log or the diff.
 2. $OUT/MSG.txt — the release commit message. First line: 'release: <summary> ({V})' with the literal text {V} where the version goes. Then a short body. Last line: 'Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>'.
 3. $OUT/SUBJECT.txt — one line under 90 characters: the bare summary, with no 'merge:' prefix and no version." \
   --allowedTools "Read" "Write" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" \

@@ -130,9 +130,12 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ThemeId::Blossom => &["Comic Mono", "JetBrains Mono", "SF Mono", "Menlo", "Lilex"],
         // Glass is the iPhone's material, so it wears the iPhone's face: SF
         // Mono, then the nearest geometric monospaces.
-        ThemeId::GlassClear | ThemeId::GlassNight => {
-            &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"]
-        }
+        ThemeId::GlassClear => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
+        // …and glass-night MonoLisa first, the one favourite no other glass
+        // palette leads with: `auto` shows the four back to back since
+        // 2026-11-12, and under a shared lead a step changed the colours
+        // and never the face. SF Mono stands right behind it.
+        ThemeId::GlassNight => &["MonoLisa", "SF Mono", "Geist Mono", "Menlo", "Lilex"],
         // Neon: a control room's lettering — IBM Plex Mono, an engineer's
         // face, then SF Mono and Geist Mono's geometric cut. It led with SF
         // Mono until 2026-10-29, but `auto` steps from `glass` to `neon`, and
@@ -169,6 +172,33 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // JetBrains Mono before, the Ink Reader's MonoLisa after), so the
         // step into and out of it changes the font as well as the colours.
         ThemeId::Prism => &["SF Mono", "Geist Mono", "JetBrains Mono", "Menlo", "Lilex"],
+        // Relief (neumorphism): `auto` walks the four in order, after
+        // prism's SF Mono and before the Ink Reader's MonoLisa, so each
+        // leads with a favourite its neighbours do not: porcelain the round,
+        // friendly Comic Mono (soft cards, soft letters), sand IBM Plex
+        // Mono, mist JetBrains Mono, slate SF Mono.
+        ThemeId::Porcelain => &["Comic Mono", "SF Mono", "JetBrains Mono", "Menlo", "Lilex"],
+        ThemeId::Sand => &[
+            "IBM Plex Mono",
+            "JetBrains Mono",
+            "SF Mono",
+            "Menlo",
+            "Lilex",
+        ],
+        ThemeId::Mist => &[
+            "JetBrains Mono",
+            "SF Mono",
+            "IBM Plex Mono",
+            "Menlo",
+            "Lilex",
+        ],
+        ThemeId::Slate => &[
+            "SF Mono",
+            "JetBrains Mono",
+            "IBM Plex Mono",
+            "Menlo",
+            "Lilex",
+        ],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

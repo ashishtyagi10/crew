@@ -37,7 +37,7 @@ fn own_map_classes_read_as_five_colours() {
             }
         }
     }
-    assert_eq!(classics, 14, "every palette but the tubes");
+    assert_eq!(classics, 17, "every palette but the tubes and slate");
 }
 
 /// A class in a slot of its own never lands on the code colour, on any

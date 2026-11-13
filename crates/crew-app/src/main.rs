@@ -551,6 +551,9 @@ mod popupshot_tests;
 #[path = "popupsweep_tests.rs"]
 mod popupsweep_tests;
 #[cfg(test)]
+#[path = "reliefshot_tests.rs"]
+mod reliefshot_tests;
+#[cfg(test)]
 #[path = "ringfocus_tests.rs"]
 mod ringfocus_tests;
 #[cfg(test)]

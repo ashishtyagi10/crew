@@ -228,11 +228,14 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then prism, its jade page and its 3D scene...
     assert_eq!(cycle_next(8), "prism");
     assert_eq!(current_id(), ThemeId::Prism);
+    // ...then soft, the neumorphic cards...
+    assert_eq!(cycle_next(9), "soft");
+    assert_eq!(current_id().mode(), RandomMode::Relief);
     // ...then auto, which moves straight on to another look...
-    assert_eq!(cycle_next(9), "auto");
-    assert_ne!(current_id().mode(), RandomMode::Prism);
-    // ...and wraps back to dark — nine stops, no more.
-    assert_eq!(cycle_next(10), "dark");
+    assert_eq!(cycle_next(10), "auto");
+    assert_ne!(current_id().mode(), RandomMode::Relief);
+    // ...and wraps back to dark — ten stops, no more.
+    assert_eq!(cycle_next(11), "dark");
     assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -251,7 +254,8 @@ fn auto_is_advertised_and_holds_every_palette() {
             RandomMode::Neon,
             RandomMode::Classic,
             RandomMode::Purple,
-            RandomMode::Prism
+            RandomMode::Prism,
+            RandomMode::Relief
         ]
     );
     assert!(ALL_THEMES
@@ -407,10 +411,11 @@ fn every_retired_theme_name_still_resolves() {
     // on 2026-10-08, and `glass-clear` on 2026-10-09, which the light pair
     // folded into the same day. The neon pair was drawn on 2026-10-22, and
     // its light page retired the same day. The five editor classics and
-    // amethyst were drawn on 2026-10-28, prism on 2026-11-08.
+    // amethyst were drawn on 2026-10-28, prism on 2026-11-08, and the four
+    // neumorphic palettes (porcelain, sand, mist, slate) on 2026-11-12.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        39,
+        43,
         "every retiree is listed"
     );
 }
@@ -878,6 +883,7 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
         RandomMode::Classic,
         RandomMode::Purple,
         RandomMode::Prism,
+        RandomMode::Relief,
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
@@ -1046,7 +1052,8 @@ fn only_the_tubes_and_the_white_glass_shade_their_text() {
         let shade = t.crt.map_or(0.0, |c| c.shade);
         let want = if t.is_tube() {
             CrtStyle::TUBE_SHADE
-        } else if id.is_clear_glass() {
+        } else if id.is_clear_glass() && t.relief() == 0.0 {
+            // (A relief card is solid: no desktop behind its words.)
             CrtStyle::GLASS_SHADE
         } else {
             0.0

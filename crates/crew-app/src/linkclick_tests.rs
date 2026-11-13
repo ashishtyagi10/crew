@@ -1,7 +1,7 @@
 //! A Cmd+click followed end to end: from the pixel the pointer is on, through
 //! the cell the frame drew there, to what opens. `OPENED` records the opener's targets: no browser opens.
 #![cfg(unix)]
-use super::{logical_line, OPENED};
+use super::OPENED;
 use crate::app::CrewApp;
 use crate::pane::{Pane, PaneContent, TermPane};
 use crew_term::{GridSize, PtyTerm, TermModel};
@@ -105,6 +105,9 @@ fn cmd_click(app: &mut CrewApp, at: (f32, f32)) -> (bool, Vec<String>) {
 /// side by side and zoomed.
 #[test]
 fn every_pane_resolves_the_cell_it_was_drawn_on() {
+    // The gutter between cards follows the theme (a relief palette adds
+    // shadow room), so a frame and the click read against it share one.
+    let _g = crate::app::theme_test_guard();
     for n in 1..=4 {
         for zoomed in [false, true] {
             for focus in 0..n {
@@ -143,6 +146,7 @@ fn every_pane_resolves_the_cell_it_was_drawn_on() {
 /// half opens the whole of it.
 #[test]
 fn a_wrapped_url_opens_whole_from_either_row() {
+    let _g = crate::app::theme_test_guard();
     let mut app = app_with(vec![term_pane(None)], false, 0);
     let cols = usize::from(app.panes[0].grid.cols);
     let url = format!("https://example.com/{}", "a".repeat(cols));
@@ -161,6 +165,7 @@ fn a_wrapped_url_opens_whole_from_either_row() {
 /// runs in: the click opens that file from the pane's directory, not crew's.
 #[test]
 fn a_path_opens_from_the_directory_of_the_pane_that_printed_it() {
+    let _g = crate::app::theme_test_guard();
     let dir = std::env::temp_dir().join(format!("crew-linkclick-{}", std::process::id()));
     std::fs::create_dir_all(dir.join("sub")).unwrap();
     let f = dir.join("sub/note.md");
@@ -181,20 +186,4 @@ fn a_path_opens_from_the_directory_of_the_pane_that_printed_it() {
         "the viewer opened {f:?}"
     );
     let _ = std::fs::remove_dir_all(&dir);
-}
-
-#[test]
-fn a_logical_line_joins_the_rows_that_wrap() {
-    let rows: Vec<Vec<char>> = ["ab", "cd", "ef", "gh"]
-        .map(|r| r.chars().collect())
-        .to_vec();
-    // Rows 1 and 2 wrap onto the next: 1-2-3 is one line.
-    let wraps = [false, true, true, false];
-    let text =
-        |(line, at, first): (Vec<char>, usize, usize)| (line.into_iter().collect(), at, first);
-    let joined: (String, _, _) = text(logical_line(&rows, &wraps, 2, 1).unwrap());
-    assert_eq!(joined, ("cdefgh".into(), 3, 1));
-    let alone: (String, _, _) = text(logical_line(&rows, &wraps, 0, 0).unwrap());
-    assert_eq!(alone, ("ab".into(), 0, 0));
-    assert!(logical_line(&rows, &wraps, 4, 0).is_none());
 }

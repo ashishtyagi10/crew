@@ -288,7 +288,7 @@ way that machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → soft → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |

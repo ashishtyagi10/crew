@@ -166,6 +166,42 @@ pub const PRISM: SyntaxSlots = SyntaxSlots {
     comment: None,
 };
 
+/// Porcelain: indigo keywords (the blue slot, its accent), teal types, plum
+/// calls, rust numbers, green strings, ochre identifiers: printed inks.
+pub const PORCELAIN: SyntaxSlots = SyntaxSlots {
+    keyword: 4,
+    ty: 6,
+    func: 5,
+    number: 1,
+    string: 2,
+    code: 3,
+    comment: None,
+};
+
+/// Sand: terracotta keywords (the red slot, its accent's side), ochre types,
+/// blue calls, plum numbers, green strings, teal identifiers.
+pub const SAND: SyntaxSlots = SyntaxSlots {
+    keyword: 1,
+    ty: 3,
+    func: 4,
+    number: 5,
+    string: 2,
+    code: 6,
+    comment: None,
+};
+
+/// Mist: teal keywords (its accent), blue types, plum calls, ochre numbers,
+/// green strings, rust identifiers.
+pub const MIST: SyntaxSlots = SyntaxSlots {
+    keyword: 6,
+    ty: 4,
+    func: 5,
+    number: 3,
+    string: 2,
+    code: 1,
+    comment: None,
+};
+
 /// Blossom: sakura keywords, leaf-green strings, sky types, mint calls,
 /// coral numbers, apricot identifiers. Until 2026-10-29 it handed its hues
 /// out as amethyst does (types in the yellow slot, calls in the blue, names

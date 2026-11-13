@@ -125,3 +125,7 @@ impl CrewApp {
 #[cfg(test)]
 #[path = "linkclick_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "linkline_tests.rs"]
+mod line_tests;

@@ -183,6 +183,7 @@ pub fn style_for(t: &Theme) -> GlassStyle {
     }
     match t.liquid {
         None => print(t),
+        Some(l) if l.relief > 0.0 => relief_glass(t),
         Some(l) if l.holo > 0.0 => crate::holo::holo_glass(t, l.holo),
         Some(_) => liquid_glass(t),
     }
@@ -277,6 +278,34 @@ pub fn liquid_glass(t: &Theme) -> GlassStyle {
         noise: 0.0,
         edge_glow: 0.0,
         gloss: 0.10,
+        glow: 0.0,
+        etch: 0.0,
+    }
+}
+
+/// A card in RELIEF ([`crate::LiquidStyle::relief`]): neumorphism. No glass
+/// at all: a solid slab of the page's own colour, so the words stand on
+/// exactly the field their roles were derived against, and the card is told
+/// from the page by its two shadows alone. `highlight` is the LIGHT shadow
+/// crew-render throws toward the light (white on a pale page; the page run a
+/// little toward white on a dark one, where white would glare) and
+/// `shadow_alpha` the dark one's weight on the far side.
+pub fn relief_glass(t: &Theme) -> GlassStyle {
+    let lit = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * 0.14).round() as u8;
+    let p = t.page_bg;
+    GlassStyle {
+        tint: p,
+        alpha_top: 1.0,
+        alpha_bottom: 1.0,
+        highlight: match t.dark {
+            true => (lit(p.0), lit(p.1), lit(p.2)),
+            false => (255, 255, 255),
+        },
+        highlight_alpha: 0.9,
+        shadow_alpha: if t.dark { 0.7 } else { 0.3 },
+        noise: 0.0,
+        edge_glow: 0.0,
+        gloss: 0.0,
         glow: 0.0,
         etch: 0.0,
     }
