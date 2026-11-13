@@ -51,7 +51,9 @@ fn only_relief_palettes_stand_in_relief_with_room_for_both_shadows() {
 
 /// A card is a SOLID slab of the page's own colour, so it is told from the
 /// page by its shadows alone and the words on it stand on exactly the field
-/// every role was derived against; the dark shadow is black, not a halo.
+/// every role was derived against; the dark shadow is black, not a halo,
+/// and faint (the user, 2026-11-12: "just enough to give it 3D effect") but
+/// never so faint the card is lost in its page.
 #[test]
 fn a_relief_card_is_a_solid_slab_with_a_shadow() {
     for id in RELIEF {
@@ -59,7 +61,7 @@ fn a_relief_card_is_a_solid_slab_with_a_shadow() {
         let g = glass_style_for(t);
         assert_eq!(g.tint, t.page_bg, "{}", id.as_str());
         assert_eq!((g.alpha_top, g.alpha_bottom), (1.0, 1.0));
-        assert!(g.shadow_alpha >= 0.25 && g.glow == 0.0, "{}", id.as_str());
+        assert!(g.shadow_alpha >= 0.15 && g.glow == 0.0, "{}", id.as_str());
         assert!(g.highlight_alpha > 0.0, "{}: no light shadow", id.as_str());
         assert_eq!(t.liquid.map(|l| l.body), Some(1.0));
     }

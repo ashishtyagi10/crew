@@ -289,7 +289,9 @@ pub fn liquid_glass(t: &Theme) -> GlassStyle {
 /// from the page by its two shadows alone. `highlight` is the LIGHT shadow
 /// crew-render throws toward the light (white on a pale page; the page run a
 /// little toward white on a dark one, where white would glare) and
-/// `shadow_alpha` the dark one's weight on the far side.
+/// `shadow_alpha` the dark one's weight on the far side: light, a hint of
+/// depth and no more (the user, 2026-11-12: "we need subtle look, just
+/// enough to give it 3D effect").
 pub fn relief_glass(t: &Theme) -> GlassStyle {
     let lit = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * 0.14).round() as u8;
     let p = t.page_bg;
@@ -302,7 +304,7 @@ pub fn relief_glass(t: &Theme) -> GlassStyle {
             false => (255, 255, 255),
         },
         highlight_alpha: 0.9,
-        shadow_alpha: if t.dark { 0.7 } else { 0.3 },
+        shadow_alpha: if t.dark { 0.5 } else { 0.18 },
         noise: 0.0,
         edge_glow: 0.0,
         gloss: 0.0,

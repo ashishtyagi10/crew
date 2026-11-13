@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.12
+
+**Soft themes: smaller, fainter shadows.**
+
+- The two shadows that raise a card on the `soft` themes (`porcelain`, `sand`, `mist`, `slate`) are shorter and lighter: just enough to give the card depth.
+- A shadow no longer reaches the next card, where it used to be cut off into a hard grey band along the bottom and right edges.
+- The focused card still stands higher than the others, with a gentler step.
+
 ## 0.30.11
 
 **Soft neumorphic themes and the all-themes `auto`, built for the Mac.**
