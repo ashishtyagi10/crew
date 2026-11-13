@@ -31,6 +31,8 @@ mod popupback;
 mod postfx;
 mod prewarm;
 mod quads;
+mod relief;
+pub use relief::SHADOW_ROOM as RELIEF_SHADOW_ROOM;
 mod renderer;
 mod roundborder;
 mod scene;

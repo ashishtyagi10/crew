@@ -34,6 +34,14 @@ pub struct LiquidStyle {
     /// lines"): a lit grid behind the panes, a frame-light bleeding into each
     /// slab and an iridescent rim ([`crate::holo`]). 0 is plain liquid glass.
     pub holo: f32,
+    /// How far the cards stand in RELIEF, `0.0..=1.0`: NEUMORPHISM (the
+    /// user, 2026-11-12: themes with "lots of 3D effect … no border needed
+    /// on pane, just an elevated card", then a neumorphism board). No frame
+    /// is stroked; every card is the page's own colour, moulded out of it by
+    /// two soft shadows, a light one toward the light and a dark one away
+    /// from it, and the input bar is pressed INTO the page the same way
+    /// ([`crate::glass::relief_glass`]). 0 is glass with a stroked frame.
+    pub relief: f32,
 }
 
 /// How much of its full strength a theme's text shadow ([`crate::CrtStyle`]

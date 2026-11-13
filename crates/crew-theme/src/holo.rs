@@ -25,6 +25,7 @@ pub(crate) const HOLO_LIQUID: LiquidStyle = LiquidStyle {
     body: 0.42,
     desktop_blur: 24.0,
     holo: 1.0,
+    relief: 0.0,
 };
 
 fn mix(a: (u8, u8, u8), b: (u8, u8, u8), k: f32) -> (u8, u8, u8) {

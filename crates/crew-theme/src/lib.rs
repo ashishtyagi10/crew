@@ -118,6 +118,7 @@ mod presets_neon;
 mod presets_paper;
 mod presets_prism;
 mod presets_purple;
+mod presets_relief;
 pub mod ramp;
 pub mod readable;
 pub mod signal;
@@ -152,6 +153,12 @@ impl Theme {
     pub fn is_print(&self) -> bool {
         !self.is_tube() && self.liquid.is_none()
     }
+
+    /// How far this palette's cards stand in relief ([`LiquidStyle::relief`]):
+    /// 0 on every palette whose frames are stroked.
+    pub fn relief(&self) -> f32 {
+        self.liquid.map_or(0.0, |l| l.relief)
+    }
 }
 
 pub use presets_classic::{SOLARIZED, TOKYO_NIGHT};
@@ -165,6 +172,7 @@ pub use presets_neon::NEON_DARK;
 pub use presets_paper::{PAPER_DARK, PAPER_LIGHT};
 pub use presets_prism::PRISM;
 pub use presets_purple::AMETHYST;
+pub use presets_relief::{MIST, PORCELAIN, SAND, SLATE};
 pub use tagcolor::{slot_color, tag_color, tag_slot};
 
 /// WCAG 2.1 relative luminance of an sRGB colour — how much light it
@@ -209,11 +217,15 @@ pub enum ThemeId {
     Monokai,
     Amethyst,
     Prism,
+    Porcelain,
+    Sand,
+    Mist,
+    Slate,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 16] = [
+pub const ALL_THEMES: [ThemeId; 20] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -230,6 +242,10 @@ pub const ALL_THEMES: [ThemeId; 16] = [
     ThemeId::Monokai,
     ThemeId::Amethyst,
     ThemeId::Prism,
+    ThemeId::Porcelain,
+    ThemeId::Sand,
+    ThemeId::Mist,
+    ThemeId::Slate,
 ];
 
 impl ThemeId {
@@ -251,6 +267,10 @@ impl ThemeId {
             ThemeId::Monokai => "monokai",
             ThemeId::Amethyst => "amethyst",
             ThemeId::Prism => "prism",
+            ThemeId::Slate => "slate",
+            ThemeId::Sand => "sand",
+            ThemeId::Mist => "mist",
+            ThemeId::Porcelain => "porcelain",
         }
     }
 
@@ -277,6 +297,16 @@ impl ThemeId {
                 "Amethyst: royal-purple glass, lavender accent, violet\u{2192}magenta ring"
             }
             ThemeId::Prism => "Prism: jade glass over drifting 3D prisms, ice-mint accent",
+            ThemeId::Slate => "Slate: soft 3D blue-black cards, no frames, gold accent (neumorphism)",
+            ThemeId::Sand => {
+                "Sand: soft 3D beige cards, no frames, dark ink, terracotta accent (neumorphism)"
+            }
+            ThemeId::Mist => {
+                "Mist: soft 3D blue-grey cards, no frames, dark ink, teal accent (neumorphism)"
+            }
+            ThemeId::Porcelain => {
+                "Porcelain: soft 3D pale-grey cards, no frames, dark ink, indigo accent (neumorphism)"
+            }
         }
     }
 
@@ -321,6 +351,9 @@ impl ThemeId {
             | ThemeId::Monokai => RandomMode::Classic,
             ThemeId::Amethyst => RandomMode::Purple,
             ThemeId::Prism => RandomMode::Prism,
+            ThemeId::Porcelain | ThemeId::Sand | ThemeId::Mist | ThemeId::Slate => {
+                RandomMode::Relief
+            }
         }
     }
 
@@ -413,6 +446,10 @@ impl ThemeId {
             "monokai" => Some(ThemeId::Monokai),
             "amethyst" => Some(ThemeId::Amethyst),
             "prism" => Some(ThemeId::Prism),
+            "slate" => Some(ThemeId::Slate),
+            "sand" => Some(ThemeId::Sand),
+            "mist" => Some(ThemeId::Mist),
+            "porcelain" => Some(ThemeId::Porcelain),
             _ => None,
         }
     }
@@ -435,6 +472,10 @@ impl ThemeId {
             ThemeId::Monokai => &MONOKAI,
             ThemeId::Amethyst => &AMETHYST,
             ThemeId::Prism => &PRISM,
+            ThemeId::Slate => &SLATE,
+            ThemeId::Sand => &SAND,
+            ThemeId::Mist => &MIST,
+            ThemeId::Porcelain => &PORCELAIN,
         }
     }
 
@@ -521,6 +562,11 @@ pub enum RandomMode {
     /// One jade page of sheer glass with a 3D scene of its own behind the
     /// panes, `prism` (the user, 2026-11-08: a new 3D theme).
     Prism,
+    /// Neumorphism: cards moulded out of the page itself, no frame stroked,
+    /// shaped by a light shadow and a dark one: `porcelain`, `sand`,
+    /// `mist` and `slate` (the user, 2026-11-12: "lots of 3D effect … just an elevated
+    /// card … neumorphism").
+    Relief,
     /// Every look in turn, a new one each [`ROTATE_MS`] (the user,
     /// 2026-10-25: "rotate through all available theme, irrespective of
     /// time").
@@ -531,7 +577,7 @@ pub enum RandomMode {
 /// This is the whole user-facing theme list (`/theme`, the settings picker,
 /// the `Ctrl+Shift+L` cycle); everything else (legacy `random-*` / `modern*`
 /// names, individual palettes) parses for back-compat but isn't advertised.
-pub const THEME_MODES: [RandomMode; 9] = [
+pub const THEME_MODES: [RandomMode; 10] = [
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
@@ -540,6 +586,7 @@ pub const THEME_MODES: [RandomMode; 9] = [
     RandomMode::Classic,
     RandomMode::Purple,
     RandomMode::Prism,
+    RandomMode::Relief,
     RandomMode::Auto,
 ];
 
@@ -554,6 +601,7 @@ impl RandomMode {
             RandomMode::Classic => "classic",
             RandomMode::Purple => "purple",
             RandomMode::Prism => "prism",
+            RandomMode::Relief => "soft",
             RandomMode::Auto => "auto",
         }
     }
@@ -575,8 +623,11 @@ impl RandomMode {
             RandomMode::Prism => {
                 "sheer jade glass over a 3D scene of drifting glass prisms, always dark"
             }
+            RandomMode::Relief => {
+                "neumorphism: porcelain, sand, mist, slate \u{2014} soft 3D cards moulded from the page, no frames"
+            }
             RandomMode::Auto => {
-                "every look in turn \u{2014} dark, light, crt, glass, neon, all five classics, purple, prism \u{2014} a new one every 10 minutes"
+                "every look in turn \u{2014} dark, light, crt, glass, neon, all five classics, purple, prism, soft \u{2014} a new one every 10 minutes"
             }
         }
     }
@@ -592,6 +643,7 @@ impl RandomMode {
             RandomMode::Classic => 7,
             RandomMode::Purple => 8,
             RandomMode::Prism => 9,
+            RandomMode::Relief => 10,
         }
     }
 
@@ -606,6 +658,7 @@ impl RandomMode {
             7 => Some(RandomMode::Classic),
             8 => Some(RandomMode::Purple),
             9 => Some(RandomMode::Prism),
+            10 => Some(RandomMode::Relief),
             _ => None,
         }
     }
@@ -701,6 +754,19 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     }
     if s.eq_ignore_ascii_case("prism") {
         return Some(Selection::Mode(RandomMode::Prism));
+    }
+    if [
+        "soft",
+        "neumorph",
+        "neumorphism",
+        "neumorphic",
+        "relief",
+        "raised",
+    ]
+    .iter()
+    .any(|n| s.eq_ignore_ascii_case(n))
+    {
+        return Some(Selection::Mode(RandomMode::Relief));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -802,7 +868,7 @@ pub fn tick_random(now_ms: u64) -> bool {
         return false;
     }
     let next = match m {
-        RandomMode::Auto => autowalk::auto_step(current_id(), now_ms),
+        RandomMode::Auto => autowalk::auto_step(current_id()),
         m => random_pick(current_id(), now_ms, m),
     };
     ROTATED_MS.store(now_ms, Ordering::Relaxed);
@@ -814,7 +880,7 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → glass → neon → classic → purple → prism → auto → dark, wrapping. Any other state (a pinned
+/// dark → light → crt → glass → neon → classic → purple → prism → soft → auto → dark, wrapping. Any other state (a pinned
 /// palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
 /// rather than hand-writing the successors is what keeps a newly added mode
 /// from being silently unreachable by the hotkey (which is exactly what

@@ -10,7 +10,9 @@
 // opacity (`GlassLayer::set_page`) — one flat colour, since no theme paints
 // a wallpaper.
 // `holo`: x is how holographic the glass is (crew-theme `holo`, 0 on every
-// theme but neon's); `foil` the violet its rim and frame-light turn to.
+// theme but neon's); `foil` the violet its rim and frame-light turn to. y is
+// how far the cards stand in RELIEF (crew-theme `LiquidStyle::relief`, 0 on
+// every theme but the neumorphic ones): see `neu`.
 struct Vp { size: vec2<f32>, tilt: vec2<f32>, page: vec4<f32>, holo: vec4<f32>, foil: vec4<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
 
@@ -83,6 +85,34 @@ const GLOSS_LIP: f32 = 7.0;
 const ETCH_PERIOD: f32 = 3.0;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
+// RELIEF (neumorphism): a card is the page's own colour, moulded out of it
+// by two soft shadows, the recipe of neumorphism.io: a light one thrown
+// NEU_DIST px toward the light and a dark one as far the other way, each
+// blurred over NEU_BLUR. A lifted card throws both further and softer, by
+// NEU_LIFT a step of lift. The distances are small beside a web page's,
+// because the gutter between two panes is all the room the shadows have.
+const NEU_DIST: f32 = 6.0;
+const NEU_BLUR: f32 = 14.0;
+const NEU_LIFT: f32 = 0.75;
+// A card at rest throws NEU_REST of the full shadow and the card with the
+// keys (lift 1) half as much again as the full one: focus is HEIGHT here,
+// and with no frame to colour, the step between the two has to be plain.
+// The lift is capped at NEU_TOP so the highest card's shadows fit in PAD.
+const NEU_REST: f32 = 0.75;
+const NEU_TOP: f32 = 1.5;
+// The crisp edge of an embossed card: a hairline NEU_RIM px wide just inside
+// it, lit where it faces the light and shaded where it faces away.
+// A raised card's face is very slightly CONVEX: lit by NEU_CONVEX at the
+// corner nearest the light, shaded as much at the far one, level across the
+// middle. Small enough that a word reads the same anywhere on the card.
+const NEU_CONVEX: f32 = 0.035;
+// A well's inner shadows are NEU_WELL as long as a card's outer ones: a
+// text field is a shallow press, and the words on its first row (the bar's
+// hint) must stand clear of the lip's shade.
+const NEU_WELL: f32 = 0.6;
+const NEU_RIM: f32 = 1.5;
+const NEU_RIM_LIT: f32 = 0.55;
+const NEU_RIM_SHADE: f32 = 0.3;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
 const GLOW_W: f32 = 24.0;
 
@@ -225,6 +255,71 @@ fn hash21(p: vec2<f32>) -> f32 {
   return fract(sin(h) * 43758.5453123);
 }
 
+// A card in relief. Raised (lift >= 0): the two shadows fall OUTSIDE it, the
+// light one on the light's side. Pressed in (lift < 0, the input bar): they
+// fall INSIDE, the other way round, the page's lip shading the well's near
+// wall and the light catching its far one. The face is the tint, flat and
+// solid, so every word stands on the colour its role was derived against.
+fn neu(in: VsOut, d: f32, inside: f32, rim_cut: f32, t: f32, face: f32) -> vec4<f32> {
+  let radius = in.params.x;
+  let hl_a = in.tint.w;
+  let sh_a = in.hl.w;
+  let lift = clamp(in.extra.z, 0.0, NEU_TOP);
+  let well = clamp(-in.extra.z, 0.0, 1.0);
+  let light = normalize(LIGHT + TILT * vp.tilt);
+  let k = vp.holo.y * (NEU_REST + NEU_LIFT * lift);
+  let off = light * NEU_DIST * k;
+  let blur = NEU_BLUR * k;
+  // The card's shape moved toward the light, and away from it.
+  let toward = sd_round_box(in.local - off, in.hsize, radius);
+  let away = sd_round_box(in.local + off, in.hsize, radius);
+
+  var rgb = in.tint.xyz;
+  // The busy sheen, as on glass: a soft band of the light crossing the card.
+  let scan_pos = in.extra.x;
+  if (scan_pos >= 0.0) {
+    let across = clamp((in.local.x + in.hsize.x) / max(in.hsize.x * 2.0, 1.0), 0.0, 1.0);
+    let centre = -SCAN_W + scan_pos * (1.0 + 2.0 * SCAN_W);
+    let band = 1.0 - smoothstep(0.0, SCAN_W, abs((across + t) * 0.5 - centre));
+    rgb = mix(rgb, in.hl.xyz, 0.10 * band);
+  }
+  if (well <= 0.0) {
+    let g = dot(in.local / max(in.hsize, vec2<f32>(1.0, 1.0)), light) * 0.7071;
+    rgb = mix(rgb, in.hl.xyz, NEU_CONVEX * hl_a * clamp(g, 0.0, 1.0));
+    rgb = rgb * (1.0 - NEU_CONVEX * clamp(-g, 0.0, 1.0));
+  }
+  var lite = 0.0;
+  var dark = 0.0;
+  if (well > 0.0) {
+    let wb = blur * NEU_WELL;
+    let w_toward = sd_round_box(in.local - off * NEU_WELL, in.hsize, radius);
+    let w_away = sd_round_box(in.local + off * NEU_WELL, in.hsize, radius);
+    let dark_in = sh_a * well * smoothstep(-wb, 0.0, w_away);
+    let lite_in = hl_a * well * smoothstep(-wb, 0.0, w_toward);
+    rgb = mix(rgb * (1.0 - dark_in), in.hl.xyz, lite_in * (1.0 - dark_in));
+  } else {
+    // The light falls only where the dark does not: without that it ran
+    // round the far side as a pale halo, which on a dark page (where the
+    // dark shadow barely shows) read as a grey border.
+    let shade = falloff(away, blur);
+    lite = hl_a * falloff(toward, blur) * (1.0 - shade) * (1.0 - inside);
+    dark = sh_a * shade * (1.0 - inside);
+  }
+  // The hairline: lit toward the light, shaded away from it (a well's the
+  // other way round), cut where a legend stands on the edge.
+  let band = smoothstep(-NEU_RIM, 0.0, d) * inside * (1.0 - rim_cut);
+  let n = sdf_normal(in.local, in.hsize, radius);
+  let facing = dot(n, light) * select(1.0, -1.0, well > 0.0);
+  rgb = mix(rgb, in.hl.xyz, NEU_RIM_LIT * hl_a * band * pow(clamp(facing, 0.0, 1.0), 1.5));
+  rgb = rgb * (1.0 - NEU_RIM_SHADE * sh_a * band * pow(clamp(-facing, 0.0, 1.0), 1.5));
+
+  // The card over its shadows, the dark one over the light one, premultiplied.
+  let under_a = dark + lite * (1.0 - dark);
+  let a = inside * face + under_a * (1.0 - inside);
+  if (a <= 0.0015) { discard; }
+  return vec4<f32>(rgb * inside * face + in.hl.xyz * lite * (1.0 - dark) * (1.0 - inside), a);
+}
+
 @fragment
 fn fs(in: VsOut) -> @location(0) vec4<f32> {
   let radius = in.params.x;
@@ -273,6 +368,15 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
                 veil_spans(lx, abs(from_bot), depth, in.nb0, in.nb1));
   }
   let body_in = max(inside, veil);
+
+  // --- relief ---------------------------------------------------------------
+  // A neumorphic card is none of what follows (no smoke, rim, gloss or drop
+  // shadow): `neu` draws it whole. A pop-up's sheet has no fill (its box is
+  // drawn with its cells), so of that one `neu` draws the two shadows only.
+  if (vp.holo.y > 0.0) {
+    let down = clamp((in.local.y + in.hsize.y) / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
+    return neu(in, d, inside, rim_cut, down, step(0.0001, a_top + a_bot));
+  }
 
   // --- soft drop shadow -----------------------------------------------------
   // Offset downward and smeared: an exponential falloff outside the shape gives

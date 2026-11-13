@@ -46,7 +46,13 @@ pub fn sheer() -> bool {
 /// palette without touching the global switch.
 pub fn lift(t: &Theme) -> Theme {
     let mut l = *t;
-    l.border_normal = against(t.border_normal, t.page_bg, NORMAL_FLOOR);
+    // A relief palette strokes no frame, and its cards are solid slabs of
+    // the page: the rules left are the ones INSIDE a card (a panel's box, a
+    // divider), with no desktop under them, and they stay the soft lines
+    // the palette wrote. Lifted, they were the hardest lines on a soft page.
+    if t.relief() == 0.0 {
+        l.border_normal = against(t.border_normal, t.page_bg, NORMAL_FLOOR);
+    }
     l.border_focused = against(t.border_focused, t.page_bg, FOCUSED_FLOOR);
     l.legend_off = against(t.legend_off, t.page_bg, NORMAL_FLOOR);
     // See-through glass stands its legends on the desktop, not the page:
@@ -93,7 +99,12 @@ mod tests {
             let f = contrast_ratio(t.border_focused, t.page_bg);
             // `against` keeps the hue, and a hue can top out short of the
             // floor; allow the last step's worth of shortfall, no more.
-            assert!(n >= NORMAL_FLOOR - 0.3, "{id:?}: normal frame {n:.2}");
+            // A relief palette keeps its soft inner rules (see `lift`).
+            if t.relief() == 0.0 {
+                assert!(n >= NORMAL_FLOOR - 0.3, "{id:?}: normal frame {n:.2}");
+            } else {
+                assert_eq!(t.border_normal, id.theme().border_normal, "{id:?}");
+            }
             assert!(f >= FOCUSED_FLOOR - 0.6, "{id:?}: focused frame {f:.2}");
         }
     }

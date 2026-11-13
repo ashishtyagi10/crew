@@ -220,15 +220,29 @@ pub(crate) fn build_scene(
         // The corners that round at card scale, and the scene as DRAWN: their
         // glyphs blanked for the arcs to stand in. The sheet still reads the
         // scene as written — a blanked corner is not a legend's gap.
-        let corners = crate::corners::find(&pane.cells, cell_w, cell_h);
+        //
+        // A card in RELIEF (`crate::relief`) strokes no frame at all: its
+        // rules are blanked, legends and marks left standing, and no arc is
+        // drawn, so the card is its two shadows and nothing else.
+        let relief = crate::relief::on(pane);
+        let corners = match relief {
+            true => Vec::new(),
+            false => crate::corners::find(&pane.cells, cell_w, cell_h),
+        };
         let blank;
-        let drawn = if corners.is_empty() {
+        let drawn = if relief {
+            blank = crate::relief::unframed(pane);
+            &blank
+        } else if corners.is_empty() {
             pane
         } else {
             blank = crate::corners::blanked(pane, &corners);
             &blank
         };
-        let round = crate::corners::radius(cell_w, cell_h);
+        let round = match relief {
+            true => crate::relief::radius(cell_h),
+            false => crate::corners::radius(cell_w, cell_h),
+        };
 
         // Overlay popups get a solid backdrop in the page's colour, drawn
         // before their cell quads (`popupback`): the overlay pass runs after
@@ -237,10 +251,17 @@ pub(crate) fn build_scene(
         if pane.overlay {
             let color = crate::color::target_rgba(crew_theme::theme().page_bg, 1.0, srgb);
             quads.extend(crate::popupback::backdrop(
-                (pane.x, pane.y, pane.w, pane.h),
+                // In relief the box is the card: its cells, edge to edge.
+                match relief {
+                    true => (pane.x, pane.y, cols as f32 * cell_w, rows as f32 * cell_h),
+                    false => (pane.x, pane.y, pane.w, pane.h),
+                },
                 &corners,
                 (cell_w, cell_h),
-                stroke_inset(cell_w, cell_h),
+                match relief {
+                    true => (0.0, 0.0),
+                    false => stroke_inset(cell_w, cell_h),
+                },
                 round,
                 color,
             ));
@@ -295,11 +316,22 @@ pub(crate) fn build_scene(
             if let Some(s) = split {
                 crate::notch::shift(&mut notch, f32::from(s.lc) * cell_w - ix, s.sx);
             }
+            // A card in relief has no rule to run under: it reaches its
+            // cells' outer edges, so the legends on its first row stand ON
+            // the card, and no rim is cut for them.
+            let (x, y, w, h) = (pane.x + ix, pane.y + iy, fw - 2.0 * ix, fh - 2.0 * iy);
+            let (x, y, w, h) = match relief {
+                true => {
+                    notch = crate::notch::Notch::default();
+                    (x - ix, y - iy, w + cell_w, h + cell_h)
+                }
+                false => (x, y, w, h),
+            };
             cards.push(GlassCard {
-                x: pane.x + ix,
-                y: pane.y + iy,
-                w: (fw - 2.0 * ix).max(0.0),
-                h: (fh - 2.0 * iy).max(0.0),
+                x,
+                y,
+                w: w.max(0.0),
+                h: h.max(0.0),
                 // The corners' own radius: the frame and its glass bend as one.
                 radius: round,
                 alpha_top: glass_style.alpha_top * sheet,
@@ -307,14 +339,22 @@ pub(crate) fn build_scene(
                 noise: glass_style.noise,
                 tint: crate::color::target_rgba(glass_style.tint, 1.0, srgb),
                 highlight: crate::color::target_rgba(glass_style.highlight, 1.0, srgb),
-                highlight_alpha: glass_style.highlight_alpha * sheet,
+                // A relief pop-up has no sheet but still throws its light.
+                highlight_alpha: match relief {
+                    true => glass_style.highlight_alpha,
+                    false => glass_style.highlight_alpha * sheet,
+                },
                 shadow_alpha: glass_style.shadow_alpha,
                 scan: pane.scan,
                 edge_glow: glass_style.edge_glow,
                 gloss: glass_style.gloss * sheet,
                 glow: glass_style.glow,
                 etch: glass_style.etch * sheet,
-                lift: pane.lift,
+                // A pop-up in relief floats above every card.
+                lift: match relief && pane.overlay {
+                    true => crate::relief::POPUP_LIFT,
+                    false => pane.lift,
+                },
                 glint: pane.glint,
                 notch,
                 // How much of the desktop the body lets through. A pop-up's
