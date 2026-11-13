@@ -90,9 +90,12 @@ const AA: f32 = 1.0;
 // NEU_DIST px toward the light and a dark one as far the other way, each
 // blurred over NEU_BLUR. A lifted card throws both further and softer, by
 // NEU_LIFT a step of lift. The distances are small beside a web page's,
-// because the gutter between two panes is all the room the shadows have.
-const NEU_DIST: f32 = 6.0;
-const NEU_BLUR: f32 = 14.0;
+// because the gutter between two panes is all the room the shadows have,
+// and smaller again since the user's "too big or prominent ... just enough
+// to give it 3D effect" (2026-11-12): a shadow that reaches the next card
+// is cut there, and the cut reads as a hard grey band.
+const NEU_DIST: f32 = 3.5;
+const NEU_BLUR: f32 = 9.0;
 const NEU_LIFT: f32 = 0.75;
 // A card at rest throws NEU_REST of the full shadow and the card with the
 // keys (lift 1) half as much again as the full one: focus is HEIGHT here,
@@ -112,7 +115,7 @@ const NEU_CONVEX: f32 = 0.035;
 const NEU_WELL: f32 = 0.6;
 const NEU_RIM: f32 = 1.5;
 const NEU_RIM_LIT: f32 = 0.55;
-const NEU_RIM_SHADE: f32 = 0.3;
+const NEU_RIM_SHADE: f32 = 0.2;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
 const GLOW_W: f32 = 24.0;
 
