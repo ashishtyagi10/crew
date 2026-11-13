@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.11
+
+**Soft neumorphic themes and the all-themes `auto`, built for the Mac.**
+
+- 0.30.10 never published: its Mac builds failed on a compiler update on the build machines, not on anything in the app. This release is the same app with the build pinned to the compiler that works.
+- Everything listed under 0.30.10 below arrives with this version: the `soft` themes (`porcelain`, `sand`, `mist`, `slate`) and `/theme auto` walking all 20 themes.
+
 ## 0.30.10
 
 **Soft neumorphic themes, and `auto` walks all 20 themes.**

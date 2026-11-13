@@ -51,8 +51,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned, not `stable`: Rust 1.100.0 (on the macOS runners from
+      # 2026-11-12) does not compile objc2 0.4.1, which threers' winit 0.29
+      # pulls in, and v0.30.10's Mac builds failed on it. Move this forward
+      # once that dependency is gone or builds on the newer compiler.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.99.1
         with:
           targets: ${{ matrix.target }}
 
