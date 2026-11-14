@@ -26,7 +26,7 @@ pub(crate) fn fan_out(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<Vec<(String, String)>> {
     // Standing memory rides fan tasks too (see relay_turn).
-    let task = &super::memory::with_memory(task);
+    let task = &super::memory::with_memory(task, task);
     // Every agent starts thinking at once, each on the user's behalf.
     for name in names {
         emit(PluginEvent::Activity {

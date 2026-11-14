@@ -71,9 +71,36 @@ fn with_memory_reads_the_project_dir_seam() {
         "- deploys go out on Fridays\n",
     )
     .unwrap();
-    let p = with_memory("what do you remember?");
+    let p = with_memory("what do you remember?", "what do you remember?");
     assert!(p.contains("deploys go out on Fridays"), "{p}");
     assert!(p.contains("what do you remember?"), "{p}");
+}
+
+/// The diff rides on what the user ASKED. The framed task in front of it
+/// (skill catalog, recalled turns) may say "broke" without the user having.
+#[test]
+fn what_changed_is_decided_by_the_request_not_the_framing() {
+    let _g = crate::broker::testenv::mock("unused");
+    let dir = std::path::PathBuf::from(std::env::var("CREW_PROJECT_DIR").unwrap());
+    let git = |args: &[&str]| {
+        let ok = std::process::Command::new("git")
+            .args(args)
+            .current_dir(&dir)
+            .output()
+            .unwrap();
+        assert!(ok.status.success(), "git {args:?}");
+    };
+    git(&["init", "-q"]);
+    git(&["config", "user.email", "t@t"]);
+    git(&["config", "user.name", "t"]);
+    std::fs::write(dir.join("a.txt"), "one\n").unwrap();
+    git(&["add", "a.txt"]);
+    git(&["commit", "-q", "-m", "first"]);
+    let framed = "From earlier work: the build broke\n\nhello";
+    let quiet = with_memory(framed, "hello");
+    assert!(!quiet.contains("WHAT CHANGED"), "{quiet}");
+    let asked = with_memory(framed, "the build broke");
+    assert!(asked.contains("WHAT CHANGED"), "{asked}");
 }
 
 /// `#<note>` capture honours the same seam — a test (or a host that sets the

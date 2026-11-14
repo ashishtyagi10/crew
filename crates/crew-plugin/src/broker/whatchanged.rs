@@ -21,12 +21,21 @@ use super::checkpoint::git;
 /// it, so a hunk is never cut in the middle; past it, the rest are named.
 pub(crate) const CAP: usize = 4_000;
 
-/// Words that make a task about something that broke.
-const BREAKAGE: &[&str] = &[
-    "fail",
-    "broke",
-    "break",
-    "regress",
+/// Word stems that make a task about something that broke. A word counts
+/// when it is a stem plus an ending in [`ENDINGS`] — `broke`, `broken`,
+/// `failing`, `crashes` — and not when the stem merely opens it. Matched as
+/// plain substrings they were also in `broker` (this repository's own
+/// directory), `breakpoint` and `failover`, and a greeting that recalled a
+/// path under `broker/` was sent the last commit's diff (live, 2026-11-14).
+const STEMS: &[&str] = &["fail", "broke", "break", "regress", "panic", "crash"];
+
+/// What may follow a stem and leave it the same word.
+const ENDINGS: &[&str] = &[
+    "", "s", "es", "ed", "ing", "n", "ure", "ures", "ion", "ions", "age", "ked", "king",
+];
+
+/// Phrases that say it in more than one word; these are matched as written.
+const PHRASES: &[&str] = &[
     "no longer",
     "stopped working",
     "doesn't work",
@@ -35,14 +44,14 @@ const BREAKAGE: &[&str] = &[
     "since my",
     "after my",
     "last change",
-    "panic",
-    "crash",
 ];
 
-/// The block for `task`, from the broker's project directory; `None` when
-/// the task is not about breakage or there is nothing to show.
-pub(crate) fn block(task: &str) -> Option<String> {
-    if !about_breakage(task) {
+/// The block for `asked`, from the broker's project directory; `None` when
+/// it is not about breakage or there is nothing to show. `asked` is the
+/// user's own request, never the framed prompt: the skill catalog and the
+/// recalled turns in front of it are full of other people's words.
+pub(crate) fn block(asked: &str) -> Option<String> {
+    if !about_breakage(asked) {
         return None;
     }
     let dir = std::env::var("CREW_PROJECT_DIR")
@@ -54,7 +63,12 @@ pub(crate) fn block(task: &str) -> Option<String> {
 
 pub(crate) fn about_breakage(task: &str) -> bool {
     let t = task.to_lowercase();
-    BREAKAGE.iter().any(|w| t.contains(w))
+    PHRASES.iter().any(|p| t.contains(p))
+        || t.split(|c: char| !c.is_alphanumeric()).any(|w| {
+            STEMS
+                .iter()
+                .any(|s| w.strip_prefix(s).is_some_and(|end| ENDINGS.contains(&end)))
+        })
 }
 
 /// The block for the repository at `dir`, or `None` outside one.

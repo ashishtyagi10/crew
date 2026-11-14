@@ -58,7 +58,8 @@ pub(crate) fn run_task_on(
         emit(ev)?;
     }
     let body = super::recall::ahead(session, &framed.body);
-    let task_owned = super::sessionlog::fold_resume(session, &super::memory::with_memory(&body));
+    let task_owned =
+        super::sessionlog::fold_resume(session, &super::memory::with_memory(&body, task));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model, replan) = backend_at(session.tools(), tier);
     // The lead's closing call and the judge run on routing's gates: keyless

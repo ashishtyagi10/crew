@@ -93,10 +93,12 @@ pub(crate) fn load_from(user: Option<&Path>, project: &Path) -> Option<String> {
 /// broke, `whatchanged`), the project's instructions and the loaded memory to
 /// a task prompt; the task passes through untouched when there is none of
 /// them. The card leads: where the agent stands comes before the rules for
-/// standing there.
-pub(crate) fn with_memory(task: &str) -> String {
+/// standing there. `asked` is the request as the user typed it, which is
+/// what decides whether the diff rides along; `task` may already carry the
+/// skill catalog and recalled turns, whose words are not the user's.
+pub(crate) fn with_memory(task: &str, asked: &str) -> String {
     let rest = prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task);
-    let rest = match super::whatchanged::block(task) {
+    let rest = match super::whatchanged::block(asked) {
         Some(changed) => format!("{changed}\n{rest}"),
         None => rest,
     };
