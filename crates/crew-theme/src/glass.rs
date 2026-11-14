@@ -283,6 +283,13 @@ pub fn liquid_glass(t: &Theme) -> GlassStyle {
     }
 }
 
+/// How far a dark relief page is run toward white for its light shadow.
+/// At 0.14 slate's cards stood 1.04:1 off the page on the light's side and
+/// 1.08:1 on the far one, against 1.75:1 for a pale page's dark shadow
+/// (theme loop, 2026-11-14): on a near-black page the dark shadow has
+/// nothing left to darken, so the light one has to say where a card ends.
+pub(crate) const DARK_LIT: f32 = 0.28;
+
 /// A card in RELIEF ([`crate::LiquidStyle::relief`]): neumorphism. No glass
 /// at all: a solid slab of the page's own colour, so the words stand on
 /// exactly the field their roles were derived against, and the card is told
@@ -293,7 +300,7 @@ pub fn liquid_glass(t: &Theme) -> GlassStyle {
 /// depth and no more (the user, 2026-11-12: "we need subtle look, just
 /// enough to give it 3D effect").
 pub fn relief_glass(t: &Theme) -> GlassStyle {
-    let lit = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * 0.14).round() as u8;
+    let lit = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * DARK_LIT).round() as u8;
     let p = t.page_bg;
     GlassStyle {
         tint: p,

@@ -66,3 +66,27 @@ fn a_relief_card_is_a_solid_slab_with_a_shadow() {
         assert_eq!(t.liquid.map(|l| l.body), Some(1.0));
     }
 }
+
+/// On a dark page the light shadow is what says where a card ends (the dark
+/// one has nothing left to darken): it stands at least 2:1 off the page,
+/// and well under the ink, so it is an edge and not a glare. A pale page's
+/// light shadow is white, as light is.
+#[test]
+fn a_dark_page_s_light_shadow_is_plain_and_does_not_glare() {
+    for id in RELIEF {
+        let t = id.theme();
+        let hl = crate::glass::relief_glass(t).highlight;
+        if !t.dark {
+            assert_eq!(hl, (255, 255, 255), "{}", id.as_str());
+            continue;
+        }
+        let edge = crate::contrast_ratio(hl, t.page_bg);
+        let ink = crate::contrast_ratio(t.ink, t.page_bg);
+        assert!(edge >= 2.0, "{}: light shadow {edge}:1", id.as_str());
+        assert!(
+            edge <= ink / 4.0,
+            "{}: {edge}:1 beside ink {ink}:1",
+            id.as_str()
+        );
+    }
+}
