@@ -11,12 +11,12 @@ fn ghost(text: &str, menu_sel: usize) -> Option<String> {
     .ghost()
 }
 
-/// An open value picker ghosts its highlighted row: arrowed to `light`, the
-/// bar read `/theme dark`, and Tab put in `light`.
+/// An open value picker ghosts its highlighted row: arrowed to `dark`, the
+/// bar read `/theme auto`, and Tab put in `dark`.
 #[test]
 fn a_value_picker_ghosts_the_row_tab_fills() {
-    assert_eq!(ghost("/theme ", 0).as_deref(), Some("dark"));
-    assert_eq!(ghost("/theme ", 1).as_deref(), Some("light"));
+    assert_eq!(ghost("/theme ", 0).as_deref(), Some("auto"));
+    assert_eq!(ghost("/theme ", 1).as_deref(), Some("dark"));
     assert_eq!(ghost("/gradient ", 2).as_deref(), Some("lively"));
     // A command still ghosts the highlighted name's rest.
     assert_eq!(ghost("/s", 0).as_deref(), Some("ettings"));

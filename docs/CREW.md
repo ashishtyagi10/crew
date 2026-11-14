@@ -430,7 +430,7 @@ way that machine presses it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt → glass → neon → classic → purple → prism → soft → auto) | **Ctrl+Shift+L** |
+| Cycle themes (auto → dark → light → crt → glass → neon → classic → purple → prism → soft) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -951,7 +951,7 @@ The docked command bar supports:
   for `auto`, the look on screen and the one coming next.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
   the ten themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
-  `dark → light → crt → glass → neon → classic → purple → prism → soft → auto`. The old names — `paper-dark` and
+  `auto → dark → light → crt → glass → neon → classic → purple → prism → soft`. The old names — `paper-dark` and
   `paper-light` (now simply `dark` and `light`) and the pre-consolidation
   rotation modes (`random-dark`/`random`, `random-light`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).

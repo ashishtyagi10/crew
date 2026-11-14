@@ -73,8 +73,9 @@ pub struct CrewConfig {
     /// Case-insensitive substrings watched in pane output; a match notifies.
     #[serde(default)]
     pub notify_patterns: Vec<String>,
-    /// Theme name: `paper-dark` (default) or `paper-light`. Unknown/unset →
-    /// `paper-dark`. Applied app-wide via [`crew_theme`].
+    /// The theme: a look (`auto`, `dark`, `soft`, ...) or one palette's name.
+    /// Unset is `auto`, every look in turn; a name that does not parse is
+    /// `paper-dark` (see `theme_selection`). Applied via [`crew_theme`].
     #[serde(default)]
     pub theme: Option<String>,
     /// Whether a pane's card marks what it knows on its border: the ticks

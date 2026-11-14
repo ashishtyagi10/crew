@@ -240,7 +240,7 @@ pub(crate) fn build_scene(
             &blank
         };
         let round = match relief {
-            true => crate::relief::radius(cell_h),
+            true => crate::relief::RADIUS,
             false => crate::corners::radius(cell_w, cell_h),
         };
 

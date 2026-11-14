@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.13
+
+**Soft themes: square cards and a side panel of tiles.**
+
+Soft themes:
+- Cards on the `soft` themes (`porcelain`, `sand`, `mist`, `slate`) have square corners instead of rounded ones.
+- The gap between cards is tighter: it is the spacing your density setting asks for, never under 6 px, without the extra 8 px added before. At cozy that is 8 px instead of 16.
+- The open side panel is a column of raised tiles instead of one tall slab: each section and each tab's card is its own tile, with the same gap between them as between panes.
+- The ruled lines between sections and the outlines around tab cards are gone on these themes, and the tab on screen stands higher than the others.
+- Nothing in the panel moved, so every row is clicked where it was.
+
+Theme list:
+- `auto` is first in the `/theme` picker, the settings form, the Ctrl+Shift+L ring and the help row. It has been the theme you get when none is set since 2026-10-25, but stood last in every list.
+- The `/theme` picker opens on `auto` instead of `dark`, and the settings form shows an unset theme as `auto` instead of `dark`.
+
 ## 0.30.12
 
 **Soft themes: smaller, fainter shadows.**

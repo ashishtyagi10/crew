@@ -52,15 +52,10 @@ fn an_unframed_card_keeps_its_legend_and_its_inner_rules() {
     assert_eq!(out.cells.len(), card().cells.len(), "no cell is dropped");
 }
 
-/// A relief corner is far rounder than a stroked frame's arc, and still
-/// inside the cell the content keeps clear of.
+/// A relief card is square: no arc at its corners, only the shadows' blur.
 #[test]
-fn a_relief_corner_is_rounder_than_a_frame_s_and_inside_a_cell() {
-    for (cw, ch) in [(8.0, 17.0), (10.0, 21.0), (14.0, 30.0)] {
-        let r = radius(ch);
-        assert!(r > crate::corners::radius(cw, ch), "{cw}x{ch}: {r}");
-        assert!(r < ch, "{cw}x{ch}: {r}");
-    }
+fn a_relief_card_has_square_corners() {
+    assert_eq!(RADIUS, 0.0);
 }
 
 /// The quad is padded for the glass's shadows; a relief card's two must fit

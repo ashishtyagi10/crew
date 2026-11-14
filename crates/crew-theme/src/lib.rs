@@ -573,11 +573,15 @@ pub enum RandomMode {
     Auto,
 }
 
-/// The themes crew offers: eight pools plus `auto`, which walks them all.
+/// The themes crew offers: `auto`, which walks them all, then the pools.
 /// This is the whole user-facing theme list (`/theme`, the settings picker,
 /// the `Ctrl+Shift+L` cycle); everything else (legacy `random-*` / `modern*`
 /// names, individual palettes) parses for back-compat but isn't advertised.
 pub const THEME_MODES: [RandomMode; 10] = [
+    // `auto` leads: it is what crew wears until a theme is chosen, so it is
+    // the first option every list offers (the user, 2026-11-14: "`/theme
+    // auto` should be default option").
+    RandomMode::Auto,
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
@@ -587,7 +591,6 @@ pub const THEME_MODES: [RandomMode; 10] = [
     RandomMode::Purple,
     RandomMode::Prism,
     RandomMode::Relief,
-    RandomMode::Auto,
 ];
 
 impl RandomMode {
@@ -880,8 +883,8 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → glass → neon → classic → purple → prism → soft → auto → dark, wrapping. Any other state (a pinned
-/// palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
+/// auto → dark → light → crt → glass → neon → classic → purple → prism →
+/// soft → auto, wrapping. Any other state (a pinned palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
 /// rather than hand-writing the successors is what keeps a newly added mode
 /// from being silently unreachable by the hotkey (which is exactly what
 /// happened when a fourth pool was added). Returns the status-line label.

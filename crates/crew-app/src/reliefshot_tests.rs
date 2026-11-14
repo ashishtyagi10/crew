@@ -60,3 +60,33 @@ fn relief_popup_shot() {
     }
     crew_theme::set_theme(ThemeId::PaperDark);
 }
+
+/// The nav open beside the panes on a relief palette: its sections and its
+/// tab cards moulded like every other card. Look at these.
+///
+/// `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew relief_nav_shot -- --ignored`
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn relief_nav_shot() {
+    let _g = crate::app::theme_test_guard();
+    for id in [ThemeId::Porcelain, ThemeId::Slate] {
+        let name = format!("{}-nav", id.as_str());
+        let opacity = crate::tubesheer::sheer(id.theme());
+        let prep = |app: &mut crate::app::CrewApp| {
+            app.config.show_nav = true;
+            app.config.nav_collapsed = false;
+            // Slate shows the nav in tabs: a tile per tab's card.
+            if id == ThemeId::Slate {
+                crate::tabshot_tests::three_tabs(app);
+            }
+        };
+        let cmds = ["/far", "/dash", "/todo", "/far"];
+        let Some(px) = crate::crtglassshot_tests::window_with(&name, id, opacity, &cmds, &prep)
+        else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        assert!(crate::shotgpu_tests::ink(&px) > 10_000, "{name}: drew");
+    }
+    crew_theme::set_theme(ThemeId::PaperDark);
+}

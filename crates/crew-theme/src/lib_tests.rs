@@ -242,8 +242,8 @@ fn cycle_next_walks_every_mode_and_wraps() {
 
 #[test]
 fn auto_is_advertised_and_holds_every_palette() {
-    // Auto is a first-class listed theme (last, after the pools it walks).
-    assert_eq!(THEME_MODES[THEME_MODES.len() - 1], RandomMode::Auto);
+    // Auto is a first-class listed theme, and the first: it is the default.
+    assert_eq!(THEME_MODES[0], RandomMode::Auto);
     assert_eq!(
         auto_looks().collect::<Vec<_>>(),
         [

@@ -473,6 +473,8 @@ mod navrailrow;
 #[cfg(test)]
 #[path = "navrailshot_tests.rs"]
 mod navrailshot_tests;
+mod navrelief;
+mod navreliefscene;
 mod navresize;
 mod navserving;
 mod navslot;
