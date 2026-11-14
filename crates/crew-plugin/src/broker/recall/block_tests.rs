@@ -107,3 +107,46 @@ fn the_block_is_cut_out_of_a_prompt_and_only_the_block() {
     let quoted = format!("why does the prompt say \"{HEAD}\" there?");
     assert_eq!(cut(&quoted), None, "a quote of the head is not the block");
 }
+
+/// Four long turns, each matching: the budget is shared evenly and spent.
+fn four_long() -> Graph {
+    let mut g = Graph::default();
+    let t = g.touch(Kind::Topic, "router", "router", NOW);
+    for i in 0..4u64 {
+        let text = format!(
+            "you asked: router {}\ncrew answered: DECIDED-{i} {}",
+            "q".repeat(600),
+            "a".repeat(600)
+        );
+        let turn = g.touch(Kind::Turn, &i.to_string(), &text, NOW - i * 86_400_000);
+        g.link(turn, t, Rel::Mentions);
+    }
+    g
+}
+
+#[test]
+fn every_recalled_turn_gets_an_even_share_and_the_budget_is_spent() {
+    let b = block(&four_long(), "router", &[], NOW, RECALL_CAP)
+        .expect("a recall")
+        .text;
+    let lens: Vec<usize> = b.lines().skip(1).map(|l| l.chars().count()).collect();
+    assert_eq!(lens.len(), 4, "{b}");
+    let (min, max) = (lens.iter().min().unwrap(), lens.iter().max().unwrap());
+    assert!(max - min <= 24, "uneven shares {lens:?}");
+    assert!(*min >= 200, "the last turn was starved: {lens:?}");
+    assert!(
+        b.chars().count() <= RECALL_CAP,
+        "{} chars",
+        b.chars().count()
+    );
+}
+
+#[test]
+fn a_long_request_does_not_crowd_out_what_was_answered() {
+    let b = block(&four_long(), "router", &[], NOW, RECALL_CAP)
+        .expect("a recall")
+        .text;
+    for i in 0..4 {
+        assert!(b.contains(&format!("crew answered: DECIDED-{i}")), "{b}");
+    }
+}
