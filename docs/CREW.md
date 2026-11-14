@@ -2982,6 +2982,14 @@ and a typo gets a **did-you-mean** suggestion):
   as a STANDING MEMORY block the agents are told to follow. Ask "what do you
   remember?" to see it (the `/memory` slash form is retired). Unlike skills,
   memory is always on; edit or delete the file to forget.
+  You do not have to know the `#`: a message that states a **lasting
+  preference** ("from now on answer in one paragraph", "you should be
+  talking like Agent Smith") is kept the same way the first time it is
+  said. The router names it on an optional `REMEMBER:` line; where no router
+  read the message (a signed-in CLI leads, or the router is off) a short
+  list of openings decides (`from now on`, `always`, `never`, `you should
+  be`…, never a question). The pane says `remembered for every task from now
+  on: “…”` once, and a note the file already holds is not written twice.
 - **`/reload`** — pick up extension edits without a restart: re-reads skills
   and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
   next use, and re-emits the roster so the pane's badges update.

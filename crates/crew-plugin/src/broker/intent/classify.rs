@@ -208,7 +208,11 @@ pub(super) fn prompt(task: &str, world: &super::world::World) -> String {
          `CORRECTS: <what, in ten words or fewer>` (any shape) says the message \
          corrects or rejects earlier work — \"no, don't X\", \"use Y instead\", \
          \"that's wrong because…\" — naming what it rules out; omit it \
-         otherwise.{skills} Nothing else.\n\n\
+         otherwise. One more optional line `REMEMBER: <the preference, in fifteen \
+         words or fewer>` (any shape) says the message states a LASTING \
+         preference for how to work or answer from now on — \"always X\", \
+         \"from now on Y\", \"talk like Z\" — and not an instruction for this \
+         task alone; omit it otherwise.{skills} Nothing else.\n\n\
          {world}Message: {task}"
     )
 }

@@ -14,7 +14,7 @@ const MEM_CAP: usize = 2048;
 /// The project dir the memory file lives under. Mirrors `sessionlog::base_dir`
 /// exactly, and for the same reason: `CREW_PROJECT_DIR` overrides the process
 /// CWD (the test seam); production never sets it.
-fn base_dir() -> PathBuf {
+pub(super) fn base_dir() -> PathBuf {
     std::env::var("CREW_PROJECT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."))

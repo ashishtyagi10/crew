@@ -81,6 +81,9 @@ pub(crate) fn led(
     }
     // No router reads a led turn, so the openings decide (`correction`).
     crate::broker::correction::note(&session.recall, None, task);
+    if let Some(kept) = crate::broker::standing::note(None, task) {
+        emit(crate::broker::relay::msg("agent smith", kept))?;
+    }
     let dialled = format!("@{lead} {task}");
     super::super::stdio::relay_counting(&dialled, None, false, session, tick_emit, emit)
 }
