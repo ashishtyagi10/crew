@@ -97,12 +97,12 @@ fn theme_command_expands_into_a_value_picker() {
 fn theme_space_lists_the_rotations_first_then_every_palette() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    // The ten themes lead — they are what most people want — then a
+    // The ten themes lead, `auto` (the default) first, then a
     // heading, then every individual palette. The palettes have always
     // parsed; not offering them meant you had to know the name already.
     assert_eq!(
         &labels[..10],
-        &["dark", "light", "crt", "glass", "neon", "classic", "purple", "prism", "soft", "auto"],
+        &["auto", "dark", "light", "crt", "glass", "neon", "classic", "purple", "prism", "soft"],
         "{labels:?}"
     );
     assert!(items[10].header, "the palettes need a heading: {labels:?}");
