@@ -94,8 +94,10 @@ pub fn welcome_cells_animated(
         // nameplate sits over its centre, glyphs streaming around it.
         // Its heads stop short of the ink the name is set in: the field is
         // ambience, and the word it surrounds is the one thing to read.
-        let trail = crate::anim::lerp_rgb(t.text_muted, bg, 0.35);
-        rain(&mut cells, top, left, w, h, tick, t.text_muted, trail, bg);
+        // They fall in the palette's own hue ([`crate::rainink`]).
+        let lit = crate::rainink::current();
+        let trail = crate::anim::lerp_rgb(lit, bg, 0.35);
+        rain(&mut cells, top, left, w, h, tick, lit, trail, bg);
         nameplate(&mut cells, top, left, w, h, t.ink, bg);
 
         let tl_row = top + h + 1;
