@@ -39,7 +39,7 @@ const FORM: &[&str] = &[
 fn only_the_boxes_that_hold_no_box_are_wells() {
     let cells = grid(FORM);
     assert_eq!(boxes(&cells).len(), 3);
-    let w = wells(&boxes(&cells));
+    let w = wells_of(&boxes(&cells));
     let field = Box4 {
         c0: 2,
         r0: 1,
@@ -151,7 +151,8 @@ fn pane_scenes() -> Vec<PaneScene> {
     vec![content, card]
 }
 
-/// On a soft theme the pane's boxes are pressed in: one sunk sheet a well,
+/// On a soft theme the pane's boxes are pressed in: one sunk sheet a well
+/// (a panel of the divided box is a well of its own),
 /// after the card's own sheet, and the strokes gone from the content.
 #[test]
 fn a_soft_theme_presses_a_pane_s_boxes_into_wells() {
@@ -159,7 +160,7 @@ fn a_soft_theme_presses_a_pane_s_boxes_into_wells() {
     crew_theme::set_theme(crew_theme::ThemeId::Porcelain);
     let mut scenes = pane_scenes();
     press(&mut scenes, 8.0, 16.0);
-    assert_eq!(scenes.len(), 4, "the content, the card, two wells");
+    assert_eq!(scenes.len(), 5, "content, card, the field, two panels");
     assert!(scenes[2..].iter().all(|s| s.glass && s.lift < 0.0));
     assert_eq!(text(&scenes[0].cells, 3), "                 ");
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
