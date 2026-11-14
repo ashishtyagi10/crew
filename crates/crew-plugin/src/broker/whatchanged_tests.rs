@@ -48,6 +48,29 @@ fn a_task_about_breakage_is_recognised_and_others_are_not() {
     }
 }
 
+/// A stem inside another word is not the word: this repository keeps its
+/// agents under `broker/`, and every path there used to read as "broke".
+#[test]
+fn a_stem_that_only_opens_a_longer_word_is_not_breakage() {
+    for t in [
+        "how does the broker route a message?",
+        "files that came up: crates/crew-plugin/src/broker/discover.rs:387",
+        "set a breakpoint in the failover path",
+    ] {
+        assert!(!about_breakage(t), "{t}");
+    }
+    for t in [
+        "it is broken",
+        "two tests are failing",
+        "a regression in nav",
+        "it panicked",
+        "crashes on resize",
+        "what is the failure?",
+    ] {
+        assert!(about_breakage(t), "{t}");
+    }
+}
+
 #[test]
 fn a_dirty_tree_puts_its_uncommitted_diff_first() {
     let dir = repo("dirty");

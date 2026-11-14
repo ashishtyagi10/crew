@@ -93,6 +93,11 @@ pub(crate) fn compact_if_needed(path: &Path, g: &mut Graph) -> bool {
         return false;
     }
     g.prune(TURNS_KEPT);
+    rewrite(path, g)
+}
+
+/// The whole graph written over the log, through a temp file and a rename.
+pub(crate) fn rewrite(path: &Path, g: &Graph) -> bool {
     let tmp = path.with_extension("jsonl.tmp");
     let body = dump(g).join("\n");
     if std::fs::write(&tmp, format!("{body}\n")).is_ok() {

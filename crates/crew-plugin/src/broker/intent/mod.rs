@@ -182,6 +182,10 @@ pub(crate) fn routed(
     let read = matches!(routing, decision::Routing::Chosen(_)) && !forced;
     let clause = read.then(|| d.hints.corrects.as_deref());
     super::correction::note(&session.recall, clause, task);
+    let lasting = read.then(|| d.hints.remember.as_deref());
+    if let Some(kept) = super::standing::note(lasting, task) {
+        emit(super::relay::msg("agent smith", kept))?;
+    }
     if let Some(names) = &d.hints.skills {
         skillhint::seed(task, names);
     }

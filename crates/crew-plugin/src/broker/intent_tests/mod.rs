@@ -25,6 +25,7 @@ mod grammar;
 mod hints;
 mod led;
 mod plangate;
+mod remembers;
 mod replypick;
 mod routereval;
 mod routing;

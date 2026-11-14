@@ -28,9 +28,16 @@ const SAID_KEPT: usize = 160;
 /// backstop for a turn the router never read. Matched at the very start
 /// only: "no" inside a sentence is not a correction, and a missed one costs
 /// a reminder, where a false one would tell every later task a falsehood.
-const OPENINGS: [&str; 10] = [
+///
+/// For that reason a bare "no " is not one (it was, and "no rush, but…"
+/// became something ruled out): the word must stand apart, as an answer.
+const OPENINGS: [&str; 14] = [
     "no,",
-    "no ",
+    "no.",
+    "no!",
+    "no;",
+    "no -",
+    "no \u{2014}",
     "nope",
     "don't ",
     "do not ",
@@ -41,11 +48,26 @@ const OPENINGS: [&str; 10] = [
     "that is wrong",
 ];
 
+/// What follows "don't" in a request, not a correction: "don't forget to
+/// run the tests" asks for the tests.
+const POLITE: [&str; 4] = ["forget", "worry", "hesitate", "bother"];
+
 /// Whether `task` opens like a correction, or says to use something
-/// `instead` (the other way users phrase one).
+/// `instead` — of what was just done, so "instead of" is not it: "use tabs
+/// instead of spaces in the new file" names both sides and is a request.
 pub(crate) fn backstop(task: &str) -> bool {
     let t = task.trim().to_lowercase();
-    OPENINGS.iter().any(|o| t.starts_with(o)) || t.contains(" instead")
+    let opens = OPENINGS.iter().any(|o| {
+        t.strip_prefix(o)
+            .is_some_and(|rest| !POLITE.iter().any(|p| rest.trim_start().starts_with(p)))
+    });
+    let instead = t.match_indices("instead").any(|(i, w)| {
+        let after = &t[i + w.len()..];
+        t[..i].ends_with(' ')
+            && !after.starts_with(|c: char| c.is_alphanumeric())
+            && !after.trim_start().starts_with("of ")
+    });
+    opens || instead
 }
 
 /// The line to remember for a correction: the router's clause when it gave

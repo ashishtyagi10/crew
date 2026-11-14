@@ -2982,6 +2982,14 @@ and a typo gets a **did-you-mean** suggestion):
   as a STANDING MEMORY block the agents are told to follow. Ask "what do you
   remember?" to see it (the `/memory` slash form is retired). Unlike skills,
   memory is always on; edit or delete the file to forget.
+  You do not have to know the `#`: a message that states a **lasting
+  preference** ("from now on answer in one paragraph", "you should be
+  talking like Agent Smith") is kept the same way the first time it is
+  said. The router names it on an optional `REMEMBER:` line; where no router
+  read the message (a signed-in CLI leads, or the router is off) a short
+  list of openings decides (`from now on`, `always`, `never`, `you should
+  be`…, never a question). The pane says `remembered for every task from now
+  on: “…”` once, and a note the file already holds is not written twice.
 - **`/reload`** — pick up extension edits without a restart: re-reads skills
   and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
   next use, and re-emits the roster so the pane's badges update.
@@ -3127,6 +3135,15 @@ and a typo gets a **did-you-mean** suggestion):
   corrects. When a long turn compacts, its summary's `ruled out:` lines are
   kept too. The next task on those files carries them first in the block, as
   `- ruled out before (2d ago): …`. Unrelated work never sees them.
+  The openings are narrow on purpose: "no," and "don't touch X" count, "no
+  rush", "don't forget to run the tests" and "use tabs instead of spaces"
+  (a request that names both sides) do not. Ask **"what did I rule out?"**
+  to see every correction kept, numbered newest first, and say **"forget
+  correction 2"** to drop one; crew answers both itself, with no model call.
+  Each recalled turn gets an even share of the block and keeps its answer
+  beside the request. A file is one node however it was named: a grep hit's
+  `:41` is taken off, a bare `nav.rs` folds into the one known path that
+  ends with it, and a typed `/update` is not filed as a file.
   The log compacts itself (the oldest turns past 400 are dropped with their
   orphaned topics); `CREW_RECALL=0` turns the whole thing off — no read, no
   write; `/doctor` reports `recall: 12 turns, 30 topics, 8 files, 2 pages in the

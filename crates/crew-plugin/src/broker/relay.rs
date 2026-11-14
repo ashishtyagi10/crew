@@ -40,7 +40,7 @@ pub(crate) fn relay_turn(
     for ev in super::skillframe::loaded_events(&framed.applied, start) {
         emit(ev)?;
     }
-    let body = super::memory::with_memory(&framed.body);
+    let body = super::memory::with_memory(&framed.body, skills_on);
     let mut timing: Option<(String, Instant)> = None;
     let mut segments: Vec<(String, Duration)> = Vec::new();
     let mut answer: Option<String> = None;

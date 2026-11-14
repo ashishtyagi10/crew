@@ -54,10 +54,14 @@ pub(crate) fn block(
     let mut oldest_ms = u64::MAX;
     let mut quoted = 0usize;
     let hits = query::turns(g, text, skip, TURNS_MAX);
-    for h in &hits {
+    for (i, h) in hits.iter().enumerate() {
         let Some(n) = g.node(h.id) else { continue };
-        let share = left / TURNS_MAX.max(1);
-        let body = flatten(&n.text);
+        // An even share of what is LEFT among the turns still to come. It
+        // was `left / TURNS_MAX` at every step, so four turns got 221, 158,
+        // 110 and 74 chars and a quarter of the budget went unspent.
+        // The label is held back from it below (14, or 52 with a marker
+        // for a correction's longer one), so a line never passes it.
+        let share = left / (hits.len() - i);
         let room = share.max(64).min(left);
         if room < 48 {
             break;
@@ -68,16 +72,16 @@ pub(crate) fn block(
             // approach failed) and not as an answer crew gave once.
             Some(what) => format!(
                 "- ruled out before ({when}): {}",
-                clip_chars(&flatten(what), room - 24)
+                clip_chars(&flatten(what), room.saturating_sub(52))
             ),
-            None => format!("- {when} — {}", clip_chars(&body, room - 24)),
+            None => format!("- {when} \u{2014} {}", exchange(&n.text, room - 14)),
         };
         left = left.saturating_sub(line.chars().count() + 1);
         oldest_ms = oldest_ms.min(n.last_ms);
         quoted += 1;
         lines.push(line);
     }
-    let files = query::files(g, text, FILES_MAX);
+    let files = super::samefile::once(query::files(g, text, FILES_MAX));
     if !files.is_empty() {
         let line = format!("- files that came up: {}", files.join(", "));
         if line.chars().count() < left {
@@ -128,6 +132,26 @@ pub(crate) fn cut(prompt: &str) -> Option<String> {
         .sum();
     let after = body[end..].trim_start_matches('\n');
     Some(format!("{}{after}", &prompt[..at]))
+}
+
+/// A stored exchange in about `room` chars, the request and the answer each
+/// clipped on its own: the request up to half, the answer the rest (as the
+/// thread does, `thread::render`). One head clip over both gave a long
+/// request all of it, and what was DECIDED never reached the next task.
+fn exchange(stored: &str, room: usize) -> String {
+    const ANSWERED: &str = "\ncrew answered: ";
+    // Two clip markers' worth held back, so the line stays near `room`.
+    let body = room.saturating_sub(ANSWERED.len() + 2 * 22);
+    let (Some((asked, answered)), true) = (stored.split_once(ANSWERED), body >= 48) else {
+        return clip_chars(&flatten(stored), room.saturating_sub(22));
+    };
+    let (asked, answered) = (flatten(asked), flatten(answered));
+    let ask_max = asked.chars().count().min(body / 2);
+    let asked = clip_chars(&asked, ask_max);
+    format!(
+        "{asked} crew answered: {}",
+        clip_chars(&answered, body - ask_max)
+    )
 }
 
 /// A turn is stored over two lines; in the block it is one.

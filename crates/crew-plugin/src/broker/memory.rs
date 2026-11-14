@@ -14,7 +14,7 @@ const MEM_CAP: usize = 2048;
 /// The project dir the memory file lives under. Mirrors `sessionlog::base_dir`
 /// exactly, and for the same reason: `CREW_PROJECT_DIR` overrides the process
 /// CWD (the test seam); production never sets it.
-fn base_dir() -> PathBuf {
+pub(super) fn base_dir() -> PathBuf {
     std::env::var("CREW_PROJECT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."))
@@ -93,10 +93,12 @@ pub(crate) fn load_from(user: Option<&Path>, project: &Path) -> Option<String> {
 /// broke, `whatchanged`), the project's instructions and the loaded memory to
 /// a task prompt; the task passes through untouched when there is none of
 /// them. The card leads: where the agent stands comes before the rules for
-/// standing there.
-pub(crate) fn with_memory(task: &str) -> String {
+/// standing there. `asked` is the request as the user typed it, which is
+/// what decides whether the diff rides along; `task` may already carry the
+/// skill catalog and recalled turns, whose words are not the user's.
+pub(crate) fn with_memory(task: &str, asked: &str) -> String {
     let rest = prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task);
-    let rest = match super::whatchanged::block(task) {
+    let rest = match super::whatchanged::block(asked) {
         Some(changed) => format!("{changed}\n{rest}"),
         None => rest,
     };

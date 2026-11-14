@@ -80,6 +80,11 @@ pub(crate) fn answer(session: &Session, subject: &str) -> String {
         count(topics, "topic"),
         count(files, "file")
     ));
+    if let n @ 1.. = recall.ruled().len() {
+        out.push(format!(
+            "  ruled out: {n} \u{2014} ask \u{201c}what did I rule out?\u{201d}"
+        ));
+    }
     drop(recall);
     match super::memory::load() {
         Some(m) => {

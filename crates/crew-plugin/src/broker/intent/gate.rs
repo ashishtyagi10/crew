@@ -33,6 +33,9 @@ pub(crate) fn human_gates(
     if let Some(done) = crate::broker::recallask::gate(task, session, emit) {
         return Some(done);
     }
+    if let Some(done) = crate::broker::ruledask::gate(task, session, emit) {
+        return Some(done);
+    }
     if let Some(done) = crate::broker::selfrepair::gate(task, session, emit) {
         return Some(done);
     }
@@ -78,6 +81,9 @@ pub(crate) fn led(
     }
     // No router reads a led turn, so the openings decide (`correction`).
     crate::broker::correction::note(&session.recall, None, task);
+    if let Some(kept) = crate::broker::standing::note(None, task) {
+        emit(crate::broker::relay::msg("agent smith", kept))?;
+    }
     let dialled = format!("@{lead} {task}");
     super::super::stdio::relay_counting(&dialled, None, false, session, tick_emit, emit)
 }

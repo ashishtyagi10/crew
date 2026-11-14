@@ -40,6 +40,7 @@ impl Recall {
             topics.push(id);
         }
         for p in extract::paths(&both) {
+            let p = super::samefile::filed(&self.g, &p);
             let id = w.node(self, Kind::File, &p, &p, now);
             w.edge(self, turn, id, Rel::Mentions);
         }
@@ -135,7 +136,9 @@ impl Writer {
 
     pub(super) fn flush(self, r: &mut Recall) {
         super::store::append(&r.path, &self.lines);
-        super::store::compact_if_needed(&r.path, &mut r.g);
+        if super::store::compact_if_needed(&r.path, &mut r.g) {
+            r.prev = None; // ids were renumbered: the old one names another node
+        }
     }
 }
 

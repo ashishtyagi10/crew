@@ -34,7 +34,8 @@ pub(crate) fn paths(text: &str) -> Vec<String> {
         let t = raw
             .trim_start_matches(|c: char| !(c.is_alphanumeric() || "/._".contains(c)))
             .trim_end_matches(|c: char| !c.is_alphanumeric());
-        if t.len() < 3 || t.len() > PATH_MAX_LEN {
+        let t = sans_line(t);
+        if t.len() < 3 || t.len() > PATH_MAX_LEN || slash_command(t) {
             continue;
         }
         let looks_like_path =
@@ -53,8 +54,29 @@ pub(crate) fn paths(text: &str) -> Vec<String> {
     out
 }
 
+/// `t` without a grep hit's `:line` or `:line:col`. The number is where a
+/// match was that day; kept, `claudecli.rs:59` and `claudecli.rs` were two
+/// files to the graph, each with half the evidence, and the recalled files
+/// line quoted line numbers weeks stale.
+fn sans_line(mut t: &str) -> &str {
+    while let Some((head, n)) = t.rsplit_once(':') {
+        if n.is_empty() || !n.chars().all(|c| c.is_ascii_digit()) {
+            break;
+        }
+        t = head;
+    }
+    t
+}
+
+/// `/update`, `/smith`: one leading slash and a bare word is a command the
+/// user typed, not a file at the root of the disk.
+fn slash_command(t: &str) -> bool {
+    t.strip_prefix('/')
+        .is_some_and(|rest| !rest.contains(['/', '.']))
+}
+
 /// A character a file reference is made of: letters, digits, the separators,
-/// and the `:` of a grep hit (`nav.rs:41`). A token with anything else in it
+/// and the `:` of a drive (`C:\\src`; a grep hit's `:41` is taken off first). A token with anything else in it
 /// is code or a command that happens to hold a slash — a quoted `sed`
 /// expression, `'s/^/row-/'`, was filed as the file `s/^/row` (live probe,
 /// 2026-09-30) and linked every later turn that ran sed to a file that does

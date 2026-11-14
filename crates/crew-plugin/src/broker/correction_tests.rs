@@ -28,6 +28,8 @@ fn the_openings_catch_a_correction_and_not_a_task() {
         "Don't touch Cargo.lock",
         "that's wrong because the lexer owns it",
         "use the lexer instead",
+        "the lexer instead, please",
+        "no. the other one",
         "nope",
     ] {
         assert!(backstop(t), "{t}");
@@ -36,6 +38,11 @@ fn the_openings_catch_a_correction_and_not_a_task() {
         "now run the tests",
         "note this down",
         "add a note to lib.rs",
+        "no rush, but tidy the imports",
+        "no tests exist for this yet, add some",
+        "don't forget to run the tests",
+        "use tabs instead of spaces in the new file",
+        "add an insteadof rule to the git config",
     ] {
         assert!(!backstop(t), "{t}");
     }

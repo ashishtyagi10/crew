@@ -44,6 +44,9 @@ pub(crate) struct Hints {
     /// corrects earlier work ("no, don't touch X", "use Y instead"). Kept
     /// for every shape: it is not a size, it is memory (`correction`).
     pub(crate) corrects: Option<String>,
+    /// A lasting preference the message states ("from now on…", "talk like
+    /// X"), in the router's words: a standing note, not a size (`standing`).
+    pub(crate) remember: Option<String>,
 }
 
 impl Hints {
@@ -62,6 +65,7 @@ impl Hints {
                 "verify" => hints.verify = parse_yes(tail),
                 "tier" => hints.tier = parse_tier(tail),
                 "corrects" => hints.corrects = parse_clause(tail),
+                "remember" => hints.remember = parse_clause(tail),
                 _ => {}
             }
         }
@@ -97,6 +101,7 @@ impl Hints {
                 )
             }),
             corrects: self.corrects,
+            remember: self.remember,
         }
     }
 

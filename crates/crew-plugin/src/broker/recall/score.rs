@@ -77,7 +77,7 @@ fn seeds(g: &Graph, text: &str) -> Vec<NodeId> {
     let topics = topics.filter_map(|t| g.find(Kind::Topic, &t));
     let paths = extract::paths(text).into_iter();
     topics
-        .chain(paths.filter_map(|p| g.find(Kind::File, &p)))
+        .chain(paths.filter_map(|p| super::samefile::id(g, &p)))
         .collect()
 }
 
