@@ -6,10 +6,11 @@ use crew_render::{CellView, PaneScene};
 use crate::layout::Rect;
 use crate::navrelief::{rect_of, tiles, unruled};
 
-/// The sheet of one tile: a card scene with nothing written on it. Its two
+/// The sheet of one tile (or of a well, `lift` below zero:
+/// [`crate::reliefwell`]): a card scene with nothing written on it. Its two
 /// blank corner cells are what let it stretch to `r` exactly instead of to
 /// whole cells (`crew_render`'s stretch split).
-fn sheet(r: Rect, cw: f32, ch: f32, lifted: bool) -> PaneScene {
+pub(crate) fn sheet(r: Rect, cw: f32, ch: f32, lift: f32) -> PaneScene {
     let page = crew_theme::theme().page_bg;
     let blank = |col: u16, row: u16| CellView {
         col,
@@ -30,7 +31,7 @@ fn sheet(r: Rect, cw: f32, ch: f32, lifted: bool) -> PaneScene {
         bordered: false,
         glass: true,
         scan: -1.0,
-        lift: if lifted { 1.0 } else { 0.0 },
+        lift,
         glint: -1.0,
         pictures: Vec::new(),
         stretch: true,
@@ -64,7 +65,14 @@ pub(crate) fn tile(scenes: &mut Vec<PaneScene>, rect: Rect, cw: f32, ch: f32, ga
     // Under the words: the sheets go in ahead of the interior.
     let sheets: Vec<PaneScene> = tiles
         .iter()
-        .map(|t| sheet(rect_of(t, rect, ch, gap), cw, ch, t.lifted))
+        .map(|t| {
+            sheet(
+                rect_of(t, rect, ch, gap),
+                cw,
+                ch,
+                f32::from(u8::from(t.lifted)),
+            )
+        })
         .collect();
     scenes.splice(at..at, sheets);
 }

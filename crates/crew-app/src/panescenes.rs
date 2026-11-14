@@ -11,7 +11,8 @@ use crew_render::PaneScene;
 /// Build the `PaneScene`s for one frame. Each pane yields **two** scenes — the
 /// content, inset by one cell on every side, and the border card around it —
 /// kept in separate text buffers so the box-drawing border glyphs never share a
-/// line with (and so never shift) the content. `broadcast` marks terminal panes
+/// line with (and so never shift) the content (a soft theme adds a sheet per
+/// in-card well after them: [`crate::reliefwell`]). `broadcast` marks terminal panes
 /// receiving synchronized input; `find` is the active `/find` term, highlighted
 /// in the focused pane while scrolled back.
 #[allow(clippy::too_many_arguments)]
@@ -56,6 +57,7 @@ pub fn build_scenes(
             git,
             pinned.contains(&i),
         );
+        press_boxes(&mut scenes, p, cw, ch);
     }
     scenes
 }
@@ -105,6 +107,16 @@ pub fn full_scenes(
             git,
             pinned.contains(&idx),
         );
+        press_boxes(&mut scenes, p, cw, ch);
     }
     scenes
+}
+
+/// On a relief theme the boxes crew drew in the pane just pushed become
+/// wells ([`crate::reliefwell`]). Never a terminal's: a box a program drew
+/// is that program's output, not crew's chrome.
+fn press_boxes(scenes: &mut Vec<PaneScene>, p: &Pane, cw: f32, ch: f32) {
+    if !matches!(p.content, crate::pane::PaneContent::Terminal(_)) {
+        crate::reliefwell::press(scenes, cw, ch);
+    }
 }
