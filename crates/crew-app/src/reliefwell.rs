@@ -141,12 +141,17 @@ pub(crate) fn press(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32) {
     }
     let at = scenes.len() - 2;
     let (all, cut) = (boxes(&scenes[at].cells), cut_boxes(&scenes[at].cells));
-    if all.is_empty() && cut.is_empty() {
+    // A code block is a well too, read off its tint (`relieffield`).
+    let (tint, page) = (crate::chatink::code_bg(), crew_theme::theme().page_bg);
+    let fields = crate::relieffield::fields(&scenes[at].cells, tint);
+    crate::relieffield::clear(&mut scenes[at].cells, &fields, tint, page);
+    if all.is_empty() && cut.is_empty() && fields.is_empty() {
         return;
     }
     unstroke(&mut scenes[at].cells, &all);
     unstroke(&mut scenes[at].cells, &cut);
-    let wells = wells(&all);
+    let mut wells = wells(&all);
+    wells.extend(fields);
     let origin = (scenes[at].x, scenes[at].y);
     // After the card: its sheet is drawn first, the wells are sunk into it.
     scenes.extend(
