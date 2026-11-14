@@ -3,8 +3,8 @@
 //!
 //! On these themes a card is the page's own colour and is told from the page
 //! by two soft shadows, which the glass pass draws (`neu` in `glass.wgsl`).
-//! This is the rest of it: the frame is not stroked, the corners are square,
-//! and the card reaches its cells' outer edges, legends and all. The
+//! This is the rest of it: the frame is not stroked, the corners round
+//! further, and the card reaches its cells' outer edges, legends and all. The
 //! shadows keep the page's own light and dark on every card (the user,
 //! 2026-11-12: "shadow has wrong color", of a focused card's accent glow):
 //! the card with the keys is told by its height alone.
@@ -41,11 +41,15 @@ pub(crate) fn unframed(pane: &PaneScene) -> PaneScene {
     out
 }
 
-/// A relief card's corner radius: none. The card is a square-cornered slab
-/// and its two blurred shadows are all the softness it has (the user,
-/// 2026-11-13: "we don't need rounded corners ... they should just have
-/// 100% neumorphism").
-pub(crate) const RADIUS: f32 = 0.0;
+/// A relief card's corner radius: most of a cell, far rounder than a stroked
+/// frame's arc. The content starts a full cell in from the frame, so a
+/// corner this round still clears it. Square corners were tried for a day
+/// (2026-11-13) and taken back (the user, 2026-11-14: "I didn't like 'no
+/// rounded' corner look ... go back to rounded corner"); the tighter gutter
+/// from that day stays.
+pub(crate) fn radius(cell_h: f32) -> f32 {
+    (cell_h * 0.9).round()
+}
 
 /// The least gutter two relief cards keep between them, in logical px: room
 /// for the near part of both shadows, which is what tells the cards apart.
