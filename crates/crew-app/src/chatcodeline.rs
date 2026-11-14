@@ -132,8 +132,9 @@ pub(crate) fn cells_at(f: &Frame, now: u64) -> Vec<CellView> {
     let dim = |c| if stalled { lerp_rgb(c, bg, 0.45) } else { c };
     // The welcome's rain colours; heads in the page's ink, which is white
     // on the white-text glass.
-    let rain = lerp_rgb(t.text_muted, bg, 0.35);
-    let (head, glyph) = (dim(t.ink), dim(lerp_rgb(rain, t.text_muted, lit)));
+    let hue = crate::rainink::current();
+    let rain = lerp_rgb(hue, bg, 0.35);
+    let (head, glyph) = (dim(t.ink), dim(lerp_rgb(rain, hue, lit)));
     let letter = dim(lerp_rgb(t.text_muted, t.ink, 0.35 + 0.65 * lit));
     let flick = now / (ms(FLICK_MS) * slow).max(1);
     let pick = |i: u64, n: usize| GLYPHS[(hash(i, flick) % n as u64) as usize] as char;

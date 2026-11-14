@@ -580,6 +580,7 @@ mod procname;
 #[path = "proofshot_tests.rs"]
 mod proofshot_tests;
 mod quit;
+mod rainink;
 #[cfg(test)]
 #[path = "reachshot_tests.rs"]
 mod reachshot_tests;
@@ -673,6 +674,8 @@ mod testtally;
 mod themefade;
 mod themepeek;
 mod themereport;
+#[cfg(test)]
+mod themeshot_tests;
 mod titlebar;
 mod toast;
 mod toastalert;
