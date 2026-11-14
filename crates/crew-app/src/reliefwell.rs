@@ -104,7 +104,7 @@ pub(crate) fn cut_boxes(cells: &[CellView]) -> Vec<Box4> {
 }
 
 /// The boxes of `all` that become wells: those holding no other box.
-pub(crate) fn wells(all: &[Box4]) -> Vec<Box4> {
+pub(crate) fn wells_of(all: &[Box4]) -> Vec<Box4> {
     all.iter()
         .filter(|b| !all.iter().any(|o| b.holds(o)))
         .copied()
@@ -148,10 +148,16 @@ pub(crate) fn press(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32) {
     if all.is_empty() && cut.is_empty() && fields.is_empty() {
         return;
     }
+    // A box of several panels is a well a panel (`reliefsplit`); read the
+    // joints before the strokes that mark them are blanked.
+    let mut wells = fields;
+    for w in wells_of(&all) {
+        let joints = crate::reliefsplit::joints(&scenes[at].cells, &w);
+        crate::reliefsplit::undivide(&mut scenes[at].cells, &w, &joints);
+        wells.extend(crate::reliefsplit::panels(&w, &joints));
+    }
     unstroke(&mut scenes[at].cells, &all);
     unstroke(&mut scenes[at].cells, &cut);
-    let mut wells = wells(&all);
-    wells.extend(fields);
     let origin = (scenes[at].x, scenes[at].y);
     // After the card: its sheet is drawn first, the wells are sunk into it.
     scenes.extend(
