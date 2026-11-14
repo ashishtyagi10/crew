@@ -81,7 +81,7 @@ pub(crate) fn block(
         quoted += 1;
         lines.push(line);
     }
-    let files = query::files(g, text, FILES_MAX);
+    let files = super::samefile::once(query::files(g, text, FILES_MAX));
     if !files.is_empty() {
         let line = format!("- files that came up: {}", files.join(", "));
         if line.chars().count() < left {

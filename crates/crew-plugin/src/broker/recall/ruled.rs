@@ -67,6 +67,7 @@ impl Recall {
             w.edge(self, node, id, Rel::Mentions);
         }
         for p in extract::paths(what) {
+            let p = super::samefile::filed(&self.g, &p);
             let id = w.node(self, Kind::File, &p, &p, now);
             w.edge(self, node, id, Rel::Mentions);
         }

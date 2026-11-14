@@ -90,6 +90,21 @@ fn a_grep_hit_and_a_windows_path_are_still_files() {
     let got = paths("see crates/crew-app/src/nav.rs:41 and crates\\crew\\x.rs");
     assert_eq!(
         got,
-        vec!["crates/crew-app/src/nav.rs:41", "crates\\crew\\x.rs"]
+        vec!["crates/crew-app/src/nav.rs", "crates\\crew\\x.rs"]
+    );
+}
+
+#[test]
+fn a_grep_hit_is_filed_as_its_file_without_the_line() {
+    let got = paths("see crates/a/src/x.rs:59 and nav.rs:41:7, then crates/a/src/x.rs");
+    assert_eq!(got, vec!["crates/a/src/x.rs", "nav.rs"]);
+}
+
+#[test]
+fn a_slash_command_is_not_a_file() {
+    assert!(paths("type /update and then /smith").is_empty());
+    assert_eq!(
+        paths("open /etc/hosts or /a.txt"),
+        vec!["/etc/hosts", "/a.txt"]
     );
 }

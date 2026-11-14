@@ -40,6 +40,7 @@ impl Recall {
             topics.push(id);
         }
         for p in extract::paths(&both) {
+            let p = super::samefile::filed(&self.g, &p);
             let id = w.node(self, Kind::File, &p, &p, now);
             w.edge(self, turn, id, Rel::Mentions);
         }

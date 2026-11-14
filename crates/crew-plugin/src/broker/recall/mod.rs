@@ -26,6 +26,7 @@ mod node;
 mod query;
 mod repeats;
 mod ruled;
+mod samefile;
 mod score;
 mod store;
 
