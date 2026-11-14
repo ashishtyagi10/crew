@@ -20,6 +20,7 @@ mod ask;
 mod block;
 mod codec;
 mod extract;
+mod forget;
 mod graph;
 mod ingest;
 mod node;
@@ -30,7 +31,7 @@ mod samefile;
 mod score;
 mod store;
 
-pub(crate) use block::{cut, Recalled, RECALL_CAP};
+pub(crate) use block::{ago, cut, Recalled, RECALL_CAP};
 
 use super::wording::count;
 use graph::Graph;
@@ -125,7 +126,7 @@ fn enabled(v: Option<&str>) -> bool {
     v != Some("0")
 }
 
-fn now_ms() -> u64 {
+pub(crate) fn now_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)

@@ -136,7 +136,9 @@ impl Writer {
 
     pub(super) fn flush(self, r: &mut Recall) {
         super::store::append(&r.path, &self.lines);
-        super::store::compact_if_needed(&r.path, &mut r.g);
+        if super::store::compact_if_needed(&r.path, &mut r.g) {
+            r.prev = None; // ids were renumbered: the old one names another node
+        }
     }
 }
 

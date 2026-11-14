@@ -21,6 +21,13 @@ impl Graph {
             .collect();
         turns.sort_unstable_by_key(|(_, ms)| std::cmp::Reverse(*ms));
         let doomed: HashSet<NodeId> = turns.into_iter().skip(keep).map(|(id, _)| id).collect();
+        self.drop_nodes(&doomed);
+    }
+
+    /// Drop `doomed` and any node that leaves with no edges (a correction
+    /// the user asked to forget, `super::super::forget`; the oldest turns,
+    /// above). Rebuilds ids, like [`Graph::prune`], and under the same rule.
+    pub(crate) fn drop_nodes(&mut self, doomed: &HashSet<NodeId>) {
         if doomed.is_empty() {
             return;
         }

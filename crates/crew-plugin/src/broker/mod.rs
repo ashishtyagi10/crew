@@ -94,6 +94,7 @@ mod reviewguard;
 mod rosterev;
 mod roundloop;
 mod route;
+mod ruledask;
 mod run;
 mod rundigest;
 mod runfit;

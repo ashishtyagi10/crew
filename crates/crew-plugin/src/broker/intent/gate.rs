@@ -33,6 +33,9 @@ pub(crate) fn human_gates(
     if let Some(done) = crate::broker::recallask::gate(task, session, emit) {
         return Some(done);
     }
+    if let Some(done) = crate::broker::ruledask::gate(task, session, emit) {
+        return Some(done);
+    }
     if let Some(done) = crate::broker::selfrepair::gate(task, session, emit) {
         return Some(done);
     }
