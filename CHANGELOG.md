@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.14
+
+**Soft themes press boxes in as wells; smith keeps what you say.**
+
+Soft themes:
+- Cards on the `soft` themes (`porcelain`, `sand`, `mist`, `slate`) have round corners again. The square corners from 0.30.13 are taken back; the tighter gap between cards from that release stays.
+- A box inside a card is no longer outlined: it is pressed into the card as a well, at the same depth as the input bar at rest. A box that holds other boxes, such as a settings group, loses its outline and keeps its title. Terminal panes are untouched.
+- A fenced code block is a well too, instead of a flat tinted plate. Inline code keeps its chip.
+- `/far`'s two file panels are two wells, one a panel, instead of one wide well with a line down the middle.
+- On `slate`, a card's lit edge is brighter, so you can see where a card ends on the near-black page.
+
+Themes:
+- The rain on the welcome screen, and the code line in a busy smith pane, take each palette's own accent hue instead of the same grey on every palette. It is as quiet as before. The Ink Reader pages and the tube themes are unchanged.
+
+Smith memory:
+- A lasting preference is kept the first time you say it, such as "from now on answer in one paragraph" or "you should be talking like Agent Smith". You no longer have to know about `#<note>`. The pane says `remembered for every task from now on` once, the note goes into `.crew/memory.md`, and every later task carries it. A note already kept is not written twice.
+- Ask "what did I rule out?" to see every correction smith has kept, numbered newest first, and say "forget correction 2" to drop one. Both are answered at once, with no model call.
+- Fewer requests are mistaken for corrections: "no rush, but…" and "use tabs instead of spaces" are no longer filed as things you ruled out.
+
+Smith recall:
+- Earlier turns that smith recalls share the space evenly, and each keeps its answer beside the request. Before, later turns were cut much shorter and a long request could push its answer out.
+- A file is remembered once however it was named: a search hit's line number is dropped, a bare file name is matched to its full path, and a typed slash command such as `/update` is not taken for a file.
+- Smith is sent the last change only when your own message talks about something breaking. Before, a greeting that recalled a path with "broker" in it read as "broke" and was sent the last commit's diff.
+
 ## 0.30.13
 
 **Soft themes: square cards and a side panel of tiles.**
