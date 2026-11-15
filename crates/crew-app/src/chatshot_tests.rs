@@ -162,6 +162,7 @@ fn chat_shot_themes() {
     let _g = crate::app::theme_test_guard();
     for (name, id) in [
         ("chat-light", crew_theme::ThemeId::PaperLight),
+        ("chat-tokyo-night", crew_theme::ThemeId::TokyoNight),
         ("chat-crt-green", crew_theme::ThemeId::CrtGreen),
     ] {
         crew_theme::set_theme(id);

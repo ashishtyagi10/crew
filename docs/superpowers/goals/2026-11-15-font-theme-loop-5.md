@@ -20,6 +20,7 @@ day's release.
 |---|---|---|---|---|
 | 1 | 8d0f6eeb | unreleased | one apparent size whichever face draws (`sizeadjust.rs`) | x-height spread 1.22× → 1.12× over nine faces; 3 faces wider than the cell → 0; JetBrains/Lilex/Plex/Geist 1.0 exactly |
 | 2 | 5700ff9e | unreleased | dark pages draw hued code at its own lightness (`hueapart.rs`, `apca.rs`) | APCA Lc on the field, 14 dark non-tube palettes: code 52-55 → 56-60, strings 41-42 → 56-60; light + tubes unchanged |
+| 3 | MERGE3 | unreleased | a dark page's comment reads (`commentread.rs`) | APCA Lc of comments, 14 dark palettes: 32-40 → 45-46, code ≥ 1.24× above; light + tubes unchanged |
 
 ### Round 1 — one apparent size whichever face draws (`sizeadjust.rs`)
 Behaviour: each face is shaped at a factor of the font size: a face with a
@@ -45,9 +46,19 @@ markers 58-62 → 62-68; light pages and tubes unchanged. Seen:
 `hued_code_reads_on_a_dark_field_as_on_a_light_one` (Lc ≥ 55, fails on the
 old walk). Rows: none.
 
-Not done: comments stay at Lc 32-40 on dark pages (light: 56-61) — they are
-the class meant to recede, but the gap is the next thing to look at; the
-tubes' code is Lc 44.
+Not done: comments stay at Lc 32-40 on dark pages (light: 56-61) — round 3;
+the tubes' code is Lc 44.
+
+### Round 3 — a dark page's comment reads (`commentread.rs`)
+Behaviour: the ladder sets a comment back from the ink by a ratio, and three
+steps under near-white is far dimmer to the eye than three over near-black.
+On a dark non-tube page the comment (and the `#[attr]` rung that shares it)
+is lifted at its own hue and chroma to APCA Lc 45 on the field, stopping
+1.2:1 under the code. Measured: comment Lc on 14 dark palettes 32-40 →
+45.0-46.0, code still 1.24-1.32× above; light pages 56-61 and tubes 26-27
+unchanged. Seen: `chat_shot_themes` (tokyo-night added), the `// signed`
+comment before/after. Pinned: `a_dark_pages_comment_reads_on_its_field`
+(fails with the lift removed). Rows: none.
 
 ## Pending release
 
@@ -71,3 +82,10 @@ tubes' code is Lc 44.
   its keywords. Costs nothing per frame (the colours are derived once per
   palette). Idea: APCA, the WCAG 3 draft's contrast model, which Chrome
   DevTools and the Ghostty theme discussions use for dark themes.
+- **Comments on a dark page are readable.** A comment is set back from the
+  text by a fixed ratio, and on a dark page that ratio is a much bigger
+  drop to the eye: dark palettes drew comments at APCA Lc 32-40, light ones
+  at 56-61. On a dark page a comment is now lifted, in its own scheme's tint,
+  to Lc 45, and always stays a step under the code around it. Light pages
+  and the green and amber tubes are unchanged. Costs nothing per frame.
+  Idea: APCA's levels for secondary text; GitHub Dark's comment grey.
