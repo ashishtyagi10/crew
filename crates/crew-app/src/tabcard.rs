@@ -57,7 +57,14 @@ pub(crate) fn top(b: &TabBlock, cols: u16, row: u16, frame: Rgb) -> Vec<CellView
         out.push(cell(x, row, c, frame, false));
     }
     let mut legend = Vec::new();
-    let x = put(&mut legend, &num, 3, row, legend_end, frame, true);
+    // A lit frame (the tab on screen, one that needs you) colours its
+    // number; a quiet one does not. The rule's colour is a rule's: 2.0:1
+    // on eighteen palettes, and a number is text (theme loop, 2026-11-14).
+    let num_fg = match frame == t.border_normal {
+        true => t.text_muted,
+        false => frame,
+    };
+    let x = put(&mut legend, &num, 3, row, legend_end, num_fg, true);
     let name_fg = if b.active || b.hovered {
         t.ink
     } else {
