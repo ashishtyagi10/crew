@@ -521,6 +521,7 @@ fn emit_cells(
     // after the cell's own background so they are never buried by it, and
     // before the text pass so a descender crosses them the way it does in
     // print.
+    let rules = crate::rules::for_params(font_system, params, cell_h);
     for cell in &pane.cells {
         let x = pane.x + f32::from(cell.col) * cell_w;
         let y = pane.y + f32::from(cell.row) * cell_h;
@@ -537,7 +538,8 @@ fn emit_cells(
             let rgb = crate::deco::color(&cell.deco, cell.fg);
             let color = crate::color::target_rgba(rgb, 1.0, srgb);
             let (dx, w) = warp.span(cell.row, f32::from(cell.col) * cell_w, w);
-            for (x, y, w, h) in crate::deco::rects(&cell.deco, pane.x + dx, y, w, cell_h) {
+            for (x, y, w, h) in crate::deco::rects_at(&cell.deco, pane.x + dx, y, w, cell_h, rules)
+            {
                 quads.push(Quad::rect(x, y, w, h, color));
             }
         }

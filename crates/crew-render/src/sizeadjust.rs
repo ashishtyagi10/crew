@@ -54,6 +54,24 @@ pub(crate) fn factor(x_height: f32, advance: f32, cell_em: f32) -> f32 {
 
 /// `(x_height, advance of '0')` in ems for the face `family` resolves to.
 fn measure(fs: &mut FontSystem, family: Option<&str>, weight: u16) -> Option<(f32, f32)> {
+    let font = font(fs, family, weight)?;
+    let face = font.as_swash();
+    let m = face.metrics(&[]);
+    let upem = f32::from(m.units_per_em);
+    let gid = face.charmap().map('0');
+    if upem <= 0.0 || gid == 0 {
+        return None;
+    }
+    let advance = face.glyph_metrics(&[]).advance_width(gid);
+    Some((m.x_height / upem, advance / upem))
+}
+
+/// The face `family` resolves to at `weight` (`None`/empty: the embedded one).
+pub(crate) fn font(
+    fs: &mut FontSystem,
+    family: Option<&str>,
+    weight: u16,
+) -> Option<std::sync::Arc<glyphon::cosmic_text::Font>> {
     let family = match family {
         Some(name) if !name.is_empty() => Family::Name(name),
         _ => Family::Name(crew_theme::EMBEDDED_FAMILY),
@@ -64,16 +82,7 @@ fn measure(fs: &mut FontSystem, family: Option<&str>, weight: u16) -> Option<(f3
         weight,
         ..Default::default()
     })?;
-    let font = fs.get_font(id, weight)?;
-    let face = font.as_swash();
-    let m = face.metrics(&[]);
-    let upem = f32::from(m.units_per_em);
-    let gid = face.charmap().map('0');
-    if upem <= 0.0 || gid == 0 {
-        return None;
-    }
-    let advance = face.glyph_metrics(&[]).advance_width(gid);
-    Some((m.x_height / upem, advance / upem))
+    fs.get_font(id, weight)
 }
 
 #[cfg(test)]

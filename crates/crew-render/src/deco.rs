@@ -10,18 +10,14 @@
 //! restarting inside each one.
 use crew_theme::deco::{CursorMark, CursorShape, Deco, DecoLine};
 
+use crate::rules::Rules;
+
 /// `(x, y, w, h)` in pixels.
 pub(crate) type Rect = (f32, f32, f32, f32);
 
 /// Rule thickness for a cell of this height, at least one pixel.
 pub(crate) fn thickness(cell_h: f32) -> f32 {
     (cell_h * 0.07).round().max(1.0)
-}
-
-/// Top edge of the single underline: a gap of one thickness below it, so the
-/// rule never touches the cell below.
-fn under_y(y: f32, cell_h: f32, t: f32) -> f32 {
-    (y + cell_h - 2.0 * t).round()
 }
 
 /// A run of `on`-pixel dashes with `off`-pixel gaps, phased on absolute x.
@@ -65,23 +61,42 @@ pub(crate) fn color(deco: &Deco, fg: (u8, u8, u8)) -> (u8, u8, u8) {
     deco.color.unwrap_or(fg)
 }
 
-/// Every rectangle this decoration draws for one cell.
+/// Every rectangle this decoration draws for one cell, at crew's plain
+/// places ([`Rules::plain`]).
+#[cfg(test)]
 pub(crate) fn rects(deco: &Deco, x: f32, y: f32, cell_w: f32, cell_h: f32) -> Vec<Rect> {
+    rects_at(deco, x, y, cell_w, cell_h, Rules::plain(cell_h))
+}
+
+/// Every rectangle this decoration draws for one cell, its rules where the
+/// face puts them ([`crate::rules`]).
+pub(crate) fn rects_at(
+    deco: &Deco,
+    x: f32,
+    y: f32,
+    cell_w: f32,
+    cell_h: f32,
+    r: Rules,
+) -> Vec<Rect> {
     if deco.is_blank() {
         return Vec::new();
     }
     let t = thickness(cell_h);
-    let uy = under_y(y, cell_h, t);
+    let uy = y + r.under;
+    // The second line of a double goes under the first while the cell has
+    // room for it, so the upper one stays where a single would be.
+    let low = r.under + 3.0 * t <= cell_h;
     let mut out = match deco.line {
         DecoLine::None => Vec::new(),
         DecoLine::Single => vec![(x, uy, cell_w, t)],
+        DecoLine::Double if low => vec![(x, uy, cell_w, t), (x, uy + 2.0 * t, cell_w, t)],
         DecoLine::Double => vec![(x, uy - 2.0 * t, cell_w, t), (x, uy, cell_w, t)],
         DecoLine::Curly => curl(x, uy, cell_w, cell_w, t),
         DecoLine::Dotted => dashes(x, uy, cell_w, t, t, t),
         DecoLine::Dashed => dashes(x, uy, cell_w, t, 3.0 * t, 2.0 * t),
     };
     if deco.strike {
-        out.push((x, (y + (cell_h - t) * 0.5).round(), cell_w, t));
+        out.push((x, y + r.strike, cell_w, t));
     }
     out
 }
