@@ -23,13 +23,15 @@ const OWN_MAP: [ThemeId; 17] = [
     ThemeId::Mist,
 ];
 
-/// Every slot names a chromatic ANSI colour: 0 and 7 are the greys.
+/// Every slot names a chromatic ANSI colour: 0, 7, 8 and 15 are the greys.
+/// A bright slot (9-14) is chromatic too: prism's strings take one.
 #[test]
 fn every_class_takes_a_chromatic_slot() {
     for id in ALL_THEMES {
         let s = id.theme().syntax;
         for (what, slot) in s.classes().into_iter().chain([("code", s.code)]) {
-            assert!((1..=6).contains(&slot), "{}: {what} = {slot}", id.as_str());
+            let chromatic = (1..=6).contains(&slot) || (9..=14).contains(&slot);
+            assert!(chromatic, "{}: {what} = {slot}", id.as_str());
         }
     }
 }

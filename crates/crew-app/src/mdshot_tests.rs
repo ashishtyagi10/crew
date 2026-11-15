@@ -120,8 +120,9 @@ fn md_shot_width_sweep() {
     }
 }
 
-/// The same shapes on a light page and through a green tube: the quote ink,
-/// the code field's tint and the table's rules are all theme roles.
+/// The same shapes on a light page, a dark one and through a green tube:
+/// the quote ink, the code field's tint and the table's rules are all theme
+/// roles, and a dark page's hued code reads as the light page's does.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn md_shot_themes() {
@@ -129,6 +130,7 @@ fn md_shot_themes() {
     let _g = crate::app::theme_test_guard();
     for (suffix, id) in [
         ("light", crew_theme::ThemeId::PaperLight),
+        ("tokyo-night", crew_theme::ThemeId::TokyoNight),
         ("crt-green", crew_theme::ThemeId::CrtGreen),
     ] {
         crew_theme::set_theme(id);

@@ -99,3 +99,27 @@ fn a_classic_comment_wears_its_schemes_tint() {
     }
     assert_eq!(classics, 7, "the classics and the two Ink Reader pages");
 }
+
+/// A hued class reads as well on a dark page as on a light one. The walk
+/// that pulled code away from prose was a luminance ratio, blind to hue, and
+/// on every dark page it dimmed code to APCA Lc 52-55 on its field and
+/// strings to 41-42, where the light pages kept 62-67. A tube has one hue,
+/// so its ladder is lightness and it is left out.
+#[test]
+fn hued_code_reads_on_a_dark_field_as_on_a_light_one() {
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        if t.is_tube() {
+            continue;
+        }
+        let d = crate::chatink::derive(t);
+        for (what, c) in [("code", d.code), ("string", d.string)] {
+            let lc = crew_theme::apca::lc(c, d.code_bg);
+            assert!(
+                lc >= 55.0,
+                "{}: {what} Lc {lc:.1} on the field",
+                id.as_str()
+            );
+        }
+    }
+}
