@@ -69,10 +69,11 @@ pub(crate) fn comment_room(t: &Theme, code: Color, field: Color) -> f32 {
 pub(crate) fn comment(t: &Theme, code: Color, field: Color) -> Color {
     let room = comment_room(t, code, field);
     let rung = separated_on(t.text_muted, t, COMMENT_FLOOR, room, field);
-    match t.syntax.comment {
+    let c = match t.syntax.comment {
         Some(tint) => tinted(rung, tint, t, room, field),
         None => rung,
-    }
+    };
+    crate::commentread::lift(c, t, code, field)
 }
 
 /// `rung` at its own lightness in `tint`'s hue and chroma, floored again in
