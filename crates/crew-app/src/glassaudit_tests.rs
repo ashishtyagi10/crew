@@ -139,7 +139,10 @@ fn a_window_of_tools_reads_on_sheer_glass() {
     });
 }
 
-/// Agent smith mid-turn beside a shell: the work the window is for.
+/// Agent smith mid-turn beside a shell: the work the window is for. Unix
+/// only: the fixture's shell is `/bin/cat` on a pty, which the Windows job
+/// has no path to (it failed there on the day it was added).
+#[cfg(unix)]
 #[test]
 fn smith_and_a_shell_read_on_sheer_glass() {
     use crate::glassworkshot_tests::{pane, plan, shell};
