@@ -21,6 +21,7 @@ day's release.
 | 1 | 8d0f6eeb | unreleased | one apparent size whichever face draws (`sizeadjust.rs`) | x-height spread 1.22× → 1.12× over nine faces; 3 faces wider than the cell → 0; JetBrains/Lilex/Plex/Geist 1.0 exactly |
 | 2 | 5700ff9e | unreleased | dark pages draw hued code at its own lightness (`hueapart.rs`, `apca.rs`) | APCA Lc on the field, 14 dark non-tube palettes: code 52-55 → 56-60, strings 41-42 → 56-60; light + tubes unchanged |
 | 3 | 6f7a00ce | unreleased | a dark page's comment reads (`commentread.rs`) | APCA Lc of comments, 14 dark palettes: 32-40 → 45-46, code ≥ 1.24× above; light + tubes unchanged |
+| 4 | MERGE4 | unreleased | the underline and strike sit where the face says (`rules.rs`) | strike 2.5-4 px above the lower case's middle → on it; underline at `loose` 3-4 px further off its word → same gap as at normal; Comic faces' underline 6.5 px under the baseline → 0.12 em |
 
 ### Round 1 — one apparent size whichever face draws (`sizeadjust.rs`)
 Behaviour: each face is shaped at a factor of the font size: a face with a
@@ -60,6 +61,21 @@ unchanged. Seen: `chat_shot_themes` (tokyo-night added), the `// signed`
 comment before/after. Pinned: `a_dark_pages_comment_reads_on_its_field`
 (fails with the lift removed). Rows: none.
 
+### Round 4 — the underline and strike sit where the face says (`rules.rs`)
+Behaviour: the rules were placed on the cell (underline two rule-widths
+up from its floor, strike at its middle), not on the text. Measured against
+eight faces' own `post`/`OS/2` tables at 14 pt Retina: at the 1.25 cell the
+underline matched most of them within a pixel, but sat 6.5 px under the
+Comic faces' baseline and fell 3-4 px further from its word at `loose`; the
+strike ran 2.5-4 px above the middle of the lower case on every face. Now
+both are measured from cosmic-text's own baseline: the face's underline
+(0.12 em under where the table is empty, as both Comic faces' are), never
+lower than before; the face's strike while it lands in the middle half of
+the x-height, else that middle. A double underline grows down from a single
+where the cell has room. Seen: `term_shot_width_sweep` attrs, before/after
+(strike through `trike`, not over it). Pinned: `rules_tests.rs` (8, one
+through `FontParams`; it fails with the face ignored). Rows: none.
+
 ## Pending release
 
 - **Every face reads at one size.** A theme step that changed the font also
@@ -89,3 +105,13 @@ comment before/after. Pinned: `a_dark_pages_comment_reads_on_its_field`
   to Lc 45, and always stays a step under the code around it. Light pages
   and the green and amber tubes are unchanged. Costs nothing per frame.
   Idea: APCA's levels for secondary text; GitHub Dark's comment grey.
+- **Strikethrough runs through the letters, underlines stay with the
+  word.** Both rules were placed on the cell instead of on the text: the
+  strike crossed the tops of `a` and `e` rather than their middles, and
+  every step of `/leading` let the underline fall further from its word —
+  it hung 6.5 px under Comic Mono's line even at the normal spacing. Each
+  is now measured from the baseline the face is drawn on, where the font's
+  own tables put it, with a common fallback for faces whose tables are
+  empty. Costs one metrics read when the face or size changes. Idea:
+  Ghostty, kitty and Alacritty place both rules from the font's
+  `post`/`OS/2` metrics.

@@ -35,6 +35,7 @@ mod relief;
 pub use relief::SHADOW_ROOM as RELIEF_SHADOW_ROOM;
 mod renderer;
 mod roundborder;
+mod rules;
 mod scene;
 mod scenecache;
 mod scenetarget;
