@@ -429,6 +429,9 @@ mod crtglassshot_tests;
 #[path = "frameshot_tests.rs"]
 mod frameshot_tests;
 #[cfg(test)]
+#[path = "glassaudit_tests.rs"]
+mod glassaudit_tests;
+#[cfg(test)]
 #[path = "glasssurveyshot_tests.rs"]
 mod glasssurveyshot_tests;
 #[cfg(test)]
