@@ -155,13 +155,16 @@ pub const AMETHYST: SyntaxSlots = SyntaxSlots {
 
 /// Prism: ice-mint keywords (its accent), lilac types (its ring's violet
 /// end), sky calls, coral numbers (its rim light), jade strings and citrine
-/// identifiers: the split beam's colours, each on the words read most.
+/// identifiers: the split beam's colours, each on the words read most. The
+/// strings take the BRIGHT green: since dark pages draw a hued class at its
+/// own lightness (2026-11-15) jade and ice-mint sat 22° apart at one
+/// lightness, 0.047 in OKLab, and the bright slot puts a step between them.
 pub const PRISM: SyntaxSlots = SyntaxSlots {
     keyword: 6,
     ty: 5,
     func: 4,
     number: 1,
-    string: 2,
+    string: 10,
     code: 3,
     comment: None,
 };

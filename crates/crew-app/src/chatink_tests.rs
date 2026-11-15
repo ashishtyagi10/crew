@@ -19,8 +19,8 @@ fn semantic_colours_separate_from_body_text() {
         for (what, c) in [("code", d.code), ("marker", d.marker), ("quote", d.quote)] {
             let got = contrast_ratio(c, t.ink);
             assert!(
-                got >= SEPARATION_FLOOR,
-                "{}: {what} vs ink = {got:.3} (need >= {SEPARATION_FLOOR})",
+                got >= SEPARATION_FLOOR || crate::hueapart::hued_apart(c, t),
+                "{}: {what} vs ink = {got:.3} (need >= {SEPARATION_FLOOR}, or a hue of its own)",
                 id.as_str(),
             );
         }
@@ -174,8 +174,8 @@ fn every_syntax_colour_separates_from_body_text() {
         for (what, c) in [("comment", d.comment), ("string", d.string)] {
             let got = contrast_ratio(c, t.ink);
             assert!(
-                got >= SEPARATION_FLOOR,
-                "{}: {what} vs ink = {got:.3} (need >= {SEPARATION_FLOOR})",
+                got >= SEPARATION_FLOOR || crate::hueapart::hued_apart(c, t),
+                "{}: {what} vs ink = {got:.3} (need >= {SEPARATION_FLOOR}, or a hue of its own)",
                 id.as_str(),
             );
             // Comments alone answer to the lower floor — see

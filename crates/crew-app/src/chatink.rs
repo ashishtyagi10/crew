@@ -131,7 +131,7 @@ fn separated(c: Color, t: &Theme) -> Color {
 /// classes therefore sit on a LADDER, and on a single-phosphor tube — where
 /// hue cannot vary at all — that ladder is the whole of the highlighting.
 pub(crate) fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
-    crate::codefield::separated_on(c, t, floor, page_floor, t.page_bg)
+    crate::hueapart::separated_or_hued(c, t, floor, page_floor)
 }
 
 /// A removed line's colour. Untouched on a theme whose `ansi[1]` already

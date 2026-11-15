@@ -91,6 +91,7 @@ pub struct Theme {
 
 pub mod ansi;
 pub mod ansihue;
+pub mod apca;
 mod autowalk;
 pub mod contrast;
 mod crtstyle;

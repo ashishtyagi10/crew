@@ -45,7 +45,7 @@ pub(crate) struct Hue {
 /// Whether `c` clears every floor a colour drawn inside a code field owes.
 pub(crate) fn clears_floors(c: Color, t: &Theme, code_bg: Color) -> bool {
     contrast_ratio(c, t.page_bg) >= PAGE_FLOOR
-        && contrast_ratio(c, t.ink) >= SEPARATION_FLOOR
+        && (contrast_ratio(c, t.ink) >= SEPARATION_FLOOR || crate::hueapart::hued_apart(c, t))
         && contrast_ratio(c, code_bg) >= CODE_ON_FIELD_FLOOR
 }
 
