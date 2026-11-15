@@ -17,6 +17,7 @@ pub mod bars;
 pub mod canvas;
 pub mod device;
 pub mod dial;
+pub mod dialrelief;
 pub mod gantt;
 pub mod heatmap;
 pub mod meter;
