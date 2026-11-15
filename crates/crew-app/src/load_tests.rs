@@ -133,3 +133,35 @@ fn the_history_is_readable_on_every_page_and_never_outranks_now() {
         }
     }
 }
+
+/// While the window is sheer the history stands on the frost, not the
+/// page: it holds the secondary floor over a black desktop and a white one
+/// (or is the 1-minute colour itself, where that one cannot reach it).
+#[test]
+fn the_history_reads_on_sheer_glass_over_any_desktop() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::glassborder::set_sheer(true);
+    let mut low = Vec::new();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let g = crew_theme::glasslegend::pane_grounds(t);
+        if g.is_empty() {
+            continue;
+        }
+        for fg in [crate::palette::accent(), amber(), red()] {
+            let past = super::history_ink(fg, t.page_bg);
+            let (p, f) = (
+                crew_theme::glasslegend::worst(past, &g),
+                crew_theme::glasslegend::worst(fg, &g),
+            );
+            let floor = crew_theme::glassink::SECONDARY_FLOOR;
+            if p < floor.min(f) - 0.05 {
+                low.push(format!("{id:?}: history {p:.2}, now {f:.2}"));
+            }
+        }
+    }
+    crew_theme::glassborder::set_sheer(false);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    assert!(low.is_empty(), "under the floor on glass: {low:#?}");
+}

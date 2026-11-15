@@ -42,3 +42,29 @@ fn theme_wells_shot() {
     }
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
+
+/// The open nav on every palette, in tabs, beside the dashboard, the
+/// settings form and the to-do list: what the second theme loop of
+/// 2026-11-14 looked at.
+///
+/// `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew theme_nav_shot -- --ignored`
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn theme_nav_shot() {
+    let _g = crate::app::theme_test_guard();
+    for id in ALL_THEMES {
+        let name = format!("nav-{}", id.as_str());
+        let sheer = crate::tubesheer::sheer(id.theme());
+        let prep = |app: &mut crate::app::CrewApp| {
+            app.config.show_nav = true;
+            app.config.nav_collapsed = false;
+            crate::tabshot_tests::three_tabs(app);
+        };
+        let cmds = ["/dash", "/settings", "/todo", "/far"];
+        if crate::crtglassshot_tests::window_with(&name, id, sheer, &cmds, &prep).is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        }
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
