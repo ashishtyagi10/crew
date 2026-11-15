@@ -79,3 +79,25 @@ fn the_stroke_under_the_thumb_takes_its_colour() {
         }
     }
 }
+
+/// On a soft theme the thumb is a slot, not a bar: thinner ink than the
+/// stroked themes draw, and a lit lip beside it.
+#[test]
+fn a_relief_card_cuts_the_thumb_as_a_slot() {
+    let _g = crate::app::theme_test_guard();
+    let b = Bar {
+        total: 400,
+        scroll: 200,
+        ..Default::default()
+    };
+    let strongest = |ps: &[Paint]| ps.iter().map(|p| p.alpha).fold(0.0_f32, f32::max);
+    let stroked = card_paint(40, 20, &b, (CW, CH), 0);
+    crew_theme::set_theme(crew_theme::ThemeId::Porcelain);
+    let soft = card_paint(40, 20, &b, (CW, CH), 0);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    assert!(strongest(&stroked) > 0.9);
+    let lit = soft.iter().filter(|p| p.color.0 > 240 && p.color.1 > 240);
+    assert!(lit.count() > 0, "the far lip catches the light");
+    let dark: Vec<Paint> = soft.into_iter().filter(|p| p.color.0 < 200).collect();
+    assert!(!dark.is_empty() && strongest(&dark) < 0.6, "thinned ink");
+}
