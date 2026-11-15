@@ -18,12 +18,12 @@ family DRAWS, since the first loop found every derived role in one band.
 
 | # | merge | version | what | before → after |
 |---|---|---|---|---|
-| 0 | 63efb0e6 | unreleased | soft: the nav is one raised panel, grooves between sections, tab cards as wells (`navrelief.rs`) | 10 raised tiles + a tile per tab → 1 panel, 9 grooves, a well per tab |
-| 1 | (this merge) | unreleased | LOAD's 5- and 15-minute figures read on see-through glass (`load.rs` `on_frost`) | worst contrast over a black/white desktop, sheer: 1.27-2.09:1 on 11 palettes (3.0-3.4 on neon, prism) → ≥ 3.5:1, or the 1-minute colour where that has no headroom; 13 palettes changed |
-| 2 | feat/soft-dial-mould | unreleased | soft: a dial's face is moulded out of the card (`plot/dialrelief.rs`) | porcelain, sand, mist, slate: flat 6% ink disc + stroked bezel arc → the card's own colour raised by a light and a dark shadow, 0 strokes round the face; 16 other palettes byte-identical |
-| 3 | feat/soft-scroll-slot | unreleased | soft: the scroll thumb is a slot in the card (`cardpaint.rs`) | porcelain, sand, mist, slate: opaque bar (alpha 0.95) riding a frame that is not drawn → the reading's colour at 0.45 with a lit far lip; 16 other palettes byte-identical |
-| 4 | feat/tab-number-is-text | unreleased | every palette: a background tab's number is text (`tabcard.rs`) | number vs page: 2.0:1 on 16 palettes, 2.4 on the tubes, 3.0 on the Ink pages (`border_normal`) → `text_muted`, the colour its name wears; all 20 changed |
-| 5 | feat/nav-reads-on-glass | unreleased | glass: a reply's list bullets read on a see-through window, and an audit holds every drawn glyph there (`chatink::marker_fg`, `glassaudit_tests.rs`) | bullets over the frost: 2.58 blossom, 2.52 glass-clear, 2.59 glass-night → ≥ 3.0; glyphs under the floor across the nav, a tools window and smith + a shell on 16 glass palettes: 3 colours → 0 |
+| 0 | 63efb0e6 | 0.30.15 | soft: the nav is one raised panel, grooves between sections, tab cards as wells (`navrelief.rs`) | 10 raised tiles + a tile per tab → 1 panel, 9 grooves, a well per tab |
+| 1 | c84248d9 | 0.30.15 | LOAD's 5- and 15-minute figures read on see-through glass (`load.rs` `on_frost`) | worst contrast over a black/white desktop, sheer: 1.27-2.09:1 on 11 palettes (3.0-3.4 on neon, prism) → ≥ 3.5:1, or the 1-minute colour where that has no headroom; 13 palettes changed |
+| 2 | c22bb00d | 0.30.15 | soft: a dial's face is moulded out of the card (`plot/dialrelief.rs`) | porcelain, sand, mist, slate: flat 6% ink disc + stroked bezel arc → the card's own colour raised by a light and a dark shadow, 0 strokes round the face; 16 other palettes byte-identical |
+| 3 | e3415563 | 0.30.15 | soft: the scroll thumb is a slot in the card (`cardpaint.rs`) | porcelain, sand, mist, slate: opaque bar (alpha 0.95) riding a frame that is not drawn → the reading's colour at 0.45 with a lit far lip; 16 other palettes byte-identical |
+| 4 | f57b3b02 | 0.30.15 | every palette: a background tab's number is text (`tabcard.rs`) | number vs page: 2.0:1 on 16 palettes, 2.4 on the tubes, 3.0 on the Ink pages (`border_normal`) → `text_muted`, the colour its name wears; all 20 changed |
+| 5 | 413d1c03 | 0.30.15 | glass: a reply's list bullets read on a see-through window, and an audit holds every drawn glyph there (`chatink::marker_fg`, `glassaudit_tests.rs`) | bullets over the frost: 2.58 blossom, 2.52 glass-clear, 2.59 glass-night → ≥ 3.0; glyphs under the floor across the nav, a tools window and smith + a shell on 16 glass palettes: 3 colours → 0 |
 
 ### Round 1 — the load history reads on glass
 Behaviour: while the window is see-through, the nav's 5- and 15-minute load
@@ -85,19 +85,4 @@ the inbox, the file viewer or pop-ups.
 
 ## Pending release
 
-- **Soft themes: the side panel is one panel again.** On `porcelain`,
-  `sand`, `mist` and `slate` every section of the nav sits in one raised
-  panel, parted by a fine engraved line, instead of each being its own
-  pill. A tab's card is pressed into the panel.
-- The side panel's 5- and 15-minute load averages can be read on a
-  see-through window. They were faded toward the theme's page colour, which
-  a see-through window does not show; on the green and amber tubes over a
-  light desktop they were close to invisible.
-- Soft themes: the gauge dials are raised out of the card like round
-  knobs, instead of grey discs with a ring drawn round them.
-- Soft themes: a pane's scroll marker is a soft slot in the card instead
-  of a hard dark line down its edge.
-- In the side panel's tab cards, the number of a tab that is not on screen
-  can be read: it was drawn in the faint colour of the card's outline.
-- The bullets of a list in a reply from agent smith can be read on a
-  see-through window on `blossom`, `glass-clear` and `glass-night`.
+Nothing: all of the above went out as v0.30.15.
