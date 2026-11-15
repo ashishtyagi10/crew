@@ -593,6 +593,7 @@ mod readout;
 mod reducemotion;
 mod relay;
 mod relieffield;
+mod reliefpill;
 mod reliefsplit;
 mod reliefwell;
 mod reminders;
