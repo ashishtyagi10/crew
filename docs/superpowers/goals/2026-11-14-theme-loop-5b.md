@@ -22,6 +22,7 @@ family DRAWS, since the first loop found every derived role in one band.
 | 1 | (this merge) | unreleased | LOAD's 5- and 15-minute figures read on see-through glass (`load.rs` `on_frost`) | worst contrast over a black/white desktop, sheer: 1.27-2.09:1 on 11 palettes (3.0-3.4 on neon, prism) → ≥ 3.5:1, or the 1-minute colour where that has no headroom; 13 palettes changed |
 | 2 | feat/soft-dial-mould | unreleased | soft: a dial's face is moulded out of the card (`plot/dialrelief.rs`) | porcelain, sand, mist, slate: flat 6% ink disc + stroked bezel arc → the card's own colour raised by a light and a dark shadow, 0 strokes round the face; 16 other palettes byte-identical |
 | 3 | feat/soft-scroll-slot | unreleased | soft: the scroll thumb is a slot in the card (`cardpaint.rs`) | porcelain, sand, mist, slate: opaque bar (alpha 0.95) riding a frame that is not drawn → the reading's colour at 0.45 with a lit far lip; 16 other palettes byte-identical |
+| 4 | feat/tab-number-is-text | unreleased | every palette: a background tab's number is text (`tabcard.rs`) | number vs page: 2.0:1 on 16 palettes, 2.4 on the tubes, 3.0 on the Ink pages (`border_normal`) → `text_muted`, the colour its name wears; all 20 changed |
 
 ### Round 1 — the load history reads on glass
 Behaviour: while the window is see-through, the nav's 5- and 15-minute load
@@ -48,6 +49,15 @@ to 0.45 and a one-pixel lit lip on the side away from the light. Seen:
 `glass_work_shot`, porcelain and slate. Measured:
 `a_relief_card_cuts_the_thumb_as_a_slot`. Rows: none.
 
+### Round 4 — a background tab's number is text
+Behaviour: in the nav's tab cards the tab number took the card frame's
+colour. Lit (the tab on screen, a tab that needs you) that is a colour; on a
+quiet tab it is the rule's grey, and on a soft page the rule is not even
+drawn, so `2` was the faintest thing in the nav. A quiet tab's number wears
+`text_muted` like its name, still bold. Seen: `relief_nav_shot` (slate).
+Measured: `a_quiet_tabs_number_is_as_readable_as_its_name`, all 20. The
+rail's divider already did this. Rows: none.
+
 ## Pending release
 
 - **Soft themes: the side panel is one panel again.** On `porcelain`,
@@ -62,3 +72,5 @@ to 0.45 and a one-pixel lit lip on the side away from the light. Seen:
   knobs, instead of grey discs with a ring drawn round them.
 - Soft themes: a pane's scroll marker is a soft slot in the card instead
   of a hard dark line down its edge.
+- In the side panel's tab cards, the number of a tab that is not on screen
+  can be read: it was drawn in the faint colour of the card's outline.

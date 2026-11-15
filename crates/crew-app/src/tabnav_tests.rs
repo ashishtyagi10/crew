@@ -171,3 +171,25 @@ fn the_rails_divider_takes_the_bell_for_a_tab_that_needs_you() {
     let divider: Vec<_> = cells.iter().filter(|c| c.row == 2).collect();
     assert!(!divider.is_empty() && divider.iter().all(|c| c.fg == bell));
 }
+
+/// A quiet tab's number is text, not frame: on every palette it reads as
+/// its name does, where the frame's own colour is a rule's (and on a soft
+/// page, a rule that is never drawn).
+#[test]
+fn a_quiet_tabs_number_is_as_readable_as_its_name() {
+    let _g = crate::app::theme_test_guard();
+    let mut low = Vec::new();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let b = block(2, "web", false, vec![row(3, "far")]);
+        let top = crate::tabcard::top(&b, 24, 1, t.border_normal);
+        let num = top.iter().find(|c| c.c == '2').expect("the number");
+        let r = crew_theme::contrast_ratio(num.fg, t.page_bg);
+        if num.fg != t.text_muted {
+            low.push(format!("{id:?}: {r:.2}"));
+        }
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    assert!(low.is_empty(), "the number wears the frame: {low:?}");
+}
