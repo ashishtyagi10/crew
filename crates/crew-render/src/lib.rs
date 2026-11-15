@@ -41,6 +41,7 @@ mod scenetarget;
 mod scriptplace;
 mod scriptrun;
 mod scriptshape;
+mod sizeadjust;
 mod smoothing;
 mod solidcard;
 pub mod stage3d;

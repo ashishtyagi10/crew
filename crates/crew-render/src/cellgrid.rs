@@ -115,6 +115,8 @@ pub struct CellGrid {
     /// library with no opinion about where settings live.
     leading: f32,
     font_family: Option<String>,
+    /// What the face is shaped at, per em of `font_size` ([`crate::sizeadjust`]).
+    glyph_scale: f32,
     /// User base-weight override (CSS scale). `None` follows the theme default
     /// ([`base_weight`]); `Some(w)` renders all non-bold text at `w` so the
     /// user can make the body heavier/lighter. Bold cells still shape BOLD.
@@ -199,6 +201,7 @@ impl CellGrid {
             leading,
             line_height,
             font_family,
+            glyph_scale: 1.0,
             weight_override: None,
             smooth_override: None,
             gamma_override: None,
@@ -211,7 +214,7 @@ impl CellGrid {
     /// AND the prewarm buffer, so their cache keys agree by construction.
     pub(crate) fn font_params(&self) -> FontParams {
         FontParams {
-            font_size: self.font_size,
+            font_size: self.font_size * self.glyph_scale,
             line_height: self.line_height,
             cell_w: self.cell_w,
             family: self.font_family.clone(),
@@ -269,7 +272,7 @@ impl CellGrid {
     /// 700 Bold). `None` follows the theme default. Applied next frame.
     pub fn set_font_weight(&mut self, weight: Option<u16>) {
         self.weight_override = weight;
-        self.swash.image_cache.clear();
+        self.rescale();
         self.needs_prewarm = true;
     }
 
@@ -282,9 +285,17 @@ impl CellGrid {
         self.font_family = family.filter(|n| !n.is_empty()).and_then(|f| {
             crate::fontverify::usable(&mut self.font_system, &f, p.font_size, p.cell_w, p.weight)
         });
-        // The swash image cache retains every rasterized glyph (the presmooth
-        // pass reads and seeds it); font changes re-key everything, so drop
-        // the stale rasters rather than carrying them for the session.
+        self.rescale();
+    }
+
+    /// Re-measure the face's size adjust and drop the rasters keyed to the
+    /// old shape (the presmooth pass seeds the swash cache; a font change
+    /// re-keys everything, so stale entries are only memory).
+    fn rescale(&mut self) {
+        let weight = self.font_params().weight;
+        let family = self.font_family.clone();
+        self.glyph_scale =
+            crate::sizeadjust::scale(&mut self.font_system, family.as_deref(), weight);
         self.swash.image_cache.clear();
         self.needs_prewarm = true;
     }
