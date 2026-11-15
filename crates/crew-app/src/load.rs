@@ -119,9 +119,31 @@ fn history_ink(fg: (u8, u8, u8), page: (u8, u8, u8)) -> (u8, u8, u8) {
     let floor = crew_theme::contrast::text_floor();
     let past = crew_theme::readable::secondary(fg, page);
     let lifted = crew_theme::readable::against(past, page, floor);
-    match crew_theme::contrast_ratio(lifted, page) > crew_theme::contrast_ratio(fg, page) {
+    let past = match crew_theme::contrast_ratio(lifted, page) > crew_theme::contrast_ratio(fg, page)
+    {
         true => fg,
         false => lifted,
+    };
+    on_frost(past, fg)
+}
+
+/// `past` while the window is sheer: it stands on the frost over whatever
+/// desktop is behind, not on the page it was stepped back toward, and there
+/// it read 1.3-2.1:1 on thirteen palettes (theme loop, 2026-11-14: crt-green's
+/// history all but gone over a light desktop). Held to the secondary floor
+/// over a black desktop and a white one, and never past the 1-minute
+/// figure: where that one has no headroom the history is its colour.
+fn on_frost(past: (u8, u8, u8), now: (u8, u8, u8)) -> (u8, u8, u8) {
+    use crew_theme::glasslegend::{legible_on, pane_grounds, worst};
+    let t = crew_theme::theme();
+    let g = pane_grounds(t);
+    if !crew_theme::glassborder::sheer() || g.is_empty() {
+        return past;
+    }
+    let held = legible_on(t, past, crew_theme::glassink::SECONDARY_FLOOR, &g);
+    match worst(held, &g) > worst(now, &g) {
+        true => now,
+        false => held,
     }
 }
 
