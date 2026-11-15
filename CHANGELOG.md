@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.15
+
+**Soft themes: one side panel, moulded dials; glass reads better.**
+
+Soft themes (`porcelain`, `sand`, `mist`, `slate`):
+- The side panel is one raised panel again. Every section sits inside it, parted from the one above by a fine engraved line, instead of each being its own pill. A tab's card is pressed into the panel as a well.
+- The gauge dials, in the side panel and on the dashboard, are raised out of the card like round knobs, instead of grey discs with a ring drawn round them.
+- A pane's scroll marker is a soft slot in the card instead of a hard dark line down its edge.
+
+See-through windows:
+- The side panel's 5- and 15-minute load averages can be read. They were faded toward the theme's page colour, which a see-through window does not show; on the green and amber tubes over a light desktop they were close to invisible. Thirteen themes change.
+- The bullets of a list in a reply from agent smith can be read on `blossom`, `glass-clear` and `glass-night`.
+
+Every theme:
+- In the side panel's tab cards, the number of a tab that is not on screen can be read. It was drawn in the faint colour of the card's outline.
+
 ## 0.30.14
 
 **Soft themes press boxes in as wells; smith keeps what you say.**
