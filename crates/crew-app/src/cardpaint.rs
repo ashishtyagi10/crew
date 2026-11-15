@@ -17,6 +17,9 @@ use crate::plot::{sdf, Canvas};
 
 /// Thickness of a border indicator, in cell widths.
 const WEIGHT: f32 = 0.34;
+/// How much of its colour the scroll thumb keeps as a slot in a relief
+/// card: quiet, the way the card's own shadows are.
+const SLOT_ALPHA: f32 = 0.45;
 /// Rows a card needs before its gutter is worth drawing.
 const MIN_ROWS: u16 = 5;
 
@@ -84,9 +87,26 @@ fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32, mid: f32) -> Vec<Paint> {
     let fg =
         crate::panescroll::position_fg(crate::panescroll::position(b.total, visible, b.scroll));
     let mut c = Canvas::new(1, rows, aspect);
-    c.fill_sdf((x, y, WEIGHT, h), fg, 0.95, move |px, py| {
-        sdf::round_box((px, py), x, y, WEIGHT, h, WEIGHT * 0.5)
-    });
+    let bar = move |dx: f32| {
+        move |px: f32, py: f32| sdf::round_box((px, py), x + dx, y + dx, WEIGHT, h, WEIGHT * 0.5)
+    };
+    if crew_theme::theme().relief() > 0.0 {
+        // A relief card strokes no frame, so the bar rode nothing: a lone
+        // dark line, the hardest on a soft page. There it is a slot cut in
+        // the card: the reading's colour thinned, the light catching its
+        // far lip a pixel down and to the right.
+        let (g, d) = (crew_theme::glass_style(), c.px());
+        let (lip, body) = (bar(d), bar(0.0));
+        c.fill_sdf_shaded((x, y, WEIGHT + d, h + d), lip, move |px, py| {
+            // Only where the slot itself is not: under it the light would
+            // wash the reading's colour out.
+            let clear = body(px, py).clamp(0.0, d) / d;
+            (g.highlight, g.highlight_alpha * clear)
+        });
+        c.fill_sdf((x, y, WEIGHT, h), fg, SLOT_ALPHA, bar(0.0));
+    } else {
+        c.fill_sdf((x, y, WEIGHT, h), fg, 0.95, bar(0.0));
+    }
     c.paint()
         .into_iter()
         .map(|p| p.shifted(f32::from(cols - 1), 0.0))

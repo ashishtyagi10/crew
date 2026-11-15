@@ -21,6 +21,7 @@ family DRAWS, since the first loop found every derived role in one band.
 | 0 | 63efb0e6 | unreleased | soft: the nav is one raised panel, grooves between sections, tab cards as wells (`navrelief.rs`) | 10 raised tiles + a tile per tab → 1 panel, 9 grooves, a well per tab |
 | 1 | (this merge) | unreleased | LOAD's 5- and 15-minute figures read on see-through glass (`load.rs` `on_frost`) | worst contrast over a black/white desktop, sheer: 1.27-2.09:1 on 11 palettes (3.0-3.4 on neon, prism) → ≥ 3.5:1, or the 1-minute colour where that has no headroom; 13 palettes changed |
 | 2 | feat/soft-dial-mould | unreleased | soft: a dial's face is moulded out of the card (`plot/dialrelief.rs`) | porcelain, sand, mist, slate: flat 6% ink disc + stroked bezel arc → the card's own colour raised by a light and a dark shadow, 0 strokes round the face; 16 other palettes byte-identical |
+| 3 | feat/soft-scroll-slot | unreleased | soft: the scroll thumb is a slot in the card (`cardpaint.rs`) | porcelain, sand, mist, slate: opaque bar (alpha 0.95) riding a frame that is not drawn → the reading's colour at 0.45 with a lit far lip; 16 other palettes byte-identical |
 
 ### Round 1 — the load history reads on glass
 Behaviour: while the window is see-through, the nav's 5- and 15-minute load
@@ -39,6 +40,14 @@ Measured: `the_face_is_the_page_and_the_two_rims_say_where_it_ends` (lit rim
 brighter than the page, far rim darker). Rows: none. Idea: neumorphism.io's
 raised round button; the open item of the first loop.
 
+### Round 3 — soft themes: the scroll thumb is a slot
+Behaviour: a pane's scroll thumb rides the card's right stroke; a soft card
+strokes none, so the thumb was a lone dark line down the card, the hardest
+on the page. On the soft themes it is drawn as a slot: its colour thinned
+to 0.45 and a one-pixel lit lip on the side away from the light. Seen:
+`glass_work_shot`, porcelain and slate. Measured:
+`a_relief_card_cuts_the_thumb_as_a_slot`. Rows: none.
+
 ## Pending release
 
 - **Soft themes: the side panel is one panel again.** On `porcelain`,
@@ -51,3 +60,5 @@ raised round button; the open item of the first loop.
   light desktop they were close to invisible.
 - Soft themes: the gauge dials are raised out of the card like round
   knobs, instead of grey discs with a ring drawn round them.
+- Soft themes: a pane's scroll marker is a soft slot in the card instead
+  of a hard dark line down its edge.
