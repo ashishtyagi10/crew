@@ -13,7 +13,7 @@ use crate::applog::{LogEntry, LogLevel};
 use crate::panelist::PaneRow;
 use crate::statspane::StatsPane;
 
-fn fixture() -> (StatsPane, Vec<LogEntry>, Vec<PaneRow>) {
+pub(crate) fn fixture() -> (StatsPane, Vec<LogEntry>, Vec<PaneRow>) {
     let mut sp = StatsPane::new();
     sp.refresh(std::path::Path::new("."));
     sp.seed_history(&[9, 12, 40, 18, 11]);
@@ -47,7 +47,7 @@ fn fixture() -> (StatsPane, Vec<LogEntry>, Vec<PaneRow>) {
 
 /// Glyphs that are frame, not content: the ramp puts them at 2.0 deliberately
 /// (`░` is the empty track of a narrow nav's bar gauge — a rule with a fill).
-const FURNITURE: &str = "─·░";
+pub(crate) const FURNITURE: &str = "─·░";
 
 /// Every glyph the nav draws clears the mark floor against the cell it is
 /// drawn on, on every theme in the set.

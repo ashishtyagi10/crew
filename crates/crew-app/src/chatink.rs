@@ -241,7 +241,7 @@ pub(crate) fn code_fg() -> Color {
 
 /// Structural marker glyphs: list bullets/ordinals and the blockquote bar.
 pub(crate) fn marker_fg() -> Color {
-    ink().marker
+    crate::accentink::focus_on_glass(ink().marker)
 }
 
 /// Quoted prose — one step back from body text.

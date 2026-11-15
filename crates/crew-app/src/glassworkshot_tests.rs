@@ -29,7 +29,7 @@ const SHELL: &str = "\x1b[1;34m~/code/crew\x1b[0m \x1b[35mmain\x1b[0m \x1b[32m\u
      \x1b[1;34m~/code/crew\x1b[0m \x1b[35mmain\x1b[0m \x1b[32m\u{276f}\x1b[0m ";
 
 /// A pane around `content`, as the app pushes one.
-fn pane(content: PaneContent, dir: Option<&str>) -> Pane {
+pub(crate) fn pane(content: PaneContent, dir: Option<&str>) -> Pane {
     Pane {
         glide: crate::glide::Glide::default(),
         content,
@@ -55,7 +55,7 @@ fn pane(content: PaneContent, dir: Option<&str>) -> Pane {
 
 /// A shell pane holding [`SHELL`]. The child is `cat`, which prints nothing
 /// of its own, so the frame shows exactly the bytes fed here.
-fn shell() -> Pane {
+pub(crate) fn shell() -> Pane {
     let tmp = std::env::temp_dir();
     let grid = GridSize { cols: 80, rows: 24 };
     let mut pty = PtyTerm::spawn_in(grid, "/bin/cat", &[], Some(&tmp)).unwrap();
@@ -79,7 +79,7 @@ fn shell() -> Pane {
 }
 
 /// The plan smith's turn is working to, two steps in (`chatchecklist`).
-fn plan() -> Vec<crew_hive::tools::todowire::Step> {
+pub(crate) fn plan() -> Vec<crew_hive::tools::todowire::Step> {
     use crew_hive::tools::todowire::{Step, StepState::*};
     [
         ("Measure the ring's track on paper light", Done),

@@ -23,6 +23,7 @@ family DRAWS, since the first loop found every derived role in one band.
 | 2 | feat/soft-dial-mould | unreleased | soft: a dial's face is moulded out of the card (`plot/dialrelief.rs`) | porcelain, sand, mist, slate: flat 6% ink disc + stroked bezel arc → the card's own colour raised by a light and a dark shadow, 0 strokes round the face; 16 other palettes byte-identical |
 | 3 | feat/soft-scroll-slot | unreleased | soft: the scroll thumb is a slot in the card (`cardpaint.rs`) | porcelain, sand, mist, slate: opaque bar (alpha 0.95) riding a frame that is not drawn → the reading's colour at 0.45 with a lit far lip; 16 other palettes byte-identical |
 | 4 | feat/tab-number-is-text | unreleased | every palette: a background tab's number is text (`tabcard.rs`) | number vs page: 2.0:1 on 16 palettes, 2.4 on the tubes, 3.0 on the Ink pages (`border_normal`) → `text_muted`, the colour its name wears; all 20 changed |
+| 5 | feat/nav-reads-on-glass | unreleased | glass: a reply's list bullets read on a see-through window, and an audit holds every drawn glyph there (`chatink::marker_fg`, `glassaudit_tests.rs`) | bullets over the frost: 2.58 blossom, 2.52 glass-clear, 2.59 glass-night → ≥ 3.0; glyphs under the floor across the nav, a tools window and smith + a shell on 16 glass palettes: 3 colours → 0 |
 
 ### Round 1 — the load history reads on glass
 Behaviour: while the window is see-through, the nav's 5- and 15-minute load
@@ -58,6 +59,30 @@ drawn, so `2` was the faintest thing in the nav. A quiet tab's number wears
 Measured: `a_quiet_tabs_number_is_as_readable_as_its_name`, all 20. The
 rail's divider already did this. Rows: none.
 
+### Round 5 — an audit of what a see-through window draws
+Behaviour: round 1's defect was a class, a colour derived against the page
+by the widget that draws it. `glassaudit_tests.rs` builds the nav, a window
+of tools (dashboard, to-do, file panels) and smith mid-turn beside a shell
+on every glass palette and measures each drawn glyph over the frost on a
+black desktop and a white one (fills against themselves; the settings
+swatches exempt). It found one more: the bullets of a list in a reply,
+which now take the mark floor over the frost while the window is sheer.
+Not covered: the settings form, whose scrolled-off group fades on purpose.
+Rows: none. Opaque windows: byte-identical.
+
+## Close
+
+Five rounds and the nav panel that started the evening, all merged and
+pushed, released together on the user's ask. Honest scope: rounds 1 and 5
+change the see-through palettes (13 and 3 of them), round 4 all 20, rounds
+0, 2 and 3 the four soft palettes. The two contact sheets showed nothing
+to change on the Ink Reader pages beyond round 4.
+
+Open: on the soft themes the active tab's well is no deeper than the
+others; `Save`/`Cancel` and the status chips are flat; `/far`'s selected
+row is a square grey bar in a round well; the glass audit does not cover
+the inbox, the file viewer or pop-ups.
+
 ## Pending release
 
 - **Soft themes: the side panel is one panel again.** On `porcelain`,
@@ -74,3 +99,5 @@ rail's divider already did this. Rows: none.
   of a hard dark line down its edge.
 - In the side panel's tab cards, the number of a tab that is not on screen
   can be read: it was drawn in the faint colour of the card's outline.
+- The bullets of a list in a reply from agent smith can be read on a
+  see-through window on `blossom`, `glass-clear` and `glass-night`.
