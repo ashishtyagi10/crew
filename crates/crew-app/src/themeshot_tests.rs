@@ -68,3 +68,23 @@ fn theme_nav_shot() {
     }
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
 }
+
+/// `/far` on the soft palettes: its panels are wells, and the cursor bar
+/// rides inside one.
+///
+/// `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew theme_far_shot -- --ignored`
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn theme_far_shot() {
+    let _g = crate::app::theme_test_guard();
+    let soft = |id: &crew_theme::ThemeId| id.mode() == crew_theme::RandomMode::Relief;
+    for id in ALL_THEMES.into_iter().filter(soft) {
+        let name = format!("far-{}", id.as_str());
+        let sheer = crate::tubesheer::sheer(id.theme());
+        if crate::crtglassshot_tests::window_with(&name, id, sheer, &["/far"], &|_| {}).is_none() {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        }
+    }
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}

@@ -22,6 +22,7 @@ day's release.
 | 2 | 5700ff9e | unreleased | dark pages draw hued code at its own lightness (`hueapart.rs`, `apca.rs`) | APCA Lc on the field, 14 dark non-tube palettes: code 52-55 → 56-60, strings 41-42 → 56-60; light + tubes unchanged |
 | 3 | 6f7a00ce | unreleased | a dark page's comment reads (`commentread.rs`) | APCA Lc of comments, 14 dark palettes: 32-40 → 45-46, code ≥ 1.24× above; light + tubes unchanged |
 | 4 | 706ef410 | unreleased | the underline and strike sit where the face says (`rules.rs`) | strike 2.5-4 px above the lower case's middle → on it; underline at `loose` 3-4 px further off its word → same gap as at normal; Comic faces' underline 6.5 px under the baseline → 0.12 em |
+| 5 | MERGE5 | unreleased | soft: a row highlighted in a well wears the capsule (`reliefpill.rs`) | `/far` cursor bar on 4 soft palettes: square slab wall to wall → rounded capsule inset 1 px; other wells unchanged |
 
 ### Round 1 — one apparent size whichever face draws (`sizeadjust.rs`)
 Behaviour: each face is shaped at a factor of the font size: a face with a
@@ -76,6 +77,34 @@ where the cell has room. Seen: `term_shot_width_sweep` attrs, before/after
 (strike through `trike`, not over it). Pinned: `rules_tests.rs` (8, one
 through `FontParams`; it fails with the face ignored). Rows: none.
 
+### Round 5 — soft: a row highlighted in a well wears the capsule (`reliefpill.rs`)
+Behaviour: on the soft palettes `/far`'s cursor bar (and any row a list
+highlights inside a well) was a band of cell colour, square-ended from wall
+to wall of the well: a slab in a dish (open list of 2026-11-14). A band that
+fills a well's row now becomes a `CellView::mark` run, the capsule inline
+code wears: corners rounded at the chip radius (0.3 of the cell height) and
+inset a pixel off the rows above and below. Colour, letters and hit paths
+unchanged; settings and to-do wells unchanged (`theme_wells_shot`). Seen:
+the new `theme_far_shot` (four soft palettes), porcelain and slate
+before/after. Pinned: `reliefpill_tests.rs` (4; each guard mutation-checked).
+Honest size: a subtle change at 1x; a true pill (half-height radius, stood
+in from the walls) needs a per-run radius the renderer does not carry yet.
+Rows: none.
+
+## Close
+
+Five rounds, all merged and pushed, unreleased (the 8 PM job ships them).
+Two on the font (rounds 1 and 4), two on every dark palette's code (2, 3),
+one on the soft family (5). The method that found rounds 2 and 3: measure
+what is DRAWN (`chatink::derive`) in APCA Lc, not the palette's raw roles,
+and compare dark pages with light ones — the ratio floors had held every
+palette to one WCAG band while the dark ones sat a whole APCA band lower.
+
+Open: tubes draw code at Lc 44 and comments at 27 (their ladder is
+lightness alone, under bloom); a full-radius pill for a well's highlighted
+row; the underline thickness is still crew's (cell_h × 0.07), not the
+face's `stroke_size`; `/leading` beyond `loose` not measured.
+
 ## Pending release
 
 - **Every face reads at one size.** A theme step that changed the font also
@@ -115,3 +144,9 @@ through `FontParams`; it fails with the face ignored). Rows: none.
   empty. Costs one metrics read when the face or size changes. Idea:
   Ghostty, kitty and Alacritty place both rules from the font's
   `post`/`OS/2` metrics.
+- **Soft themes: the selected row sits in its well like a chip.** On
+  porcelain, sand, mist and slate `/far`'s cursor bar was a square-ended
+  slab running from wall to wall of the sunk panel. A row highlighted
+  inside a well now wears the same rounded capsule as inline code, inset
+  from the rows around it. Costs a scan of each well's rows on the soft
+  themes only. Idea: neumorphic list selection.

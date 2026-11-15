@@ -158,6 +158,7 @@ pub(crate) fn press(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32) {
     }
     unstroke(&mut scenes[at].cells, &all);
     unstroke(&mut scenes[at].cells, &cut);
+    crate::reliefpill::pill(&mut scenes[at].cells, &wells, page);
     let origin = (scenes[at].x, scenes[at].y);
     // After the card: its sheet is drawn first, the wells are sunk into it.
     scenes.extend(
