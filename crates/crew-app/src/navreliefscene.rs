@@ -1,13 +1,11 @@
-//! The scenes of the open nav's relief tiles ([`crate::navrelief`]): one
-//! bare sheet per tile, slipped in under the nav's words, and the slab
-//! that used to lie under the whole column taken away.
+//! The scenes of the open nav's relief panel ([`crate::navrelief`]), and
+//! the bare sheet every relief well and tab card is drawn as.
 use crew_render::{CellView, PaneScene};
 
 use crate::layout::Rect;
-use crate::navrelief::{rect_of, tiles, unruled};
 
-/// The sheet of one tile (or of a well, `lift` below zero:
-/// [`crate::reliefwell`]): a card scene with nothing written on it. Its two
+/// The sheet of a well (`lift` below zero: [`crate::reliefwell`]): a card
+/// scene with nothing written on it. Its two
 /// blank corner cells are what let it stretch to `r` exactly instead of to
 /// whole cells (`crew_render`'s stretch split).
 pub(crate) fn sheet(r: Rect, cw: f32, ch: f32, lift: f32) -> PaneScene {
@@ -40,39 +38,28 @@ pub(crate) fn sheet(r: Rect, cw: f32, ch: f32, lift: f32) -> PaneScene {
     }
 }
 
-/// Turn the nav card just pushed onto `scenes` (its interior, then its
-/// frame: [`crate::panelcard::push_framed`]) into tiles. A no-op off the
-/// relief themes, and on a nav with no section to raise.
-pub(crate) fn tile(scenes: &mut Vec<PaneScene>, rect: Rect, cw: f32, ch: f32, gap: f32) {
+/// Mould the nav card just pushed onto `scenes` (its interior, then its
+/// frame: [`crate::panelcard::push_framed`]) as one relief panel: the slab
+/// under the whole column stays (the renderer strokes no frame on it), a
+/// groove parts each section from the one above, and every tab's card is
+/// sunk into the slab as a well. A no-op off the relief themes.
+pub(crate) fn panel(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32, gap: f32) {
     if crew_theme::theme().relief() <= 0.0 || scenes.len() < 2 {
         return;
     }
     let at = scenes.len() - 2;
-    let tiles = tiles(&scenes[at].cells);
-    if tiles.is_empty() {
-        return;
-    }
-    unruled(&mut scenes[at].cells, &tiles);
-    // The slab under the whole column goes: its sheet, and the frame's
-    // rules with it (the legend stays, a heading on the page).
-    let frame = &mut scenes[at + 1];
-    frame.glass = false;
-    for c in frame.cells.iter_mut() {
-        if ('\u{2500}'..='\u{257f}').contains(&c.c) {
-            c.c = ' ';
-        }
-    }
-    // Under the words: the sheets go in ahead of the interior.
-    let sheets: Vec<PaneScene> = tiles
-        .iter()
-        .map(|t| {
-            sheet(
-                rect_of(t, rect, ch, gap),
-                cw,
-                ch,
-                f32::from(u8::from(t.lifted)),
-            )
-        })
-        .collect();
-    scenes.splice(at..at, sheets);
+    let nav = &mut scenes[at];
+    let cols = (nav.w / cw.max(1.0)).round() as u16;
+    let ys = crate::navrelief::grooves(&nav.cells);
+    crate::navrelief::unruled(&mut nav.cells);
+    nav.paint
+        .extend(crate::navrelief::groove_paint(&ys, cols, ch));
+    let tabs = crate::reliefwell::boxes(&nav.cells);
+    crate::reliefwell::unstroke(&mut nav.cells, &tabs);
+    let origin = (nav.x, nav.y);
+    // After the frame: its slab is drawn first, the wells are sunk into it.
+    scenes.extend(tabs.iter().map(|b| {
+        let r = crate::navrelief::well_rect(b, origin, cw, ch, gap);
+        sheet(r, cw, ch, crate::reliefwell::DEPTH)
+    }));
 }

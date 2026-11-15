@@ -61,8 +61,8 @@ fn relief_popup_shot() {
     crew_theme::set_theme(ThemeId::PaperDark);
 }
 
-/// The nav open beside the panes on a relief palette: its sections and its
-/// tab cards moulded like every other card. Look at these.
+/// The nav open beside the panes on a relief palette: one raised panel, a
+/// groove between its sections, its tab cards pressed in. Look at these.
 ///
 /// `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew relief_nav_shot -- --ignored`
 #[test]
@@ -75,7 +75,7 @@ fn relief_nav_shot() {
         let prep = |app: &mut crate::app::CrewApp| {
             app.config.show_nav = true;
             app.config.nav_collapsed = false;
-            // Slate shows the nav in tabs: a tile per tab's card.
+            // Slate shows the nav in tabs: a well per tab's card.
             if id == ThemeId::Slate {
                 crate::tabshot_tests::three_tabs(app);
             }

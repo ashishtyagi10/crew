@@ -1,150 +1,88 @@
-//! The open nav on a RELIEF theme (neumorphism): not one tall slab but a
-//! column of raised tiles, one per section and one per tab card, each
-//! moulded from the page like a pane's card (the user, 2026-11-13: "side
-//! panel should also have neumorphism effect").
+//! The open nav on a RELIEF theme (neumorphism): ONE raised panel, the
+//! whole column moulded from the page like a pane's card, with its sections
+//! parted inside it. It was a column of raised tiles for a day, one per
+//! section (2026-11-13), and the user took that back (2026-11-14: "all of
+//! those item should inside on panel in soft look, instead of separate
+//! pill ... a panel and then sections for separation").
 //!
-//! The tiles are read off the cells the nav already draws: a section opens
-//! on its rule (`─ TIME ───`, [`crate::boxdraw::section_header`]) and a
-//! tab's card on its `╭` ([`crate::tabcard`]). No rule is stroked on a
-//! relief theme, so those strokes are blanked and the two shadows say
-//! where each tile ends. Rows are untouched: every hit path still reads
-//! the same [`crate::navlayout`].
-use crew_render::CellView;
+//! What parts the sections is read off the cells the nav already draws. A
+//! section opens on its rule (`─ TIME ───`,
+//! [`crate::boxdraw::section_header`]): no rule is stroked on a relief
+//! theme, so the stroke is blanked and a GROOVE is engraved in the gap
+//! above the heading, a dark hairline over a light one. A tab's card
+//! ([`crate::tabcard`]) is a box in a card, so it is pressed in as a well
+//! like every other ([`crate::reliefwell`]). Rows are untouched: every hit
+//! path still reads the same [`crate::navlayout`].
+use crew_render::{CellView, Paint};
 
 use crate::layout::Rect;
-
-/// One raised tile: content rows `top..=bottom` of the nav.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Tile {
-    pub top: u16,
-    pub bottom: u16,
-    /// A tab's card: it owns exactly its rows, where a section's tile
-    /// spreads into the gap rows around it.
-    pub tab: bool,
-    /// The tab on screen: its tile stands higher, as a focused pane does.
-    pub lifted: bool,
-}
+use crate::reliefwell::Box4;
 
 const RULE: char = '\u{2500}';
-const SIDE: char = '\u{2502}';
-const TOP_LEFT: char = '\u{256d}';
-const BOTTOM_LEFT: char = '\u{2570}';
 
-/// What stands at column 1 of each row: where rules and tab cards start.
-fn leads(cells: &[CellView]) -> Vec<(u16, char)> {
-    let mut v: Vec<(u16, char)> = cells
+/// The rows a section opens on: those with a rule at column 1, in order.
+pub(crate) fn heads(cells: &[CellView]) -> Vec<u16> {
+    let mut v: Vec<u16> = cells
         .iter()
-        .filter(|c| c.col == 1)
-        .map(|c| (c.row, c.c))
+        .filter(|c| c.col == 1 && c.c == RULE)
+        .map(|c| c.row)
         .collect();
     v.sort_unstable();
     v
 }
 
-/// The tiles of a nav drawn as `cells`, top to bottom. A section runs from
-/// its rule to the row before the gap that parts it from the next rule; the
-/// last one ends on the last row with ink. A rule with a tab's card
-/// straight under it (PANES, in tabs) is a heading and gets no tile.
-pub(crate) fn tiles(cells: &[CellView]) -> Vec<Tile> {
-    let leads = leads(cells);
-    let accent = crate::palette::accent();
-    let last_ink = cells
-        .iter()
-        .filter(|c| !c.c.is_whitespace())
-        .map(|c| c.row)
-        .max()
-        .unwrap_or(0);
-    let heads: Vec<u16> = leads
-        .iter()
-        .filter(|(_, c)| *c == RULE)
-        .map(|(r, _)| *r)
-        .collect();
-    let tab_tops: Vec<u16> = leads
-        .iter()
-        .filter(|(_, c)| *c == TOP_LEFT)
-        .map(|(r, _)| *r)
-        .collect();
-    let mut out = Vec::new();
-    for (i, &top) in heads.iter().enumerate() {
-        if tab_tops.contains(&(top + 1)) {
-            continue;
-        }
-        let bottom = match heads.get(i + 1) {
-            Some(&next) => next.saturating_sub(2).max(top),
-            None => last_ink.max(top),
-        };
-        out.push(Tile {
-            top,
-            bottom,
-            tab: false,
-            lifted: false,
-        });
-    }
-    for &top in &tab_tops {
-        let bottom = leads
-            .iter()
-            .find(|(r, c)| *r > top && *c == BOTTOM_LEFT)
-            .map_or(last_ink.max(top), |(r, _)| *r);
-        let lifted = cells
-            .iter()
-            .any(|c| c.row == top && c.col == 1 && c.fg == accent);
-        out.push(Tile {
-            top,
-            bottom,
-            tab: true,
-            lifted,
-        });
-    }
-    out.sort_unstable_by_key(|t| t.top);
-    out
+/// Where the grooves lie, in rows from the nav's first: one above every
+/// section but the first (the panel's own top edge opens that one). It
+/// runs through the middle of the gap row over the heading, or along the
+/// heading's top edge where a short nav left no gap.
+pub(crate) fn grooves(cells: &[CellView]) -> Vec<f32> {
+    let inked = |row: u16| cells.iter().any(|c| c.row == row && !c.c.is_whitespace());
+    heads(cells)
+        .into_iter()
+        .skip(1)
+        .map(|h| match inked(h - 1) {
+            true => f32::from(h),
+            false => f32::from(h) - 0.5,
+        })
+        .collect()
 }
 
-/// `cells` with the strokes the tiles replace blanked: every section's
-/// rule, and each tab card's edges. The words on those rows stay.
-pub(crate) fn unruled(cells: &mut [CellView], tiles: &[Tile]) {
-    let heads: Vec<u16> = leads(cells)
-        .into_iter()
-        .filter(|(_, c)| *c == RULE)
-        .map(|(r, _)| r)
-        .collect();
-    let last_col = cells.iter().map(|c| c.col).max().unwrap_or(0);
+/// `cells` with every section's rule blanked. The heading's words stay.
+pub(crate) fn unruled(cells: &mut [CellView]) {
+    let heads = heads(cells);
     for c in cells.iter_mut() {
-        let tab = tiles
-            .iter()
-            .find(|t| t.tab && (t.top..=t.bottom).contains(&c.row));
-        let strike = match tab {
-            Some(t) if c.row == t.top || c.row == t.bottom => {
-                ('\u{2500}'..='\u{257f}').contains(&c.c)
-            }
-            Some(_) => c.c == SIDE && (c.col == 1 || c.col + 1 >= last_col),
-            None => c.c == RULE && heads.contains(&c.row),
-        };
-        if strike {
+        if c.c == RULE && heads.contains(&c.row) {
             c.c = ' ';
         }
     }
 }
 
-/// Where `tile` stands in px: as wide as the nav's own `rect`, its rows
-/// from the content's first row (`rect.y + ch`). A section's tile spreads
-/// into its gap rows until `gap` px part it from the next, except up from
-/// the first row, into the nav's legend. A tab's card stands on rows
-/// adjacent to the next card's, so it keeps its top row whole (its name is
-/// written there) and gives `gap` px of its last, emptied row.
-pub(crate) fn rect_of(tile: &Tile, rect: Rect, ch: f32, gap: f32) -> Rect {
-    let spread = ((ch - gap) / 2.0).max(0.0);
-    let (up, down) = match tile.tab {
-        true => (0.0, -gap.min(ch)),
-        false if tile.top == 0 => (0.0, spread),
-        false => (spread, spread),
-    };
-    let y = rect.y + ch + f32::from(tile.top) * ch - up;
-    let h = f32::from(tile.bottom - tile.top + 1) * ch + up + down;
+/// The grooves at `ys` as paint, for a nav `cols` wide with `ch` px rows:
+/// the page's dark shadow as a hairline and its light one straight under
+/// it, the two a relief card is moulded with, so the line reads as cut
+/// into the panel. They span the columns the rules did, 1 to `cols - 2`.
+pub(crate) fn groove_paint(ys: &[f32], cols: u16, ch: f32) -> Vec<Paint> {
+    let g = crew_theme::glass_style();
+    let line = (ch / 16.0).round().max(1.0) / ch.max(1.0);
+    let w = f32::from(cols.saturating_sub(2));
+    ys.iter()
+        .flat_map(|&y| {
+            [
+                Paint::solid(1.0, y - line, w, line, (0, 0, 0)).at(g.shadow_alpha),
+                Paint::solid(1.0, y, w, line, g.highlight).at(g.highlight_alpha),
+            ]
+        })
+        .collect()
+}
+
+/// Where a tab card's well lies, for a nav whose cells start at `origin`.
+/// Two cards stand on adjacent rows, so each gives `gap` px of its last,
+/// emptied row: a rib of the panel between one well and the next.
+pub(crate) fn well_rect(b: &Box4, origin: (f32, f32), cw: f32, ch: f32, gap: f32) -> Rect {
+    let r = crate::reliefwell::rect_of(b, origin, cw, ch);
     Rect {
-        x: rect.x,
-        y,
-        w: rect.w,
-        h: h.max(0.0),
+        h: (r.h - gap.min(ch)).max(0.0),
+        ..r
     }
 }
 

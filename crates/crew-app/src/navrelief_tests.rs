@@ -18,7 +18,8 @@ fn text(cells: &[CellView], r: u16) -> String {
     s.trim_end().to_string()
 }
 
-/// Two sections, a PANES heading, and two tab cards on adjacent rows.
+/// Two sections a gap row apart, a third hard under the second, a PANES
+/// heading, and two tab cards on adjacent rows.
 fn nav() -> Vec<CellView> {
     let mut v = Vec::new();
     for (r, s) in [
@@ -27,14 +28,16 @@ fn nav() -> Vec<CellView> {
         "",
         " \u{2500} LOAD \u{2500}\u{2500}\u{2500} ",
         "   1.4 2.4   ",
+        " \u{2500} GIT \u{2500}\u{2500}\u{2500}\u{2500} ",
+        "   main      ",
         "",
         " \u{2500} PANES \u{2500}\u{2500} ",
         " \u{256d} 1 \u{b7} a \u{2500}\u{2500}\u{256e} ",
         " \u{2502} 1 far   \u{2502} ",
-        " \u{2570}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{256f} ",
+        " \u{2570}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{256f} ",
         " \u{256d} 2 \u{b7} b \u{2500}\u{2500}\u{256e} ",
         " \u{2502} 2 a\u{2500}b   \u{2502} ",
-        " \u{2570}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{256f} ",
+        " \u{2570}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{256f} ",
     ]
     .iter()
     .enumerate()
@@ -44,71 +47,54 @@ fn nav() -> Vec<CellView> {
     v
 }
 
-/// Every section is a tile from its rule to its last row, each tab card is
-/// one, and the heading over the tab cards is not.
+/// Every section but the first gets a groove: mid-gap where a blank row
+/// parts it from the one above, on the heading's top edge where none does.
+/// A tab card's edges open no section.
 #[test]
-fn a_tile_per_section_and_per_tab_card() {
-    let t: Vec<(u16, u16, bool)> = tiles(&nav())
-        .iter()
-        .map(|t| (t.top, t.bottom, t.tab))
-        .collect();
-    assert_eq!(
-        t,
-        [(0, 1, false), (3, 4, false), (7, 9, true), (10, 12, true)]
-    );
+fn a_groove_above_every_section_but_the_first() {
+    assert_eq!(heads(&nav()), [0, 3, 5, 8]);
+    assert_eq!(grooves(&nav()), [2.5, 5.0, 7.5]);
 }
 
-/// A flat pane list is the last section: its tile ends on the last row
-/// with ink, having no rule after it to end before.
+/// The section strokes go and the words stay; a tab card's own strokes
+/// and a rule inside a pane's name are not this module's to blank.
 #[test]
-fn the_last_section_ends_on_its_last_row() {
-    let mut v = Vec::new();
-    row(&mut v, 0, " \u{2500} PANES 2 \u{2500} ");
-    row(&mut v, 1, "   1 far     ");
-    row(&mut v, 2, "   2 dash    ");
-    row(&mut v, 3, "             ");
-    assert_eq!(
-        tiles(&v),
-        [Tile {
-            top: 0,
-            bottom: 2,
-            tab: false,
-            lifted: false
-        }]
-    );
-}
-
-/// The strokes go and the words stay, a rule inside a pane's name included.
-#[test]
-fn the_rules_are_blanked_and_the_words_kept() {
+fn the_section_rules_are_blanked_and_the_words_kept() {
     let mut v = nav();
-    let t = tiles(&v);
-    unruled(&mut v, &t);
+    unruled(&mut v);
     assert_eq!(text(&v, 0), "   TIME");
-    assert_eq!(text(&v, 6), "   PANES");
-    assert_eq!(text(&v, 7), "   1 \u{b7} a");
-    assert_eq!(text(&v, 9), "");
-    assert_eq!(text(&v, 11), "   2 a\u{2500}b");
+    assert_eq!(text(&v, 8), "   PANES");
+    assert_eq!(text(&v, 13), " \u{2502} 2 a\u{2500}b   \u{2502}");
 }
 
-/// Two sections one gap row apart, and two tab cards on adjacent rows,
-/// both end up `gap` px apart: the gutter the panes keep.
+/// A groove is two hairlines, the dark one resting on the light one, as
+/// wide as the rule it replaces.
 #[test]
-fn neighbouring_tiles_stand_one_gutter_apart() {
-    let (ch, gap) = (17.0, 8.0);
-    let rect = Rect {
-        x: 4.0,
-        y: 10.0,
-        w: 200.0,
-        h: 600.0,
-    };
-    let t = tiles(&nav());
-    let r: Vec<Rect> = t.iter().map(|t| rect_of(t, rect, ch, gap)).collect();
-    for pair in [(0, 1), (2, 3)] {
-        let (a, b) = (r[pair.0], r[pair.1]);
-        assert!((b.y - (a.y + a.h) - gap).abs() < 1e-3, "{a:?} {b:?}");
-    }
-    assert!(r.iter().all(|r| r.x == rect.x && r.w == rect.w));
-    // The first tile keeps off the nav's legend row above it.
-    assert_eq!(r[0].y, rect.y + ch);
+fn a_groove_is_a_dark_line_over_a_light_one() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::Porcelain);
+    let p = groove_paint(&[2.5], 13, 16.0);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    assert_eq!(p.len(), 2);
+    let (dark, lite) = (&p[0], &p[1]);
+    assert_eq!((dark.color, lite.color), ((0, 0, 0), (255, 255, 255)));
+    assert!((dark.y + dark.h - lite.y).abs() < 1e-6 && lite.y == 2.5);
+    assert!(p.iter().all(|l| l.x == 1.0 && l.w == 11.0));
+    // One px of a 16 px row.
+    assert!((dark.h - 1.0 / 16.0).abs() < 1e-6);
+}
+
+/// Two tab cards on adjacent rows end up `gap` px apart: a rib of the
+/// panel between their wells.
+#[test]
+fn neighbouring_tab_wells_keep_a_rib_between_them() {
+    let (cw, ch, gap) = (8.0, 17.0, 6.0);
+    let b = crate::reliefwell::boxes(&nav());
+    assert_eq!(b.len(), 2);
+    let r: Vec<Rect> = b
+        .iter()
+        .map(|b| well_rect(b, (12.0, 27.0), cw, ch, gap))
+        .collect();
+    assert!((r[1].y - (r[0].y + r[0].h) - gap).abs() < 1e-3, "{r:?}");
+    assert_eq!(r[0].y, 27.0 + 9.0 * ch);
 }

@@ -17,7 +17,7 @@ use crate::layout::Rect;
 
 /// How deep an in-card well is pressed: the input bar's depth at rest
 /// (`spotlight::composer_lift`), so the two read as one material.
-const DEPTH: f32 = -0.65;
+pub(crate) const DEPTH: f32 = -0.65;
 /// How far a well's sides stand in from its cells' outer edges, in cells:
 /// neighbouring fields keep a rib of card between them.
 const SIDE: f32 = 0.25;
