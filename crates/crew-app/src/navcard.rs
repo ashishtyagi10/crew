@@ -87,7 +87,7 @@ impl CrewApp {
                 sidebar.chart_paint(cols, rows, aspect, glance.as_ref(), pane_rows.len()),
             )
         });
-        crate::navreliefscene::tile(scenes, sb, cw, ch, g.y);
+        crate::navreliefscene::panel(scenes, cw, ch, g.y);
     }
 
     /// The docked nav's rect and its row division for the frame on screen —
