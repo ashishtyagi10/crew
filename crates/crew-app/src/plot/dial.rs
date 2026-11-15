@@ -96,8 +96,13 @@ pub fn draw(c: &mut Canvas, d: Dial) {
     let px = c.px();
     let bbox = (centre.0 - r, centre.1 - r, 2.0 * r, 2.0 * r);
 
-    // The plate. Faint: it is a ground for the ticks, not a disc.
-    if let Some((col, alpha)) = plate {
+    // A relief theme moulds the face out of the card instead: no plate,
+    // no stroked bezel ([`crate::plot::dialrelief`]).
+    let relief = crew_theme::theme().relief() > 0.0;
+    if relief {
+        crate::plot::dialrelief::mould(c, centre, r);
+    } else if let Some((col, alpha)) = plate {
+        // The plate. Faint: it is a ground for the ticks, not a disc.
         c.fill_sdf(bbox, col, alpha, move |x, y| sdf::disc((x, y), centre, r));
     }
     // The bezel — an arc over the scale, not a closed ring. Closing it would
@@ -105,16 +110,12 @@ pub fn draw(c: &mut Canvas, d: Dial) {
     // instrument's bezel ends where its scale does anyway.
     let bez = (0.035 * r).max(px * 0.5);
     let pad = TAU * 0.015;
-    c.fill_sdf(bbox, track_dim, 1.0, move |x, y| {
-        sdf::arc(
-            (x, y),
-            centre,
-            r - bez,
-            bez,
-            START - pad,
-            START + SPAN + pad,
-        )
-    });
+    let (a0, a1) = (START - pad, START + SPAN + pad);
+    if !relief {
+        c.fill_sdf(bbox, track_dim, 1.0, move |x, y| {
+            sdf::arc((x, y), centre, r - bez, bez, a0, a1)
+        });
+    }
 
     // The scale. A tick the needle has passed takes the reading's colour, so
     // the answer is said in position *and* in how much of the scale is lit —

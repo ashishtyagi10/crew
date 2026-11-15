@@ -20,6 +20,7 @@ family DRAWS, since the first loop found every derived role in one band.
 |---|---|---|---|---|
 | 0 | 63efb0e6 | unreleased | soft: the nav is one raised panel, grooves between sections, tab cards as wells (`navrelief.rs`) | 10 raised tiles + a tile per tab → 1 panel, 9 grooves, a well per tab |
 | 1 | (this merge) | unreleased | LOAD's 5- and 15-minute figures read on see-through glass (`load.rs` `on_frost`) | worst contrast over a black/white desktop, sheer: 1.27-2.09:1 on 11 palettes (3.0-3.4 on neon, prism) → ≥ 3.5:1, or the 1-minute colour where that has no headroom; 13 palettes changed |
+| 2 | feat/soft-dial-mould | unreleased | soft: a dial's face is moulded out of the card (`plot/dialrelief.rs`) | porcelain, sand, mist, slate: flat 6% ink disc + stroked bezel arc → the card's own colour raised by a light and a dark shadow, 0 strokes round the face; 16 other palettes byte-identical |
 
 ### Round 1 — the load history reads on glass
 Behaviour: while the window is see-through, the nav's 5- and 15-minute load
@@ -28,6 +29,15 @@ stepped back toward a page that is no longer what they stand on. Seen:
 `theme_nav_shot`, crt-green and crt-amber over lavender (dark green on grey
 → pale green). Measured: `the_history_reads_on_sheer_glass_over_any_desktop`.
 Rows: none. Opaque windows: byte-identical. Harness added: `theme_nav_shot`.
+
+### Round 2 — soft themes: a dial is a knob
+Behaviour: on the soft themes a gauge dial (the nav's SYSTEM trio, the
+dashboard's) drops its grey plate and its stroked bezel; the face is the
+card's colour, raised off it by the same two shadows that raise the card,
+lit from the same side. Seen: `relief_nav_shot`, porcelain and slate.
+Measured: `the_face_is_the_page_and_the_two_rims_say_where_it_ends` (lit rim
+brighter than the page, far rim darker). Rows: none. Idea: neumorphism.io's
+raised round button; the open item of the first loop.
 
 ## Pending release
 
@@ -39,3 +49,5 @@ Rows: none. Opaque windows: byte-identical. Harness added: `theme_nav_shot`.
   see-through window. They were faded toward the theme's page colour, which
   a see-through window does not show; on the green and amber tubes over a
   light desktop they were close to invisible.
+- Soft themes: the gauge dials are raised out of the card like round
+  knobs, instead of grey discs with a ring drawn round them.
