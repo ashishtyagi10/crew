@@ -22,7 +22,7 @@ day's release.
 | 2 | 5700ff9e | unreleased | dark pages draw hued code at its own lightness (`hueapart.rs`, `apca.rs`) | APCA Lc on the field, 14 dark non-tube palettes: code 52-55 → 56-60, strings 41-42 → 56-60; light + tubes unchanged |
 | 3 | 6f7a00ce | unreleased | a dark page's comment reads (`commentread.rs`) | APCA Lc of comments, 14 dark palettes: 32-40 → 45-46, code ≥ 1.24× above; light + tubes unchanged |
 | 4 | 706ef410 | unreleased | the underline and strike sit where the face says (`rules.rs`) | strike 2.5-4 px above the lower case's middle → on it; underline at `loose` 3-4 px further off its word → same gap as at normal; Comic faces' underline 6.5 px under the baseline → 0.12 em |
-| 5 | MERGE5 | unreleased | soft: a row highlighted in a well wears the capsule (`reliefpill.rs`) | `/far` cursor bar on 4 soft palettes: square slab wall to wall → rounded capsule inset 1 px; other wells unchanged |
+| 5 | 10d2cfe8 | unreleased | soft: a row highlighted in a well wears the capsule (`reliefpill.rs`) | `/far` cursor bar on 4 soft palettes: square slab wall to wall → rounded capsule inset 1 px; other wells unchanged |
 
 ### Round 1 — one apparent size whichever face draws (`sizeadjust.rs`)
 Behaviour: each face is shaped at a factor of the font size: a face with a
