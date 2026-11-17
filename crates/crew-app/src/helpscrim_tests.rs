@@ -8,6 +8,11 @@ fn app_pointing_at_a_pane() -> CrewApp {
         geo_override: Some((8.0, 17.0, 1280.0, 720.0, 1.0)),
         ..Default::default()
     };
+    // The spotlight dims the unfocused card over 260 ms on the APP's motion
+    // setting, not the global one. At the default the frames a test compares
+    // caught it mid-fade, and a loaded gate (2026-11-16) put them far enough
+    // apart in wall time to read as a wrong wash. Off lands it in one frame.
+    app.config.motion = "off".into();
     app.submit_input("/far".to_string());
     app.submit_input("/far".to_string());
     app.input.focused = false;
