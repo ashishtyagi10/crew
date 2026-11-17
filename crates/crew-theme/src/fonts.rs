@@ -199,6 +199,16 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
+        // Metal: mercury's engineered, machined face is IBM Plex Mono. Its
+        // `auto` neighbours lead with others (slate SF Mono before, the Ink
+        // Reader's MonoLisa after), so the step changes the font too.
+        ThemeId::Mercury => &[
+            "IBM Plex Mono",
+            "SF Mono",
+            "JetBrains Mono",
+            "Menlo",
+            "Lilex",
+        ],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

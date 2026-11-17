@@ -42,7 +42,11 @@ fn toggle_theme_cycles_every_mode_and_wraps() {
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Relief));
     assert_eq!(app.config.theme.as_deref(), Some("soft"));
-    // …then auto, every look in turn — ten stops, no more: the modern
+    // …then metal, mercury's liquid metal and its 3D scene…
+    app.toggle_theme();
+    assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Metal));
+    assert_eq!(app.config.theme.as_deref(), Some("metal"));
+    // …then auto, every look in turn — eleven stops, no more: the modern
     // glow palettes are members of the glass pool, not extra presses on the
     // way round.
     app.toggle_theme();

@@ -22,6 +22,7 @@ fn a_lap_is_every_look_once_and_every_classic() {
     assert_eq!(auto_steps(RandomMode::Purple), 1);
     assert_eq!(auto_steps(RandomMode::Prism), 1);
     assert_eq!(auto_steps(RandomMode::Relief), 4);
+    assert_eq!(auto_steps(RandomMode::Metal), 1);
     assert_eq!(lap(), ALL_THEMES.len());
 }
 
@@ -90,7 +91,8 @@ fn classic_opens_on_tokyo_night_and_hands_over_after_monokai() {
     assert_eq!(auto_next(ThemeId::Monokai), RandomMode::Purple);
     assert_eq!(auto_next_palette(ThemeId::Monokai), Some(ThemeId::Amethyst));
     // Purple hands over to prism, prism to relief, which shows its four in
-    // order (the light three, then slate) and, the last look, wraps to dark.
+    // order (the light three, then slate), then metal's one page, the last
+    // look, which wraps to dark.
     assert_eq!(auto_next(ThemeId::Amethyst), RandomMode::Prism);
     assert_eq!(auto_next_palette(ThemeId::Amethyst), Some(ThemeId::Prism));
     assert_eq!(auto_next(ThemeId::Prism), RandomMode::Relief);
@@ -98,7 +100,9 @@ fn classic_opens_on_tokyo_night_and_hands_over_after_monokai() {
     assert_eq!(auto_next_palette(ThemeId::Porcelain), Some(ThemeId::Sand));
     assert_eq!(auto_next_palette(ThemeId::Sand), Some(ThemeId::Mist));
     assert_eq!(auto_next_palette(ThemeId::Mist), Some(ThemeId::Slate));
-    assert_eq!(auto_next(ThemeId::Slate), RandomMode::Dark);
+    assert_eq!(auto_next(ThemeId::Slate), RandomMode::Metal);
+    assert_eq!(auto_next_palette(ThemeId::Slate), Some(ThemeId::Mercury));
+    assert_eq!(auto_next(ThemeId::Mercury), RandomMode::Dark);
     // The tube and the glass are walked too (the user, 2026-11-12: "`theme
     // auto` should rotate through all themes"), in `ALL_THEMES` order.
     assert_eq!(

@@ -1,6 +1,6 @@
 //! Crew's color themes. A single `Theme` struct holds every UI colour, and
 //! sixteen `&'static` presets fill it: the Ink Reader pages, the smoked
-//! glass, two phosphor tubes, neon, five classic editor palettes, a purple one and prism's jade. The active theme lives behind a lock-free `AtomicU8`
+//! glass, two phosphor tubes, neon, five classic editor palettes, a purple one, prism's jade and mercury's liquid metal. The active theme lives behind a lock-free `AtomicU8`
 //! so the winit render thread can read it every frame without blocking. No
 //! dependencies and no knowledge of the other crates — they import this one.
 //!
@@ -113,6 +113,7 @@ mod presets_classic2;
 mod presets_crt;
 mod presets_glass;
 mod presets_glass_clear;
+mod presets_metal;
 mod presets_modern;
 mod presets_modern_light;
 mod presets_neon;
@@ -167,6 +168,7 @@ pub use presets_classic2::{EVERFOREST, GRUVBOX, MONOKAI};
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
+pub use presets_metal::MERCURY;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
 pub use presets_neon::NEON_DARK;
@@ -222,11 +224,12 @@ pub enum ThemeId {
     Sand,
     Mist,
     Slate,
+    Mercury,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 20] = [
+pub const ALL_THEMES: [ThemeId; 21] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -247,6 +250,7 @@ pub const ALL_THEMES: [ThemeId; 20] = [
     ThemeId::Sand,
     ThemeId::Mist,
     ThemeId::Slate,
+    ThemeId::Mercury,
 ];
 
 impl ThemeId {
@@ -272,6 +276,7 @@ impl ThemeId {
             ThemeId::Sand => "sand",
             ThemeId::Mist => "mist",
             ThemeId::Porcelain => "porcelain",
+            ThemeId::Mercury => "mercury",
         }
     }
 
@@ -307,6 +312,9 @@ impl ThemeId {
             }
             ThemeId::Porcelain => {
                 "Porcelain: soft 3D pale-grey cards, no frames, dark ink, indigo accent (neumorphism)"
+            }
+            ThemeId::Mercury => {
+                "Mercury: liquid metal, gunmetal glass over wobbling 3D mercury, steel accent"
             }
         }
     }
@@ -352,6 +360,7 @@ impl ThemeId {
             | ThemeId::Monokai => RandomMode::Classic,
             ThemeId::Amethyst => RandomMode::Purple,
             ThemeId::Prism => RandomMode::Prism,
+            ThemeId::Mercury => RandomMode::Metal,
             ThemeId::Porcelain | ThemeId::Sand | ThemeId::Mist | ThemeId::Slate => {
                 RandomMode::Relief
             }
@@ -389,6 +398,7 @@ impl ThemeId {
     pub fn scene(self) -> Option<&'static str> {
         match self {
             ThemeId::Prism => Some("prism"),
+            ThemeId::Mercury => Some("mercury"),
             _ => None,
         }
     }
@@ -451,6 +461,7 @@ impl ThemeId {
             "sand" => Some(ThemeId::Sand),
             "mist" => Some(ThemeId::Mist),
             "porcelain" => Some(ThemeId::Porcelain),
+            "mercury" => Some(ThemeId::Mercury),
             _ => None,
         }
     }
@@ -477,6 +488,7 @@ impl ThemeId {
             ThemeId::Sand => &SAND,
             ThemeId::Mist => &MIST,
             ThemeId::Porcelain => &PORCELAIN,
+            ThemeId::Mercury => &MERCURY,
         }
     }
 
@@ -568,6 +580,10 @@ pub enum RandomMode {
     /// `mist` and `slate` (the user, 2026-11-12: "lots of 3D effect … just an elevated
     /// card … neumorphism").
     Relief,
+    /// Liquid metal: one gunmetal page of sheer glass over a 3D scene of
+    /// wobbling mercury, `mercury` (the user, 2026-11-17: "add a new liquid
+    /// metal theme for crew").
+    Metal,
     /// Every look in turn, a new one each [`ROTATE_MS`] (the user,
     /// 2026-10-25: "rotate through all available theme, irrespective of
     /// time").
@@ -578,7 +594,7 @@ pub enum RandomMode {
 /// This is the whole user-facing theme list (`/theme`, the settings picker,
 /// the `Ctrl+Shift+L` cycle); everything else (legacy `random-*` / `modern*`
 /// names, individual palettes) parses for back-compat but isn't advertised.
-pub const THEME_MODES: [RandomMode; 10] = [
+pub const THEME_MODES: [RandomMode; 11] = [
     // `auto` leads: it is what crew wears until a theme is chosen, so it is
     // the first option every list offers (the user, 2026-11-14: "`/theme
     // auto` should be default option").
@@ -592,6 +608,7 @@ pub const THEME_MODES: [RandomMode; 10] = [
     RandomMode::Purple,
     RandomMode::Prism,
     RandomMode::Relief,
+    RandomMode::Metal,
 ];
 
 impl RandomMode {
@@ -606,6 +623,7 @@ impl RandomMode {
             RandomMode::Purple => "purple",
             RandomMode::Prism => "prism",
             RandomMode::Relief => "soft",
+            RandomMode::Metal => "metal",
             RandomMode::Auto => "auto",
         }
     }
@@ -630,8 +648,11 @@ impl RandomMode {
             RandomMode::Relief => {
                 "neumorphism: porcelain, sand, mist, slate \u{2014} soft 3D cards moulded from the page, no frames"
             }
+            RandomMode::Metal => {
+                "liquid metal: gunmetal glass over a 3D scene of wobbling mercury, steel accent, always dark"
+            }
             RandomMode::Auto => {
-                "every look in turn \u{2014} dark, light, crt, glass, neon, all five classics, purple, prism, soft \u{2014} a new one every 10 minutes"
+                "every look in turn \u{2014} dark, light, crt, glass, neon, all five classics, purple, prism, soft, metal \u{2014} a new one every 10 minutes"
             }
         }
     }
@@ -648,6 +669,7 @@ impl RandomMode {
             RandomMode::Purple => 8,
             RandomMode::Prism => 9,
             RandomMode::Relief => 10,
+            RandomMode::Metal => 11,
         }
     }
 
@@ -663,6 +685,7 @@ impl RandomMode {
             8 => Some(RandomMode::Purple),
             9 => Some(RandomMode::Prism),
             10 => Some(RandomMode::Relief),
+            11 => Some(RandomMode::Metal),
             _ => None,
         }
     }
@@ -771,6 +794,18 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     .any(|n| s.eq_ignore_ascii_case(n))
     {
         return Some(Selection::Mode(RandomMode::Relief));
+    }
+    if [
+        "metal",
+        "liquid-metal",
+        "liquidmetal",
+        "liquid metal",
+        "chrome",
+    ]
+    .iter()
+    .any(|n| s.eq_ignore_ascii_case(n))
+    {
+        return Some(Selection::Mode(RandomMode::Metal));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -885,7 +920,7 @@ pub fn tick_random(now_ms: u64) -> bool {
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
 /// auto → dark → light → crt → glass → neon → classic → purple → prism →
-/// soft → auto, wrapping. Any other state (a pinned palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
+/// soft → metal → auto, wrapping. Any other state (a pinned palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
 /// rather than hand-writing the successors is what keeps a newly added mode
 /// from being silently unreachable by the hotkey (which is exactly what
 /// happened when a fourth pool was added). Returns the status-line label.

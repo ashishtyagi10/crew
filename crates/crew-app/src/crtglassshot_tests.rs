@@ -125,6 +125,7 @@ fn glass_window_shot() {
         ThemeId::NeonDark,
         ThemeId::Amethyst,
         ThemeId::Prism,
+        ThemeId::Mercury,
     ]
     .into_iter()
     .chain(

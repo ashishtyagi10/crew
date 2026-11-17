@@ -97,15 +97,12 @@ fn theme_command_expands_into_a_value_picker() {
 fn theme_space_lists_the_rotations_first_then_every_palette() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    // The ten themes lead, `auto` (the default) first, then a
+    // The eleven themes lead, `auto` (the default) first, then a
     // heading, then every individual palette. The palettes have always
     // parsed; not offering them meant you had to know the name already.
-    assert_eq!(
-        &labels[..10],
-        &["auto", "dark", "light", "crt", "glass", "neon", "classic", "purple", "prism", "soft"],
-        "{labels:?}"
-    );
-    assert!(items[10].header, "the palettes need a heading: {labels:?}");
+    let want = "auto dark light crt glass neon classic purple prism soft metal";
+    assert_eq!(labels[..11].join(" "), want, "{labels:?}");
+    assert!(items[11].header, "the palettes need a heading: {labels:?}");
     for name in "glass-clear crt-amber nebula gruvbox tokyo-night".split(' ') {
         assert!(labels.contains(&name), "{name} is missing: {labels:?}");
     }

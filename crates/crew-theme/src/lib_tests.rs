@@ -231,11 +231,14 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then soft, the neumorphic cards...
     assert_eq!(cycle_next(9), "soft");
     assert_eq!(current_id().mode(), RandomMode::Relief);
+    // ...then metal, mercury's liquid metal...
+    assert_eq!(cycle_next(10), "metal");
+    assert_eq!(current_id(), ThemeId::Mercury);
     // ...then auto, which moves straight on to another look...
-    assert_eq!(cycle_next(10), "auto");
-    assert_ne!(current_id().mode(), RandomMode::Relief);
-    // ...and wraps back to dark — ten stops, no more.
-    assert_eq!(cycle_next(11), "dark");
+    assert_eq!(cycle_next(11), "auto");
+    assert_ne!(current_id().mode(), RandomMode::Metal);
+    // ...and wraps back to dark — eleven stops, no more.
+    assert_eq!(cycle_next(12), "dark");
     assert!(dark(current_id()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -255,7 +258,8 @@ fn auto_is_advertised_and_holds_every_palette() {
             RandomMode::Classic,
             RandomMode::Purple,
             RandomMode::Prism,
-            RandomMode::Relief
+            RandomMode::Relief,
+            RandomMode::Metal
         ]
     );
     assert!(ALL_THEMES
@@ -412,10 +416,11 @@ fn every_retired_theme_name_still_resolves() {
     // folded into the same day. The neon pair was drawn on 2026-10-22, and
     // its light page retired the same day. The five editor classics and
     // amethyst were drawn on 2026-10-28, prism on 2026-11-08, and the four
-    // neumorphic palettes (porcelain, sand, mist, slate) on 2026-11-12.
+    // neumorphic palettes (porcelain, sand, mist, slate) on 2026-11-12, and
+    // mercury on 2026-11-17.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        43,
+        44,
         "every retiree is listed"
     );
 }
@@ -884,6 +889,7 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
         RandomMode::Purple,
         RandomMode::Prism,
         RandomMode::Relief,
+        RandomMode::Metal,
     ];
     for id in ALL_THEMES {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
@@ -902,7 +908,8 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
     // …and each rotating pool is wide enough to move: `random_pick` filters
     // out the current theme first. `dark` and `light` are one Ink Reader page
     // each (2026-10-16), and `neon` (2026-10-22), `purple` (2026-10-28) and
-    // `prism` (2026-11-08) one dark page each, which is a page, not a rotation.
+    // `prism` (2026-11-08) and `metal` (2026-11-17) one dark page each, which
+    // is a page, not a rotation.
     for m in pools {
         let n = ALL_THEMES.into_iter().filter(|id| m.in_pool(*id)).count();
         let page = matches!(
@@ -912,6 +919,7 @@ fn every_palette_lands_in_exactly_one_of_the_pools() {
                 | RandomMode::Neon
                 | RandomMode::Purple
                 | RandomMode::Prism
+                | RandomMode::Metal
         );
         assert!(
             n >= 2 || (page && n == 1),
@@ -1081,6 +1089,7 @@ fn the_ink_reader_pages_are_their_rotations() {
         ("paper-light", RandomMode::Light, ThemeId::PaperLight),
         ("amethyst", RandomMode::Purple, ThemeId::Amethyst),
         ("prism", RandomMode::Prism, ThemeId::Prism),
+        ("mercury", RandomMode::Metal, ThemeId::Mercury),
     ] {
         assert_eq!(parse_selection(name), Some(Selection::Mode(mode)), "{name}");
         assert_eq!(page.selection(), Selection::Mode(mode), "{name}");
@@ -1099,6 +1108,7 @@ fn the_ink_reader_pages_are_their_rotations() {
                 | ThemeId::NeonDark
                 | ThemeId::Amethyst
                 | ThemeId::Prism
+                | ThemeId::Mercury
         ) {
             continue;
         }
