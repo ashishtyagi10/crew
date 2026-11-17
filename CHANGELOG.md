@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.16
+
+**Fonts read at one size; code on dark themes reads clearer.**
+
+Fonts:
+- Every font reads at about the same size. A font with a short lower case is drawn a little larger, and a font too wide for its cell is drawn a little smaller so it fits. The cell itself never moves, and the fonts crew was tuned on look exactly as before.
+- Underlines and strike-throughs sit where the font says they go. The strike-through used to run a few pixels above the middle of the lower-case letters on every font, and the underline drifted further below its word the more line spacing you set.
+
+Dark themes:
+- Coloured code, such as cyan code and green strings, keeps its own brightness instead of being dimmed toward the page. Grey code and the tube themes are unchanged. On `prism`, strings are its bright green.
+- Code comments are easier to read. They are lifted to a readable contrast in their own colour, and still stay dimmer than the code around them. The tube themes are unchanged.
+
+Soft themes (`porcelain`, `sand`, `mist`, `slate`):
+- A highlighted row inside a well, such as `/far`'s cursor bar, is a rounded capsule like inline code instead of a square slab from wall to wall.
+
 ## 0.30.15
 
 **Soft themes: one side panel, moulded dials; glass reads better.**
