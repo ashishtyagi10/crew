@@ -288,7 +288,7 @@ way that machine presses it.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
-| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → soft → auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → soft → metal → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
@@ -912,7 +912,7 @@ configurable property: font family/size, font smoothing (the `/smooth`
 ladder), text gamma
 (the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, card border
-marks, revealed invisibles, the 3D backdrop (`theme · off · orbit · prism`,
+marks, revealed invisibles, the 3D backdrop (`theme · off · orbit · prism · mercury`,
 as `/look 3d`), launch-maximized, Option as Meta, scrollback
 length (`scrollback`, default 10 000 lines, 100–100 000 — a save resizes the
 panes already open), and the whole
@@ -955,9 +955,9 @@ brightnesses; code is highlighted by brightness alone, as on a phosphor
 terminal (keywords brightest, then types and calls, numbers, strings,
 comments). A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
-`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `prism` → `dark` — a new one
-every 10 minutes, whatever the clock or the OS appearance. In `classic` it shows all five,
-one after another, so every lap (120 minutes) shows every classic.
+`dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `prism` → `soft` → `metal` → `dark` — a new one
+every 10 minutes, whatever the clock or the OS appearance. Inside each look it shows every palette,
+one after another, so every lap (210 minutes) shows all twenty-one.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
 it is always dark, whatever the OS appearance or the clock. A fine grid glows
@@ -1012,12 +1012,24 @@ split beam's colours: ice-mint keywords, lilac types, sky calls, coral
 numbers, jade strings. `/theme prism` turns it on; `/look 3d off` keeps the
 page and drops the scene.
 
+`metal` is liquid metal: one gunmetal page of sheer glass over a 3D scene of
+mercury, on by default. Pools of chrome wobble at three depths, each a few
+lobes circling so close that they read as one blob forever folding into
+itself, with lone droplets between. What makes them metal is what they
+mirror: a small studio drawn for them (a dark floor, a bright steel horizon,
+a white softbox overhead and tall strip lights, cool steel on one side and
+warm copper on the other), so the chrome shines silver with a copper rim.
+The accent is steel, a grey with only a cold cast, the frame and ring run
+silver to blued steel, and the face is IBM Plex Mono. `/theme metal` (or
+`liquid-metal`, `chrome`, `mercury`) turns it on; `/look 3d off` keeps the
+page and drops the scene.
+
 **The 3D backdrop** is `/look 3d` (or `/3d`): `theme` (the default) draws
-the theme's own scene — only prism has one — `off` draws none on any theme,
-and `orbit` (a metal knot with a ring of crystals) or `prism` draws that
+the theme's own scene — prism and metal have one — `off` draws none on any
+theme, and `orbit` (a metal knot with a ring of crystals), `prism` or `mercury` draws that
 scene on every glass theme. A paper page's panes are solid, so the scene
 shows only behind glass.
-That makes **sixteen palettes** in all.
+That makes **twenty-one palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a

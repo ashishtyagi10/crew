@@ -383,10 +383,8 @@ fn the_todo_line_reaches_a_text_mode_agent_whole() {
 #[test]
 fn workspace_list_dir_reports_symlinks_without_following_them() {
     let dir = std::env::temp_dir().join(format!("systools-workspace-ls-{}", std::process::id()));
-    let outside = std::env::temp_dir().join(format!(
-        "systools-workspace-out-{}",
-        std::process::id()
-    ));
+    let outside =
+        std::env::temp_dir().join(format!("systools-workspace-out-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let _ = std::fs::remove_dir_all(&outside);
     std::fs::create_dir_all(&dir).unwrap();

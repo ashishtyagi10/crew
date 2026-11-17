@@ -9,10 +9,7 @@ use crate::graph::TaskId;
 type Work = (TaskId, Option<TaskResult>);
 
 /// Consume one completion; an unexpected JoinError is attached to its task id.
-pub(super) async fn next(
-    tasks: &mut JoinSet<Work>,
-    ids: &mut HashMap<Id, TaskId>,
-) -> Option<Work> {
+pub(super) async fn next(tasks: &mut JoinSet<Work>, ids: &mut HashMap<Id, TaskId>) -> Option<Work> {
     match tasks.join_next_with_id().await? {
         Ok((id, work)) => {
             ids.remove(&id)?;

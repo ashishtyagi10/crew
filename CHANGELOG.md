@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.17
+
+**New metal theme: liquid chrome over a 3D scene of mercury.**
+
+Themes:
+- `/theme metal` is liquid metal: one gunmetal page of sheer glass over a 3D scene of mercury, on by default. Pools of chrome wobble at three depths, each a few lobes circling so close they read as one blob folding into itself, with lone droplets between. They mirror a small studio drawn for them, so the chrome shines silver with a copper rim. `liquid-metal`, `chrome` and `mercury` turn it on too.
+- The accent is steel, a grey with only a cold cast; the frame runs silver to blued steel, the busy colour is copper, and the font is IBM Plex Mono.
+- `/look 3d off` keeps the metal page and drops the scene. `/look 3d mercury` draws the chrome pools behind any glass theme, and Settings → **3D backdrop** offers it too.
+- `Ctrl+Shift+L` now steps to `metal` after `soft`, and `auto` shows it too: a lap now shows all twenty-one palettes and takes 210 minutes.
+
+Agent swarms:
+- An agent that crashes now counts as one failed task. Before, it could stop the whole run.
+- A plan with more than 256 tasks is refused with a message saying how many it had, instead of being run.
+
+Agent smith's built-in tools:
+- `CREW_SYS_MODE=workspace` keeps smith's file tools (read, write, edit, list, search, find files and outline) inside the folder crew was started in. Links that point outside it are not followed, and the git tool is turned off in this mode. Shell commands are not confined: they still ask for your approval as before.
+
 ## 0.30.16
 
 **Fonts read at one size; code on dark themes reads clearer.**

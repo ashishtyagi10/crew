@@ -41,12 +41,15 @@ fn auto_names_the_look_on_screen_and_the_next_one() {
     assert!(msg.contains("now classic (monokai), next purple"), "{msg}");
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Amethyst);
     assert!(msg.contains("now purple (amethyst), next prism"), "{msg}");
-    // Then the neumorphic four, one by one, and the walk wraps to dark.
+    // Then the neumorphic four, one by one, then metal, and the walk wraps
+    // to dark.
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Prism);
     assert!(
         msg.contains("now prism (prism), next soft (porcelain)"),
         "{msg}"
     );
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Slate);
-    assert!(msg.contains("now soft (slate), next dark"), "{msg}");
+    assert!(msg.contains("now soft (slate), next metal"), "{msg}");
+    let msg = report("auto", Some(RandomMode::Auto), ThemeId::Mercury);
+    assert!(msg.contains("now metal (mercury), next dark"), "{msg}");
 }

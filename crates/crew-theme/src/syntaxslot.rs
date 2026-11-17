@@ -171,6 +171,19 @@ pub const PRISM: SyntaxSlots = SyntaxSlots {
 
 /// Porcelain: indigo keywords (the blue slot, its accent), teal types, plum
 /// calls, rust numbers, green strings, ochre identifiers: printed inks.
+/// Mercury (liquid metal): blued-steel keywords, cyan types (the cold
+/// shine), brass calls, copper numbers (its warm rim light), green strings,
+/// and identifiers in the magenta of an oil-slick sheen.
+pub const MERCURY: SyntaxSlots = SyntaxSlots {
+    keyword: 4,
+    ty: 6,
+    func: 3,
+    number: 1,
+    string: 2,
+    code: 5,
+    comment: None,
+};
+
 pub const PORCELAIN: SyntaxSlots = SyntaxSlots {
     keyword: 4,
     ty: 6,

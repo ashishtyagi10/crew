@@ -16,6 +16,7 @@
 use std::sync::atomic::{AtomicU32, AtomicU8, Ordering};
 use std::sync::Arc;
 
+use crate::stage3dmercury::Mercury;
 use crate::stage3dprism::Prisms;
 use crate::stage3dscene::{Built, Palette};
 
@@ -27,15 +28,19 @@ pub enum Stage {
     /// Faceted glass prisms drifting in a fog of the page: the prism
     /// theme's own scene (`crew_theme::ThemeId::scene`).
     Prism,
+    /// Pools of mercury wobbling in a fog of the page, mirroring a studio
+    /// of their own: the liquid-metal theme's scene.
+    Mercury,
 }
 
 impl Stage {
-    pub const ALL: [Stage; 2] = [Stage::Orbit, Stage::Prism];
+    pub const ALL: [Stage; 3] = [Stage::Orbit, Stage::Prism, Stage::Mercury];
 
     pub fn name(self) -> &'static str {
         match self {
             Stage::Orbit => "orbit",
             Stage::Prism => "prism",
+            Stage::Mercury => "mercury",
         }
     }
 
@@ -104,11 +109,13 @@ fn phase() -> f32 {
 /// How much of the scene shows: dim enough that a pane's words over its
 /// glass still read first. A light page takes less, as it shows more.
 /// Prism's low-contrast glass in fog takes a little more than orbit's lit
-/// metal: at orbit's strength its prisms read as smudges.
+/// metal: at orbit's strength its prisms read as smudges. Mercury's chrome,
+/// seen through its theme's glass, takes more again, or it reads as dark oil.
 pub(crate) fn strength(stage: Stage, dark: bool) -> f32 {
     match (stage, dark) {
         (_, false) => 0.45,
         (Stage::Prism, true) => 0.8,
+        (Stage::Mercury, true) => 0.92,
         (Stage::Orbit, true) => 0.7,
     }
 }
@@ -117,6 +124,7 @@ pub(crate) fn strength(stage: Stage, dark: bool) -> f32 {
 enum Shown {
     Orbit(Built),
     Prism(Prisms),
+    Mercury(Mercury),
 }
 
 impl Shown {
@@ -124,6 +132,7 @@ impl Shown {
         match stage {
             Stage::Orbit => Shown::Orbit(Built::orbit(p, aspect)),
             Stage::Prism => Shown::Prism(Prisms::new(p, aspect)),
+            Stage::Mercury => Shown::Mercury(Mercury::new(p, aspect)),
         }
     }
 
@@ -131,6 +140,7 @@ impl Shown {
         match self {
             Shown::Orbit(_) => Stage::Orbit,
             Shown::Prism(_) => Stage::Prism,
+            Shown::Mercury(_) => Stage::Mercury,
         }
     }
 
@@ -138,6 +148,7 @@ impl Shown {
         match self {
             Shown::Orbit(b) => b.palette,
             Shown::Prism(b) => b.palette,
+            Shown::Mercury(b) => b.palette,
         }
     }
 
@@ -151,6 +162,11 @@ impl Shown {
                 r.render(&mut b.scene, &b.camera, view, false);
             }
             Shown::Prism(b) => {
+                b.set_aspect(aspect);
+                b.pose(phase);
+                r.render(&mut b.scene, &b.camera, view, false);
+            }
+            Shown::Mercury(b) => {
                 b.set_aspect(aspect);
                 b.pose(phase);
                 r.render(&mut b.scene, &b.camera, view, false);
