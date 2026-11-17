@@ -306,7 +306,7 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
 <!-- ==================== ARCHITECTURE ==================== -->
 <section id="architecture" class="section">
   <div class="container">
-    <h2 class="section-title">Six crates. <span class="gradient-text">One workspace.</span></h2>
+    <h2 class="section-title">Seven crates. <span class="gradient-text">One workspace.</span></h2>
     <p class="section-sub">Every <code>.rs</code> file stays ≤200 lines; clippy runs warning-free.</p>
 
     <div class="themes-grid">
@@ -362,6 +362,15 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
           <span style="color: var(--fg);">planner · scheduler</span><br/>
           <span style="color: var(--fg);">agent pool · blackboard</span><br/>
           <span style="color: var(--fg);">task-list swarm view</span>
+        </div>
+      </div>
+      <div class="theme-card" style="--bg: #0a0a0a; --fg: #56d4dd; --accent: #56d4dd; --header: #56d4dd;">
+        <div class="theme-label">crew-lsp</div>
+        <div class="theme-preview">
+          <span style="color: var(--header);">language-server client</span><br/>
+          <span style="color: var(--fg);">definitions · references</span><br/>
+          <span style="color: var(--fg);">hover · diagnostics</span><br/>
+          <span style="color: var(--fg);">JSON-RPC over stdio</span>
         </div>
       </div>
     </div>

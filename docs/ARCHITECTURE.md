@@ -4,10 +4,10 @@ Crew is a from-scratch, native **GPU terminal** (Rust · `winit` + `wgpu` + `gly
 that doubles as a **swarm orchestrator**: give it a goal and it decomposes the work
 and runs a pool of agents toward it, rendered as a live per-task status list.
 
-The workspace is six crates: `crew-app` (the application), `crew-render` (GPU
-pipeline), `crew-term` (PTY + terminal grid), `crew-plugin` (subprocess agent
-plugins), `crew-theme` (the theme presets + palette contracts), and `crew-hive`
-(the orchestration engine).
+The workspace has seven crates: `crew-app` (the application), `crew-render` (GPU
+pipeline), `crew-term` (PTY + terminal grid), `crew-plugin` (agent and plugin
+broker), `crew-theme` (theme presets + palette contracts), `crew-hive` (the
+orchestration engine), and `crew-lsp` (language-server integration).
 
 ## Application architecture
 
@@ -111,12 +111,13 @@ fully unit/integration-tested; bring-your-own-LLM per agent.
   borders via an SDF shader). Everything is cells — no overlays. Colours cross
   the sRGB boundary once (linear conversion at the GPU edge) and the whole-pixel
   cell box never changes with the font.
-- **crew-theme** defines the theme presets (9 themes: paper, sepia/ink/graphite
-  darks, CRT phosphors) and the palette contracts (contrast thresholds,
-  dark/grain data fields) every surface draws from.
+- **crew-theme** defines the theme presets and the palette contracts (contrast
+  thresholds, dark/grain data fields) every surface draws from.
 - **crew-term** backs Terminal panes (PTY, scrollback, OSC titles, OSC 10/11 +
-  DSR query replies from the active theme); **crew-plugin**
-  backs Chat/agent panes via JSON-over-stdio subprocesses.
+  DSR query replies from the active theme); **crew-plugin** backs Chat/agent panes
+  and their JSON-over-stdio subprocesses.
+- **crew-lsp** provides the JSON-RPC client and typed language-server operations
+  for code navigation and diagnostics.
 - **crew-hive** is the engine: a goal is decomposed by the planner into a task
   graph, executed by a tokio scheduler over a bounded pool of agents (stub, native
   LLM, or remote/sidecar), with results merging through the blackboard and

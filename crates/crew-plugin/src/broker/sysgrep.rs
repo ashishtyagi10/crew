@@ -68,7 +68,8 @@ pub(crate) fn grep(v: &serde_json::Value) -> Result<String, String> {
     }
     let mut fit = Fit::spilling("grep");
     for (rel, path) in files(root) {
-        if glob.is_some_and(|g| !glob_match(g, &rel))
+        if !super::sysworkspace::discovered(&path)
+            || glob.is_some_and(|g| !glob_match(g, &rel))
             || std::fs::metadata(&path).map_or(true, |m| !m.is_file() || m.len() > FILE_CAP)
         {
             continue;
@@ -168,9 +169,9 @@ pub(crate) fn glob(v: &serde_json::Value) -> Result<String, String> {
         .ok_or("missing string argument \u{201c}pattern\u{201d}")?;
     let root = Path::new(v.get("path").and_then(|p| p.as_str()).unwrap_or("."));
     let mut fit = Fit::spilling("glob");
-    for (rel, _) in files(root)
+    for (rel, path) in files(root)
         .into_iter()
-        .filter(|(rel, _)| glob_match(pattern, rel))
+        .filter(|(rel, path)| glob_match(pattern, rel) && super::sysworkspace::discovered(path))
     {
         fit.file();
         fit.push(rel);

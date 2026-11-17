@@ -91,3 +91,23 @@ fn diamond_dag_accepted_and_ready_correct() {
     done.insert(TaskId(2));
     assert_eq!(g.ready(&done), vec![TaskId(3)]);
 }
+
+#[test]
+fn new_rejects_a_plan_over_the_task_limit() {
+    let tasks = (0..=MAX_TASKS as u64).map(|id| spec(id, &[])).collect();
+    assert_eq!(
+        TaskGraph::new(tasks).unwrap_err(),
+        GraphError::TooManyTasks {
+            max: MAX_TASKS,
+            actual: MAX_TASKS + 1,
+        }
+    );
+}
+
+#[test]
+fn a_large_linear_dag_is_validated_without_repeated_ready_scans() {
+    let tasks = (0..MAX_TASKS as u64)
+        .map(|id| if id == 0 { spec(id, &[]) } else { spec(id, &[id - 1]) })
+        .collect();
+    assert_eq!(TaskGraph::new(tasks).unwrap().len(), MAX_TASKS);
+}

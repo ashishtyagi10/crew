@@ -378,3 +378,38 @@ fn the_todo_line_reaches_a_text_mode_agent_whole() {
     let e = call("todo", r#"{"items": []}"#).unwrap_err();
     assert!(e.contains("not in one"), "{e}");
 }
+
+#[cfg(unix)]
+#[test]
+fn workspace_list_dir_reports_symlinks_without_following_them() {
+    let dir = std::env::temp_dir().join(format!("systools-workspace-ls-{}", std::process::id()));
+    let outside = std::env::temp_dir().join(format!(
+        "systools-workspace-out-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&outside);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::create_dir_all(&outside).unwrap();
+    std::fs::write(outside.join("secret.txt"), "secret").unwrap();
+    std::os::unix::fs::symlink(&outside, dir.join("escape")).unwrap();
+
+    let out = list_dir_with_mode(dir.to_str().unwrap(), true).unwrap();
+    assert!(out.contains("escape (symlink)"), "{out}");
+    assert!(!out.contains("escape/"), "{out}");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&outside);
+}
+
+#[test]
+fn workspace_mode_label_and_gate_are_explicit() {
+    assert_eq!(
+        mode_label_from(Some("workspace")),
+        "workspace-only file tools (shell is not sandboxed)"
+    );
+    assert_eq!(mode_label_from(Some("readonly")), "read-only");
+    assert_eq!(mode_label_from(Some("ro")), "read-only");
+    assert_eq!(mode_label_from(Some("full")), "full");
+    assert!(workspace_only_from(Some("workspace")));
+    assert!(!workspace_only_from(Some("full")));
+}

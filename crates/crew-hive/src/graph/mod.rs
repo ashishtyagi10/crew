@@ -5,7 +5,10 @@ mod tests;
 
 pub use spec::{AgentKind, GraphError, ModelTier, TaskId, TaskSpec, TaskState};
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet, VecDeque};
+
+/// Maximum number of tasks accepted in one plan.
+pub const MAX_TASKS: usize = 256;
 
 #[derive(Debug, Clone)]
 pub struct TaskGraph {
@@ -14,6 +17,12 @@ pub struct TaskGraph {
 
 impl TaskGraph {
     pub fn new(tasks: Vec<TaskSpec>) -> Result<Self, GraphError> {
+        if tasks.len() > MAX_TASKS {
+            return Err(GraphError::TooManyTasks {
+                max: MAX_TASKS,
+                actual: tasks.len(),
+            });
+        }
         let mut ids = HashSet::new();
         for t in &tasks {
             if !ids.insert(t.id) {
@@ -64,18 +73,36 @@ impl TaskGraph {
         self.tasks.is_empty()
     }
 
-    /// Kahn's algorithm: if we cannot remove all nodes by repeatedly removing
-    /// those with no unsatisfied deps, a cycle exists.
+    /// Kahn's algorithm in O(tasks + dependencies), independent of plan shape.
     fn has_cycle(&self) -> bool {
-        let mut done: HashSet<TaskId> = HashSet::new();
-        loop {
-            let next = self.ready(&done);
-            if next.is_empty() {
-                return done.len() != self.tasks.len();
-            }
-            for id in next {
-                done.insert(id);
+        let indices: HashMap<TaskId, usize> = self
+            .tasks
+            .iter()
+            .enumerate()
+            .map(|(i, task)| (task.id, i))
+            .collect();
+        let mut incoming: Vec<usize> = self.tasks.iter().map(|task| task.deps.len()).collect();
+        let mut outgoing = vec![Vec::new(); self.tasks.len()];
+        for (i, task) in self.tasks.iter().enumerate() {
+            for dep in &task.deps {
+                outgoing[indices[dep]].push(i);
             }
         }
+        let mut ready: VecDeque<usize> = incoming
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &n)| (n == 0).then_some(i))
+            .collect();
+        let mut removed = 0;
+        while let Some(i) = ready.pop_front() {
+            removed += 1;
+            for &next in &outgoing[i] {
+                incoming[next] -= 1;
+                if incoming[next] == 0 {
+                    ready.push_back(next);
+                }
+            }
+        }
+        removed != self.tasks.len()
     }
 }

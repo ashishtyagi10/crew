@@ -191,6 +191,84 @@ async fn panicking_agent_becomes_failed_not_abort() {
 }
 
 #[tokio::test]
+async fn panicking_factory_becomes_failed_not_abort() {
+    use crate::agent::{Agent, AgentFactory, StubFactory};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    struct SometimesPanics(AtomicUsize);
+    impl AgentFactory for SometimesPanics {
+        fn make(&self, kind: &AgentKind) -> Box<dyn Agent> {
+            if self.0.fetch_add(1, Ordering::SeqCst) == 0 {
+                panic!("factory construction panic");
+            }
+            StubFactory.make(kind)
+        }
+    }
+
+    let graph = TaskGraph::new(vec![spec(0, &[]), spec(1, &[])]).unwrap();
+    let out = Scheduler::new(
+        graph,
+        Blackboard::new(),
+        EventBus::new(64),
+        Arc::new(SometimesPanics(AtomicUsize::new(0))),
+        2,
+    )
+    .run()
+    .await;
+    assert_eq!(out.failed.len(), 1, "{out:?}");
+    assert_eq!(out.done.len(), 1, "{out:?}");
+    assert!(out.cancelled.is_empty(), "{out:?}");
+}
+
+#[tokio::test]
+async fn synchronous_attempt_panic_becomes_failed_not_abort() {
+    use crate::agent::{Agent, AgentContext, AgentFactory, Attempt};
+    use crate::board::TaskResult;
+    use std::future::Future;
+    use std::pin::Pin;
+
+    struct PanickingAttempt;
+    impl Agent for PanickingAttempt {
+        fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+            Box::pin(async move {
+                TaskResult {
+                    task: ctx.task.id,
+                    output: "ok".into(),
+                    success: true,
+                }
+            })
+        }
+
+        fn attempt(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = Attempt> + Send>> {
+            if ctx.task.id == TaskId(0) {
+                panic!("attempt future construction panic");
+            }
+            let run = self.run(ctx);
+            Box::pin(async move { run.await.into() })
+        }
+    }
+    struct Factory;
+    impl AgentFactory for Factory {
+        fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
+            Box::new(PanickingAttempt)
+        }
+    }
+
+    let graph = TaskGraph::new(vec![spec(0, &[]), spec(1, &[])]).unwrap();
+    let out = Scheduler::new(
+        graph,
+        Blackboard::new(),
+        EventBus::new(64),
+        Arc::new(Factory),
+        2,
+    )
+    .run()
+    .await;
+    assert_eq!(out.failed, vec![TaskId(0)], "{out:?}");
+    assert_eq!(out.done, vec![TaskId(1)], "{out:?}");
+}
+
+#[tokio::test]
 async fn transitive_cancel() {
     // 0 fails -> 1 (dep 0) cancelled -> 2 (dep 1) cancelled.
     let g = TaskGraph::new(vec![spec(0, &[]), spec(1, &[0]), spec(2, &[1])]).unwrap();

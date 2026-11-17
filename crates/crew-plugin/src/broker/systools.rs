@@ -3,7 +3,7 @@
 //! Bounded (timeout, 64 KB captures, paged reads), non-interactive, visible as hops.
 //! `CREW_SYS_TOOLS=0` disables; so does the mock provider, keeping scripted
 //! broker tests deterministic. Relative paths resolve against the broker cwd
-//! — a convention, not a sandbox.
+//! — a convention by default; `CREW_SYS_MODE=workspace` confines built-in file tools.
 use crate::mcp::McpTool;
 
 /// Capture cap per `sys:run` stream. File reads page instead (`sysread::PAGE`).
@@ -34,6 +34,14 @@ pub(crate) fn read_only_from(v: Option<&str>) -> bool {
     matches!(v, Some("readonly") | Some("ro"))
 }
 
+pub(crate) fn workspace_only() -> bool {
+    workspace_only_from(std::env::var("CREW_SYS_MODE").ok().as_deref())
+}
+
+pub(crate) fn workspace_only_from(mode: Option<&str>) -> bool {
+    mode == Some("workspace")
+}
+
 /// The block message when a MUTATING tool is used in read-only mode, else None.
 fn read_only_block(tool: &str, read_only: bool) -> Option<String> {
     if read_only && super::tier::blocked_by_read_only(tool) {
@@ -47,7 +55,13 @@ fn read_only_block(tool: &str, read_only: bool) -> Option<String> {
 
 /// Human label for the current sys mode.
 pub(crate) fn mode_label() -> &'static str {
-    if read_only() {
+    mode_label_from(std::env::var("CREW_SYS_MODE").ok().as_deref())
+}
+
+pub(crate) fn mode_label_from(mode: Option<&str>) -> &'static str {
+    if workspace_only_from(mode) {
+        "workspace-only file tools (shell is not sandboxed)"
+    } else if read_only_from(mode) {
         "read-only"
     } else {
         "full"
@@ -296,14 +310,48 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
     };
     match tool {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
-        "read_file" => super::sysreadline::read(str_arg(&v, "path")?, &v),
-        "write_file" => super::syswrite::write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
-        "edit" => super::editargs::edit(&v),
-        "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
-        "grep" => super::sysgrep::grep(&v),
-        "glob" => super::sysgrep::glob(&v),
+        "read_file" => {
+            let path = super::sysworkspace::checked(str_arg(&v, "path")?, tool)?;
+            super::sysreadline::read(&path, &v)
+        }
+        "write_file" => {
+            let path = super::sysworkspace::checked(str_arg(&v, "path")?, tool)?;
+            super::syswrite::write_file(&path, str_arg(&v, "content")?)
+        }
+        "edit" => {
+            let path = super::sysworkspace::checked(str_arg(&v, "path")?, tool)?;
+            let mut args = v;
+            args["path"] = serde_json::Value::String(path);
+            super::editargs::edit(&args)
+        }
+        "list_dir" => {
+            let path = super::sysworkspace::checked(
+                v.get("path").and_then(|p| p.as_str()).unwrap_or("."),
+                tool,
+            )?;
+            list_dir(&path)
+        }
+        "grep" | "glob" => {
+            let path = super::sysworkspace::checked(
+                v.get("path").and_then(|p| p.as_str()).unwrap_or("."),
+                tool,
+            )?;
+            let mut args = v;
+            args["path"] = serde_json::Value::String(path);
+            if tool == "grep" {
+                super::sysgrep::grep(&args)
+            } else {
+                super::sysgrep::glob(&args)
+            }
+        }
+        "git" if workspace_only() => Err(
+            "sys:git is disabled in CREW_SYS_MODE=workspace because its path arguments can reach outside the working directory".into(),
+        ),
         "git" => super::sysgit::git(&v),
-        "outline" => super::sysoutline::outline(str_arg(&v, "path")?),
+        "outline" => {
+            let path = super::sysworkspace::checked(str_arg(&v, "path")?, tool)?;
+            super::sysoutline::outline(&path)
+        }
         "fetch" => super::sysfetch::fetch(str_arg(&v, "url")?),
         "search" => super::syssearch::search(str_arg(&v, "q")?),
         // The list is the task's, so the task's surface answers it
@@ -326,13 +374,25 @@ pub(super) fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str
 const MAX_ENTRIES: usize = 500;
 
 fn list_dir(path: &str) -> Result<String, String> {
+    list_dir_with_mode(path, workspace_only())
+}
+
+fn list_dir_with_mode(path: &str, workspace: bool) -> Result<String, String> {
     let rd = std::fs::read_dir(path).map_err(|e| super::syspath::with_hint("list", path, e))?;
     let mut lines: Vec<String> = Vec::new();
     for entry in rd.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        // A broken symlink or a permissions error shouldn't fail the whole
-        // listing — note the entry as unstat-able and keep going.
-        lines.push(match std::fs::metadata(entry.path()) {
+        // Do not follow directory-entry symlinks in workspace mode; a broken
+        // symlink or permissions error should not fail the whole listing.
+        let metadata = if workspace {
+            std::fs::symlink_metadata(entry.path())
+        } else {
+            std::fs::metadata(entry.path())
+        };
+        lines.push(match metadata {
+            Ok(meta) if workspace && meta.file_type().is_symlink() => {
+                format!("{name} (symlink)")
+            }
             Ok(meta) if meta.is_dir() => format!("{name}/"),
             Ok(meta) => format!("{name} ({} B)", meta.len()),
             Err(_) => format!("{name} (?)"),

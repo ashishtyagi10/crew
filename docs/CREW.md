@@ -2,8 +2,8 @@
 
 A from-scratch, native **GPU terminal** written in Rust — an AI-oriented terminal
 where everything renders in the terminal as tiles (no overlays). Crew is the
-successor to this repo's original terminal file-manager project; the crates under
-`crates/smith-*` are the product.
+successor to this repo's original terminal file-manager project; the `crew-*`
+crates under `crates/` make up the product.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ successor to this repo's original terminal file-manager project; the crates unde
   hand over pictures (`crew_render::Picture`), which the renderer draws as
   textures at the display's resolution (`images`), over the cells'
   backgrounds and under their text; the mail reader's pictures go this way.
-- **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/smith-term`).
+- **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/crew-term`).
 - **In-pane UI** — `ratatui` widgets are laid out into a `Buffer` and converted to
   GPU cells (the settings form, command palette, and help overlay use this).
 - **Crates** — `crew-app` (window, panes, input), `crew-render` (GPU), `crew-term`
@@ -3519,9 +3519,15 @@ redirect limit, the 20-second deadline and the size caps all hold here too,
 and it is classified `read` for the same reason.
 
 `CREW_SYS_MODE=readonly` blocks the mutating three (`run`, `write_file`,
-`edit`) and
-leaves `fetch` and `search` available, `CREW_SYS_TOOLS=0` turns the surface off entirely,
-and `/doctor` shows the active mode. An approximate per-thread **token budget**
+`edit`) and leaves `fetch` and `search` available. `CREW_SYS_MODE=workspace`
+confines built-in file tools (`read_file`, `write_file`, `edit`, `list_dir`,
+`grep`, `glob`, and `outline`) to the broker's working directory; symlinks are
+resolved before paths are checked, and escaping grep/glob symlinks are skipped.
+`sys:git` is disabled in this mode because git's path arguments can escape.
+This is application-level path checking, not an OS sandbox: `sys:run` remains
+approval-gated but its shell process is not confined by workspace mode. Use
+`CREW_SYS_TOOLS=0` to turn the surface off entirely, and `/doctor` shows the
+active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
 past it.
 
@@ -3775,7 +3781,7 @@ An adapter normalizes each agent's stdout before it is ever shown or relayed
 (claude `-p --output-format text` and `codex exec` print the reply on stdout;
 opencode's `--format json` event stream is parsed for the assistant text).
 
-**Architecture.** The reusable broker lives in `crates/smith-plugin/src/broker/`:
+**Architecture.** The reusable broker lives in `crates/crew-plugin/src/broker/`:
 `Envelope { from, to, thread_id, hop, body }` is the message shape, an `Adapter`
 turns a body into a clean reply, the `Registry` maps name → adapter (populated by
 `discover()`), and the engine drives the relay with the loop guard. **To add an
@@ -3789,10 +3795,14 @@ depth; `CREW_BROKER_TOKEN_BUDGET` (default 0 = unlimited) caps a thread's
 approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
 agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
-`CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
-sys tools (`sys:run`, `sys:read_file`, `sys:write_file`, `sys:edit`, `sys:list_dir`,
-`sys:grep`, `sys:glob`, `sys:outline`, `sys:todo`, `sys:git`, `sys:fetch`, `sys:search`, and `sys:find_tools`, which searches every connected tool by name
-and description); `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
+`CREW_SYS_TOOLS=0` disables built-in sys tools; `CREW_SYS_MODE=readonly` blocks
+mutating calls. `CREW_SYS_MODE=workspace` confines built-in file tools
+(`read_file`, `write_file`, `edit`, `list_dir`, `grep`, `glob`, and `outline`)
+to the working directory, resolving symlinks before checking paths; `sys:git` is
+disabled because its path arguments can escape. This is application-level path
+checking, not an OS sandbox: `sys:run` remains approval-gated, but its shell can
+access paths outside the working directory. `CREW_SYS_TIMEOUT_MS` (default
+120000) bounds each `sys:run`;
 `CREW_SPILL=0` stops a long sys result being saved whole to `.crew/out/`;
 `CREW_ADVISOR=0` stops a second model reading a failed check for agent smith's
 tool loop (see **A second model reads a failed check**), and

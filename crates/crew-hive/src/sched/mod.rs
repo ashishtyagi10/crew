@@ -15,6 +15,7 @@
 //! counts as failed — see [`again`].
 mod again;
 mod cancel;
+mod join;
 mod outcome;
 mod replan;
 #[cfg(test)]
@@ -23,13 +24,14 @@ mod stop_tests;
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use futures::FutureExt as _;
 use tokio::sync::Semaphore;
-use tokio::task::JoinSet;
+use tokio::task::{Id, JoinSet};
 
 use crate::agent::{AgentContext, AgentFactory};
 use crate::board::Blackboard;
@@ -129,6 +131,7 @@ impl Scheduler {
         // a cancellation, not a failure, and must not cascade to dependents
         // (or earn a re-plan) as one.
         let mut joinset: JoinSet<(TaskId, Option<crate::board::TaskResult>)> = JoinSet::new();
+        let mut task_ids: HashMap<Id, TaskId> = HashMap::new();
         let mut next_agent: u64 = 0;
 
         loop {
@@ -145,8 +148,7 @@ impl Scheduler {
                 // Drain all in-flight agents; never abort running work. Ones
                 // still queued for a permit bail out and land here as `None`,
                 // as do ones that saw the flag themselves and quit.
-                while let Some(joined) = joinset.join_next().await {
-                    let (id, result) = joined.expect("agent task panicked");
+                while let Some((id, result)) = join::next(&mut joinset, &mut task_ids).await {
                     match result {
                         Some(r) => {
                             record_result(id, r, &mut done, &mut failed, &self.board, &self.bus)
@@ -169,55 +171,69 @@ impl Scheduler {
                 let spec = graph.get(id).unwrap().clone();
                 let agent_id = AgentId(next_agent);
                 next_agent += 1;
-                let agent = self.factory.make(&spec.agent);
+                let factory = self.factory.clone();
                 let bus = self.bus.clone();
                 let board = self.board.clone();
                 let sem = sem.clone();
                 let cancel = self.cancel.clone();
                 let budget = budget.clone();
                 let pause = self.retry_pause;
-                joinset.spawn(async move {
-                    let task_id = spec.id;
-                    let _permit = sem.acquire_owned().await.expect("semaphore open");
-                    // `started` is stamped at SPAWN, but with a concurrency cap
-                    // most spawned tasks then sit here waiting for a permit —
-                    // queued, not running. So `mark_all_unstarted_cancelled`
-                    // skips them, and without this check each one would take
-                    // its turn and run a full agent after the user pressed
-                    // stop (or the budget cap tripped) — billing them for work
-                    // they cancelled. A task only becomes un-cancellable once
-                    // its agent is actually running.
-                    if cancel.load(Ordering::Relaxed) {
-                        return (task_id, None);
-                    }
-                    let deps = board.gather(&spec.deps).await;
-                    bus.publish(HiveEvent::AgentSpawned {
-                        agent: agent_id.clone(),
-                        task: spec.id,
-                    });
-                    bus.publish(HiveEvent::TaskStateChanged {
-                        task: spec.id,
-                        state: TaskState::Running,
-                    });
-                    let ctx = AgentContext {
-                        cancel: cancel.clone(),
-                        agent: agent_id,
-                        task: spec,
-                        deps,
-                        bus,
-                        budget,
+                let task_id = spec.id;
+                let spawned = joinset.spawn(async move {
+                    let work = std::panic::AssertUnwindSafe(async move {
+                        let _permit = sem.acquire_owned().await.expect("semaphore open");
+                        // `started` is stamped at SPAWN, but with a concurrency cap
+                        // most spawned tasks then sit here waiting for a permit —
+                        // queued, not running. So `mark_all_unstarted_cancelled`
+                        // skips them, and without this check each one would take
+                        // its turn and run a full agent after the user pressed
+                        // stop (or the budget cap tripped) — billing them for work
+                        // they cancelled. A task only becomes un-cancellable once
+                        // its agent is actually running.
+                        if cancel.load(Ordering::Relaxed) {
+                            return None;
+                        }
+                        let agent = factory.make(&spec.agent);
+                        let deps = board.gather(&spec.deps).await;
+                        bus.publish(HiveEvent::AgentSpawned {
+                            agent: agent_id.clone(),
+                            task: spec.id,
+                        });
+                        bus.publish(HiveEvent::TaskStateChanged {
+                            task: spec.id,
+                            state: TaskState::Running,
+                        });
+                        let ctx = AgentContext {
+                            cancel: cancel.clone(),
+                            agent: agent_id,
+                            task: spec,
+                            deps,
+                            bus,
+                            budget,
+                        };
+                        again::run(agent.as_ref(), ctx, pause, &cancel).await
+                    })
+                    .catch_unwind()
+                    .await;
+                    let result = match work {
+                        Ok(result) => result,
+                        Err(_) => Some(crate::board::TaskResult {
+                            task: task_id,
+                            output: "agent task panicked".into(),
+                            success: false,
+                        }),
                     };
-                    let result = again::run(agent.as_ref(), ctx, pause, &cancel).await;
                     (task_id, result)
                 });
+                let _previous = task_ids.insert(spawned.id(), task_id);
+                debug_assert!(_previous.is_none());
             }
 
             if joinset.is_empty() {
                 break;
             }
 
-            if let Some(joined) = joinset.join_next().await {
-                let (id, result) = joined.expect("agent task panicked");
+            if let Some((id, result)) = join::next(&mut joinset, &mut task_ids).await {
                 match result {
                     Some(r) => {
                         let failure = (!r.success).then(|| r.output.clone());

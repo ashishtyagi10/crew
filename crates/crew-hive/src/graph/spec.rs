@@ -61,6 +61,7 @@ pub struct TaskSpec {
 pub enum GraphError {
     DuplicateId(TaskId),
     MissingDep { task: TaskId, dep: TaskId },
+    TooManyTasks { max: usize, actual: usize },
     Cycle,
 }
 
@@ -70,6 +71,9 @@ impl std::fmt::Display for GraphError {
             GraphError::DuplicateId(id) => write!(f, "duplicate task id: {}", id.0),
             GraphError::MissingDep { task, dep } => {
                 write!(f, "task {} depends on missing task {}", task.0, dep.0)
+            }
+            GraphError::TooManyTasks { max, actual } => {
+                write!(f, "task graph has {actual} tasks; the maximum is {max}")
             }
             GraphError::Cycle => write!(f, "task graph contains a cycle"),
         }

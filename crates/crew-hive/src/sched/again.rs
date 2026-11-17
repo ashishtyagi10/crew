@@ -69,18 +69,23 @@ fn worth_another(a: &Attempt) -> bool {
 /// of the whole swarm — and a panic never passes.
 async fn guarded(agent: &dyn Agent, ctx: AgentContext) -> Attempt {
     let task = ctx.task.id;
-    match std::panic::AssertUnwindSafe(agent.attempt(ctx))
-        .catch_unwind()
-        .await
-    {
-        Ok(a) => a,
-        Err(_) => TaskResult {
-            task,
-            output: "agent panicked".into(),
-            success: false,
-        }
-        .into(),
+    let future = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| agent.attempt(ctx)));
+    match future {
+        Ok(future) => match std::panic::AssertUnwindSafe(future).catch_unwind().await {
+            Ok(attempt) => attempt,
+            Err(_) => panicked(task),
+        },
+        Err(_) => panicked(task),
     }
+}
+
+fn panicked(task: crate::graph::TaskId) -> Attempt {
+    TaskResult {
+        task,
+        output: "agent panicked".into(),
+        success: false,
+    }
+    .into()
 }
 
 #[cfg(test)]

@@ -139,6 +139,7 @@ mod syssearch;
 mod syssearchparse;
 mod systools;
 mod syswrite;
+mod sysworkspace;
 mod taskdiag;
 mod taskdiff;
 mod tasks;

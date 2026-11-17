@@ -75,7 +75,9 @@ pub mod wire;
 pub mod worker;
 
 // Graph
-pub use graph::{AgentKind, GraphError, ModelTier, TaskGraph, TaskId, TaskSpec, TaskState};
+pub use graph::{
+    AgentKind, GraphError, ModelTier, TaskGraph, TaskId, TaskSpec, TaskState, MAX_TASKS,
+};
 
 // Bus
 pub use bus::{AgentId, EventBus, HiveEvent};

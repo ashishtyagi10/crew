@@ -1044,7 +1044,7 @@ name). See [docs/CREW.md](docs/CREW.md#themes).
 
 ## Architecture
 
-Crew is a Cargo workspace with six crates:
+Crew is a Cargo workspace with seven crates:
 
 | Crate | Purpose |
 |-------|---------|
@@ -1052,8 +1052,9 @@ Crew is a Cargo workspace with six crates:
 | `crew-render` | GPU rendering (`wgpu` + `glyphon`) |
 | `crew-term` | PTY + terminal grid (`alacritty_terminal` + `portable-pty`) |
 | `crew-plugin` | Chat / agent plugins (the agent smith relay broker) |
-| `crew-theme` | Theme presets + palette contracts (13 themes, rotation modes, contrast thresholds) |
+| `crew-theme` | Theme presets + palette contracts (rotation modes, contrast thresholds) |
 | `crew-hive` | Swarm orchestration engine (planner, scheduler, agents, blackboard, telemetry) |
+| `crew-lsp` | Language-server integration |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full diagram (app +
 engine internals).
