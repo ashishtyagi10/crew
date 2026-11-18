@@ -39,8 +39,8 @@
 //! Every function here takes the `Theme` rather than reading the process
 //! global, so the contract below can measure all nine palettes without nine
 //! tests racing each other over one global.
-use crate::oklch;
 use crate::{contrast_ratio, Theme};
+use crate::{glassink, oklch};
 
 /// Text and text-like marks: the cursor block, a URL, a gauge readout.
 ///
@@ -201,9 +201,9 @@ pub fn link(t: &Theme) -> (u8, u8, u8) {
         want = w.with_l(w.l.max((ink.l + LINK_LIFT).min(0.97))).to_srgb();
     }
     let out = against(want, t.term_bg, crate::contrast::text_floor());
-    // On glass, the secondary floor: the underline says "link" as well, and
-    // at the body's floor the blue went black.
-    glassed(t, want, out, t.term_bg, crate::glassink::SECONDARY_FLOOR)
+    // Glass: the secondary floor (the underline says "link"); dark: Lc 60.
+    let g = glassed(t, want, out, t.term_bg, glassink::SECONDARY_FLOOR);
+    crate::linklift::lift(t, g)
 }
 
 /// How far past a tube's ink lightness its links sit (OKLCH L).
