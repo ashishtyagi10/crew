@@ -122,6 +122,7 @@ mod presets_prism;
 mod presets_purple;
 mod presets_relief;
 pub mod ramp;
+pub mod rampdark;
 pub mod readable;
 pub mod signal;
 pub mod syntaxslot;

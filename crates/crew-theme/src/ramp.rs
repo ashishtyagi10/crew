@@ -277,7 +277,11 @@ impl Ramp {
         } else {
             HOUSE
         };
-        Self::new(t.page_bg, Ink::of(t.ink), house)
+        Self::new(
+            t.page_bg,
+            Ink::of(t.ink),
+            crate::rampdark::for_page(house, t.dark),
+        )
     }
 
     /// The ladder this ramp derives against — paper/modern, coloured CRT, or
