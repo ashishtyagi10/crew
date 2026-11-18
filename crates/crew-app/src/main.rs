@@ -480,6 +480,7 @@ mod navrailrow;
 #[path = "navrailshot_tests.rs"]
 mod navrailshot_tests;
 mod navrelief;
+mod navreliefactive;
 mod navreliefscene;
 mod navresize;
 mod navserving;

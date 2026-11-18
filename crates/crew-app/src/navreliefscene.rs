@@ -55,11 +55,12 @@ pub(crate) fn panel(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32, gap: f32) {
     nav.paint
         .extend(crate::navrelief::groove_paint(&ys, cols, ch));
     let tabs = crate::reliefwell::boxes(&nav.cells);
+    let on = crate::navreliefactive::active(&nav.cells, &tabs, crate::palette::accent());
     crate::reliefwell::unstroke(&mut nav.cells, &tabs);
     let origin = (nav.x, nav.y);
     // After the frame: its slab is drawn first, the wells are sunk into it.
     scenes.extend(tabs.iter().map(|b| {
         let r = crate::navrelief::well_rect(b, origin, cw, ch, gap);
-        sheet(r, cw, ch, crate::reliefwell::DEPTH)
+        sheet(r, cw, ch, crate::navreliefactive::depth(on == Some(*b)))
     }));
 }
