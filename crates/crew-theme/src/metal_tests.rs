@@ -128,3 +128,22 @@ fn a_dark_plate_rests_a_step_above_its_page() {
     let s = ThemeId::Silver.theme();
     assert_eq!(metal_face(s.page_bg, false, 0.0), s.page_bg);
 }
+
+/// The polish runs AWAY from the ink, where it costs no word any contrast
+/// (2026-11-17: "not shiny enough"): silver's sheen burns most of the way to
+/// white, mercury's mirror band falls most of the way to black, each far
+/// past what the face may move toward its ink.
+#[test]
+fn the_shine_runs_away_from_the_ink() {
+    let s = ThemeId::Silver.theme();
+    let peak = metal_face(s.page_bg, false, 1.0);
+    assert!(peak.0 >= 238, "silver sheen {peak:?}");
+    let m = ThemeId::Mercury.theme();
+    let rest = metal_face(m.page_bg, true, 0.0);
+    let deep = metal_face(m.page_bg, true, -1.0);
+    assert!(
+        f32::from(deep.0) <= f32::from(rest.0) * 0.55,
+        "{rest:?} → {deep:?}"
+    );
+    const { assert!(METAL_SHINE > 2.0 * METAL_SWING) };
+}

@@ -102,20 +102,47 @@ fn theme_metal_shot() {
     let metal = |id: &crew_theme::ThemeId| id.mode() == crew_theme::RandomMode::Metal;
     for id in ALL_THEMES.into_iter().filter(metal) {
         let sheer = crate::tubesheer::sheer(id.theme());
-        for lean in [false, true] {
-            let name = format!("metal-{}{}", id.as_str(), if lean { "-lean" } else { "" });
+        let mut rest = None;
+        // At rest, leaning on the pointer, and on the clock mid-glint
+        // (`metalsheen`): the light that moves must move the pixels.
+        for (tag, tilt, at) in [
+            ("", (0.0, 0.0), None),
+            ("-lean", (0.95, 0.0), None),
+            (
+                "-glint",
+                (0.0, 0.0),
+                Some(crate::metalsheen::GLINT_RUN_MS / 2),
+            ),
+        ] {
+            let name = format!("metal-{}{tag}", id.as_str());
             let prep = |app: &mut crate::app::CrewApp| {
                 app.config.show_nav = true;
                 app.config.nav_collapsed = false;
             };
-            let tilt = if lean { (0.95, 0.0) } else { (0.0, 0.0) };
             crate::shotdraw_tests::TILT.with(|t| t.set(tilt));
+            crate::metalsheen::AT.with(|t| t.set(at));
             let cmds = ["/dash", "/todo"];
             let px = crate::crtglassshot_tests::window_with(&name, id, sheer, &cmds, &prep);
             crate::shotdraw_tests::TILT.with(|t| t.set((0.0, 0.0)));
-            if px.is_none() {
+            crate::metalsheen::AT.with(|t| t.set(None));
+            let Some(px) = px else {
                 eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
                 return;
+            };
+            match (&rest, at) {
+                (None, _) => rest = Some(px),
+                (Some(r), Some(_)) => {
+                    let moved = r
+                        .iter()
+                        .zip(&px)
+                        .filter(|(a, b)| a.abs_diff(**b) > 8)
+                        .count();
+                    assert!(
+                        moved > px.len() / 50,
+                        "{name}: the glint moved {moved} bytes"
+                    );
+                }
+                _ => {}
             }
         }
     }

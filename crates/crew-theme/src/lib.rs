@@ -132,7 +132,9 @@ pub use glass::{
     style as glass_style, style_at as glass_style_at, style_for as glass_style_for, GlassLevel,
     GlassStyle,
 };
-pub use liquid::{metal_face, LiquidStyle, METAL_REST_DARK, METAL_SWING, METAL_UP_DARK};
+pub use liquid::{
+    metal_face, LiquidStyle, METAL_REST_DARK, METAL_SHINE, METAL_SWING, METAL_UP_DARK,
+};
 pub use modernstyle::ModernStyle;
 pub use syntaxslot::SyntaxSlots;
 

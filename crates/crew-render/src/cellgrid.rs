@@ -106,6 +106,8 @@ pub struct CellGrid {
     window_opacity: f32,
     /// The rims' light tilt (see `Renderer::set_glass_light`).
     glass_light: (f32, f32),
+    /// The metal's light on its own clock (see `Renderer::set_metal_sweep`).
+    metal_sweep: [f32; 4],
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
     font_size: f32,
@@ -195,6 +197,7 @@ impl CellGrid {
             glass_level: crew_theme::GlassLevel::Medium,
             window_opacity: 1.0,
             glass_light: (0.0, 0.0),
+            metal_sweep: [0.0, -1.0, 0.0, 0.0],
             cell_w,
             cell_h,
             font_size,
@@ -335,6 +338,10 @@ impl CellGrid {
         self.glass_light = tilt;
     }
 
+    pub fn set_metal_sweep(&mut self, sweep: [f32; 4]) {
+        self.metal_sweep = sweep;
+    }
+
     /// The page under the glass, as [`crate::glass::GlassLayer::set_page`]
     /// takes it: `bg` straight, its alpha the window's opacity.
     pub fn set_page(&self, queue: &wgpu::Queue, bg: [f32; 4]) {
@@ -447,6 +454,8 @@ impl CellGrid {
         self.round_border_layer.set_viewport(queue, w, h);
         self.overlay_round_border_layer.set_viewport(queue, w, h);
         self.glass_layer.set_view(queue, w, h, self.glass_light);
+        self.glass_layer.set_sweep(queue, self.metal_sweep);
+        self.overlay_glass_layer.set_sweep(queue, self.metal_sweep);
         self.holo_layer
             .prepare(queue, (w, h), (self.cell_w, self.cell_h));
         self.overlay_glass_layer

@@ -215,8 +215,11 @@ impl CrewApp {
         let pointer = self.cursor_in.then_some(self.cursor);
         self.pointer_light.aim(pointer, (sw, sh));
         self.pointer_light.step(glide_dt, crate::motion::level());
+        // …and the metal's own light, on its clock (`metalsheen`).
+        let sweep = crate::metalsheen::live();
         if let Some(r) = self.renderer.as_mut() {
             r.set_glass_light(self.pointer_light.tilt());
+            r.set_metal_sweep(sweep);
         }
         // …and the card under it rises; the keys panel stills and dims all (`helpscrim`).
         let hovered = self.cursor_in.then(|| self.pane_at_cursor()).flatten();

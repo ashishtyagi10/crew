@@ -138,6 +138,7 @@ impl GlassLayer {
             label: Some("glass_vp"),
             contents: f32s_as_bytes(&[
                 1.0_f32, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, -1.0, 0.0, 0.0,
             ]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
@@ -261,6 +262,13 @@ impl GlassLayer {
                 usage: wgpu::BufferUsages::VERTEX,
             }),
         );
+    }
+
+    /// The metal's light on its own clock (`sweep` in `glass.wgsl`): the
+    /// sheen's drift across the window, a passing glint's place and its
+    /// strength, all fractions of the window's width. `[0, -1, 0, 0]` rests.
+    pub fn set_sweep(&self, queue: &wgpu::Queue, sweep: [f32; 4]) {
+        queue.write_buffer(&self.vp_buf, 64, f32s_as_bytes(&sweep));
     }
 
     /// Update the viewport uniform (call on resize), with the light at rest.

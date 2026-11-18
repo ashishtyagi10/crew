@@ -137,6 +137,7 @@ mod helpsection_tests;
 mod hintscan;
 mod histhits;
 mod mentionexpand;
+mod metalsheen;
 mod oserr;
 mod popupband;
 #[cfg(test)]

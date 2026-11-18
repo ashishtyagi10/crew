@@ -940,8 +940,9 @@ The docked command bar supports:
   neumorphism — four palettes (`porcelain`, `sand`, `mist`, and the dark
   `slate`) whose cards have no frame at all: each is the page's own colour,
   raised out of it by a light shadow and a dark one, with the input bar
-  pressed in; and `metal`, brushed metal plates in two palettes, gunmetal
-  `mercury` and aluminium `silver`;
+  pressed in; and `metal`, brushed and polished metal plates (input bar
+  included) in two palettes, gunmetal `mercury` and aluminium `silver`, whose
+  sheen sways across the window on its own with a glint now and then;
   `auto` **walks every look in turn** —
   `dark → light → crt → glass → neon → classic → purple → prism → soft → metal` — a new one every 10
   minutes, and inside each look every palette one after another (both

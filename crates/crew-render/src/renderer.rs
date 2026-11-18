@@ -132,6 +132,11 @@ impl Renderer {
         self.cell_grid.set_glass_light(tilt);
     }
 
+    /// The metal plates' light on its own clock (crew-app `metalsheen`).
+    pub fn set_metal_sweep(&mut self, sweep: [f32; 4]) {
+        self.cell_grid.set_metal_sweep(sweep);
+    }
+
     /// Set the window's opacity (1.0 = fully opaque). Below 1.0 the desktop
     /// shows through everything crew draws.
     pub fn set_window_opacity(&mut self, opacity: f32) {

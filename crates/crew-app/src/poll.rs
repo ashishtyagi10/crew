@@ -576,6 +576,17 @@ impl CrewApp {
             if self.tick.is_multiple_of(AMBIENT_ANIM_DIV) {
                 any_changed = true;
             }
+        } else if crate::metalsheen::moving(
+            crate::metalsheen::metal_theme(),
+            crate::motion::level(),
+            self.win_focus.unwrap_or(true),
+        ) {
+            // The metal's light drifts on its own (`metalsheen`): ambient,
+            // like the breathing dot, at the same pace.
+            self.tick = self.tick.wrapping_add(1);
+            if self.tick.is_multiple_of(AMBIENT_ANIM_DIV) {
+                any_changed = true;
+            }
         }
         // Close terminal panes whose shell has exited (e.g. the user typed `exit`).
         let exited: Vec<usize> = self
