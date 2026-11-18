@@ -169,7 +169,7 @@ pub(crate) fn glob(v: &serde_json::Value) -> Result<String, String> {
         .ok_or("missing string argument \u{201c}pattern\u{201d}")?;
     let root = Path::new(v.get("path").and_then(|p| p.as_str()).unwrap_or("."));
     let mut fit = Fit::spilling("glob");
-    for (rel, path) in files(root)
+    for (rel, _path) in files(root)
         .into_iter()
         .filter(|(rel, path)| glob_match(pattern, rel) && super::sysworkspace::discovered(path))
     {
