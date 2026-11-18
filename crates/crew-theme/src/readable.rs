@@ -39,8 +39,7 @@
 //! Every function here takes the `Theme` rather than reading the process
 //! global, so the contract below can measure all nine palettes without nine
 //! tests racing each other over one global.
-use crate::{contrast_ratio, Theme};
-use crate::{glassink, oklch};
+use crate::{contrast_ratio, glassink, oklch, Theme};
 
 /// Text and text-like marks: the cursor block, a URL, a gauge readout.
 ///
@@ -203,7 +202,7 @@ pub fn link(t: &Theme) -> (u8, u8, u8) {
     let out = against(want, t.term_bg, crate::contrast::text_floor());
     // Glass: the secondary floor (the underline says "link"); dark: Lc 60.
     let g = glassed(t, want, out, t.term_bg, glassink::SECONDARY_FLOOR);
-    crate::linklift::lift(t, g)
+    crate::darkread::lift(t, want, g, t.term_bg)
 }
 
 /// How far past a tube's ink lightness its links sit (OKLCH L).
@@ -293,7 +292,8 @@ pub fn warn(t: &Theme) -> (u8, u8, u8) {
 /// A gauge past its limit.
 pub fn danger(t: &Theme) -> (u8, u8, u8) {
     let out = against(DANGER_HUE, t.page_bg, crate::contrast::text_floor());
-    glassed(t, DANGER_HUE, out, t.page_bg, MARK_FLOOR)
+    let g = glassed(t, DANGER_HUE, out, t.page_bg, MARK_FLOOR);
+    crate::darkread::lift(t, DANGER_HUE, g, t.page_bg)
 }
 
 /// A sparkline trace — seen, not read. On a coloured tube, in its phosphor
