@@ -42,6 +42,51 @@ pub struct LiquidStyle {
     /// from it, and the input bar is pressed INTO the page the same way
     /// ([`crate::glass::relief_glass`]). 0 is glass with a stroked frame.
     pub relief: f32,
+    /// How much the relief cards are METAL, `0.0..=1.0` (the user,
+    /// 2026-11-17: "actual metal look, instead of black and just some
+    /// baloon in it .. some shiny look"): each plate's face is brushed
+    /// (hairline grain along x), carries a broad sheen band the pointer
+    /// slides, and its edge is a machined chamfer, lit on the light's side
+    /// and dark on the far one. Only on a relief theme; 0 is plain relief.
+    /// The face as drawn is [`metal_face`].
+    pub metal: f32,
+}
+
+/// The most a metal plate's face moves from where it rests, as a fraction of
+/// the way to white (the sheen) or to black (the grain's dark hairlines and
+/// the far side), in sRGB. crew-render's `metal_face` draws what
+/// [`metal_face`] computes; `metal_tests` holds every ink against it.
+pub const METAL_SWING: f32 = 0.12;
+
+/// Where a DARK plate rests: this far from its page toward white. A dark
+/// palette's page is pinned near black by its ladder (ink at 10:1, the bright
+/// white ANSI slot at 16.8:1), and steel at that depth reads as black (the
+/// user, 2026-11-17: "instead of black"), so the plate stands a step lighter
+/// than the page it is raised from. A pressed-in well stays at the page.
+pub const METAL_REST_DARK: f32 = 0.07;
+
+/// How much of [`METAL_SWING`] a dark plate takes toward white: the sheen
+/// on a dark plate is held lower, so the quiet inks keep 3:1 under it.
+pub const METAL_UP_DARK: f32 = 0.6;
+
+/// The face of a metal plate over `page` at signed light `k` (-1..=1: the
+/// grain's dark hairlines to the sheen's peak), in sRGB: what the glass
+/// shader's `metal_face` draws, for the tests that floor the inks on it.
+pub fn metal_face(page: (u8, u8, u8), dark: bool, k: f32) -> (u8, u8, u8) {
+    let k = k.clamp(-1.0, 1.0);
+    let f = |v: u8| {
+        let mut c = f32::from(v) / 255.0;
+        let up = if dark {
+            c += (1.0 - c) * METAL_REST_DARK;
+            METAL_SWING * METAL_UP_DARK
+        } else {
+            METAL_SWING
+        };
+        c += (1.0 - c) * up * k.max(0.0);
+        c *= 1.0 - METAL_SWING * (-k).max(0.0);
+        (c * 255.0).round() as u8
+    };
+    (f(page.0), f(page.1), f(page.2))
 }
 
 /// How much of its full strength a theme's text shadow ([`crate::CrtStyle`]

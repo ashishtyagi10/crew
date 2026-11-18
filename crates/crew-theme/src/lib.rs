@@ -132,7 +132,7 @@ pub use glass::{
     style as glass_style, style_at as glass_style_at, style_for as glass_style_for, GlassLevel,
     GlassStyle,
 };
-pub use liquid::LiquidStyle;
+pub use liquid::{metal_face, LiquidStyle, METAL_REST_DARK, METAL_SWING, METAL_UP_DARK};
 pub use modernstyle::ModernStyle;
 pub use syntaxslot::SyntaxSlots;
 
@@ -161,6 +161,13 @@ impl Theme {
     pub fn relief(&self) -> f32 {
         self.liquid.map_or(0.0, |l| l.relief)
     }
+
+    /// How much this palette's relief cards are brushed metal plates
+    /// ([`LiquidStyle::metal`]): 0 on every palette but the metal ones.
+    pub fn metal(&self) -> f32 {
+        self.liquid
+            .map_or(0.0, |l| l.metal * f32::from(l.relief > 0.0))
+    }
 }
 
 pub use presets_classic::{SOLARIZED, TOKYO_NIGHT};
@@ -168,7 +175,7 @@ pub use presets_classic2::{EVERFOREST, GRUVBOX, MONOKAI};
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_glass::GLASS_NIGHT;
 pub use presets_glass_clear::GLASS_CLEAR;
-pub use presets_metal::MERCURY;
+pub use presets_metal::{MERCURY, SILVER};
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
 pub use presets_neon::NEON_DARK;
@@ -225,11 +232,12 @@ pub enum ThemeId {
     Mist,
     Slate,
     Mercury,
+    Silver,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 21] = [
+pub const ALL_THEMES: [ThemeId; 22] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::Nebula,
@@ -251,6 +259,7 @@ pub const ALL_THEMES: [ThemeId; 21] = [
     ThemeId::Mist,
     ThemeId::Slate,
     ThemeId::Mercury,
+    ThemeId::Silver,
 ];
 
 impl ThemeId {
@@ -277,6 +286,7 @@ impl ThemeId {
             ThemeId::Mist => "mist",
             ThemeId::Porcelain => "porcelain",
             ThemeId::Mercury => "mercury",
+            ThemeId::Silver => "silver",
         }
     }
 
@@ -314,7 +324,10 @@ impl ThemeId {
                 "Porcelain: soft 3D pale-grey cards, no frames, dark ink, indigo accent (neumorphism)"
             }
             ThemeId::Mercury => {
-                "Mercury: liquid metal, gunmetal glass over wobbling 3D mercury, steel accent"
+                "Mercury: brushed gunmetal plates, white words, blued-steel accent (metal)"
+            }
+            ThemeId::Silver => {
+                "Silver: polished aluminium plates, engraved dark words, cobalt accent (metal)"
             }
         }
     }
@@ -360,7 +373,7 @@ impl ThemeId {
             | ThemeId::Monokai => RandomMode::Classic,
             ThemeId::Amethyst => RandomMode::Purple,
             ThemeId::Prism => RandomMode::Prism,
-            ThemeId::Mercury => RandomMode::Metal,
+            ThemeId::Mercury | ThemeId::Silver => RandomMode::Metal,
             ThemeId::Porcelain | ThemeId::Sand | ThemeId::Mist | ThemeId::Slate => {
                 RandomMode::Relief
             }
@@ -398,7 +411,6 @@ impl ThemeId {
     pub fn scene(self) -> Option<&'static str> {
         match self {
             ThemeId::Prism => Some("prism"),
-            ThemeId::Mercury => Some("mercury"),
             _ => None,
         }
     }
@@ -462,6 +474,7 @@ impl ThemeId {
             "mist" => Some(ThemeId::Mist),
             "porcelain" => Some(ThemeId::Porcelain),
             "mercury" => Some(ThemeId::Mercury),
+            "silver" => Some(ThemeId::Silver),
             _ => None,
         }
     }
@@ -489,6 +502,7 @@ impl ThemeId {
             ThemeId::Mist => &MIST,
             ThemeId::Porcelain => &PORCELAIN,
             ThemeId::Mercury => &MERCURY,
+            ThemeId::Silver => &SILVER,
         }
     }
 
@@ -580,9 +594,10 @@ pub enum RandomMode {
     /// `mist` and `slate` (the user, 2026-11-12: "lots of 3D effect … just an elevated
     /// card … neumorphism").
     Relief,
-    /// Liquid metal: one gunmetal page of sheer glass over a 3D scene of
-    /// wobbling mercury, `mercury` (the user, 2026-11-17: "add a new liquid
-    /// metal theme for crew").
+    /// Brushed metal plates: `mercury` (gunmetal) and `silver`
+    /// (aluminium), relief cards whose faces are brushed and bevelled (the
+    /// user, 2026-11-17: "add a new liquid metal theme for crew", then
+    /// "actual metal look … some shiny look").
     Metal,
     /// Every look in turn, a new one each [`ROTATE_MS`] (the user,
     /// 2026-10-25: "rotate through all available theme, irrespective of
@@ -649,7 +664,7 @@ impl RandomMode {
                 "neumorphism: porcelain, sand, mist, slate \u{2014} soft 3D cards moulded from the page, no frames"
             }
             RandomMode::Metal => {
-                "liquid metal: gunmetal glass over a 3D scene of wobbling mercury, steel accent, always dark"
+                "brushed metal: mercury (gunmetal) and silver (aluminium) \u{2014} shiny metal plates, bevelled edges, a sheen that follows the pointer"
             }
             RandomMode::Auto => {
                 "every look in turn \u{2014} dark, light, crt, glass, neon, all five classics, purple, prism, soft, metal \u{2014} a new one every 10 minutes"

@@ -39,15 +39,14 @@ fn prism_is_white_text_glass_on_a_jade_page() {
     );
 }
 
-/// Prism and mercury are the themes with a scene of their own; every other
-/// palette draws none unless the user picks one, so adding them changed no
-/// one else.
+/// Prism is the theme with a scene of its own; every other palette draws
+/// none unless the user picks one. Mercury had one (pools of chrome) until
+/// the user, 2026-11-17, asked for the panes themselves to be the metal.
 #[test]
-fn only_prism_and_mercury_bring_a_scene() {
+fn only_prism_brings_a_scene() {
     for id in ALL_THEMES {
         let want = match id {
             ThemeId::Prism => Some("prism"),
-            ThemeId::Mercury => Some("mercury"),
             _ => None,
         };
         assert_eq!(id.scene(), want, "{}", id.as_str());

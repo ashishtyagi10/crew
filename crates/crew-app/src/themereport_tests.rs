@@ -51,5 +51,10 @@ fn auto_names_the_look_on_screen_and_the_next_one() {
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Slate);
     assert!(msg.contains("now soft (slate), next metal"), "{msg}");
     let msg = report("auto", Some(RandomMode::Auto), ThemeId::Mercury);
-    assert!(msg.contains("now metal (mercury), next dark"), "{msg}");
+    assert!(
+        msg.contains("now metal (mercury), next metal (silver)"),
+        "{msg}"
+    );
+    let msg = report("auto", Some(RandomMode::Auto), ThemeId::Silver);
+    assert!(msg.contains("now metal (silver), next dark"), "{msg}");
 }

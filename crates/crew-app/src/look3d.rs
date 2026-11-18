@@ -5,13 +5,12 @@
 //! /look 3d          what it is set to, and the scenes there are
 //! /look 3d orbit    a metal knot with a ring of crystals going round it
 //! /look 3d prism    glass prisms drifting in a fog of the page
-//! /look 3d mercury  pools of liquid metal wobbling in a fog of the page
 //! /look 3d off      none, even on a theme that has a scene
 //! /look 3d theme    the theme's own scene (the default)
 //! ```
 //!
 //! The saved setting is a scene's name, `off`, or empty for "the theme's":
-//! the prism and metal themes bring their own scenes (`crew_theme::ThemeId::scene`) and
+//! the prism theme brings its own scene (`crew_theme::ThemeId::scene`) and
 //! every other theme none, so the default changed nothing for anyone who had
 //! not chosen a scene, and `/theme prism` is a 3D theme without a second
 //! command.
@@ -37,8 +36,7 @@ pub(crate) fn clean(s: String) -> String {
 }
 
 /// The scene to draw for a saved setting on the live theme: a named scene
-/// on every theme, none for `off`, else the theme's own (prism's,
-/// mercury's, or none).
+/// on every theme, none for `off`, else the theme's own (prism's, or none).
 pub(crate) fn resolve(setting: &str, theme: crew_theme::ThemeId) -> Option<Stage> {
     match setting {
         "off" => None,
@@ -83,7 +81,7 @@ pub(crate) fn ladder() -> Vec<(String, String)> {
     let mut rows = vec![
         (
             "theme".to_string(),
-            "the theme's own scene \u{2014} the default (prism and metal have one)".to_string(),
+            "the theme's own scene \u{2014} the default (prism has one)".to_string(),
         ),
         ("off".to_string(), "no scene on any theme".to_string()),
     ];
@@ -104,7 +102,6 @@ fn about(s: Stage) -> &'static str {
     match s {
         Stage::Orbit => "a metal knot with a ring of crystals going round it",
         Stage::Prism => "glass prisms drifting in a fog of the page",
-        Stage::Mercury => "pools of liquid metal wobbling in a fog of the page",
     }
 }
 

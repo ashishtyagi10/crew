@@ -9,8 +9,7 @@ fn hue_gap(a: f32, b: f32) -> f32 {
 }
 
 /// On every glass, classic and soft palette the rain is the accent's hue,
-/// and visibly a colour rather than a grey. Mercury's accent is steel, a
-/// grey by design (liquid metal), so its rain is the silver it is.
+/// and visibly a colour rather than a grey.
 #[test]
 fn the_rain_wears_the_accent_s_hue_on_every_colour_palette() {
     let mut seen = 0;
@@ -33,7 +32,7 @@ fn the_rain_wears_the_accent_s_hue_on_every_colour_palette() {
             a.h
         );
     }
-    assert_eq!(seen, 16, "the colour palettes");
+    assert_eq!(seen, 18, "the colour palettes");
 }
 
 /// The tint costs the rain none of its quiet: it reads against the page
