@@ -37,3 +37,12 @@ fn a_glint_crosses_now_and_then() {
     assert_eq!(after[2], 0.0);
     assert_eq!(sweep(GLINT_RUN_MS / 2, true, MotionLevel::Subtle)[2], 0.0);
 }
+
+#[test]
+fn a_glint_draws_every_tick_only_while_it_runs() {
+    let f = MotionLevel::Full;
+    assert!(glinting(GLINT_RUN_MS / 2, true, f, true));
+    assert!(!glinting(GLINT_RUN_MS + 10, true, f, true));
+    assert!(!glinting(GLINT_RUN_MS / 2, true, f, false));
+    assert!(!glinting(GLINT_RUN_MS / 2, true, MotionLevel::Subtle, true));
+}

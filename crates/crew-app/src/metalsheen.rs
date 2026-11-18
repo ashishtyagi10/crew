@@ -21,7 +21,7 @@ pub(crate) const DRIFT: f32 = 0.22;
 /// A glint starts this often, ms…
 pub(crate) const GLINT_EVERY_MS: u64 = 9_000;
 /// …and takes this long to cross the window.
-pub(crate) const GLINT_RUN_MS: u64 = 1_400;
+pub(crate) const GLINT_RUN_MS: u64 = 2_200;
 
 #[cfg(test)]
 thread_local! {
@@ -70,6 +70,13 @@ pub(crate) const REST: [f32; 4] = [0.0, -1.0, 0.0, 0.0];
 /// Whether the sheen owes frames: a metal theme, motion on, window focused.
 pub(crate) fn moving(metal: bool, motion: MotionLevel, focused: bool) -> bool {
     metal && focused && motion != MotionLevel::Off
+}
+
+/// Whether a glint is crossing right now: then every tick draws (a narrow
+/// line stepped at the ambient pace strobes), bounded to GLINT_RUN_MS in
+/// every GLINT_EVERY_MS.
+pub(crate) fn glinting(now_ms: u64, metal: bool, motion: MotionLevel, focused: bool) -> bool {
+    moving(metal, motion, focused) && sweep(now_ms, metal, motion)[2] > 0.0
 }
 
 /// The live theme is metal.

@@ -113,11 +113,14 @@ fn theme_metal_shot() {
                 (0.0, 0.0),
                 Some(crate::metalsheen::GLINT_RUN_MS / 2),
             ),
+            // …and typing: the input bar pressed in as deep as it goes.
+            ("-typing", (0.0, 0.0), None),
         ] {
             let name = format!("metal-{}{tag}", id.as_str());
             let prep = |app: &mut crate::app::CrewApp| {
                 app.config.show_nav = true;
                 app.config.nav_collapsed = false;
+                app.input.focused = tag == "-typing";
             };
             crate::shotdraw_tests::TILT.with(|t| t.set(tilt));
             crate::metalsheen::AT.with(|t| t.set(at));

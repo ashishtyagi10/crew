@@ -150,7 +150,7 @@ const METAL_LEAN: f32 = 0.35;
 const METAL_SLIDE: f32 = 0.25;
 // The passing glint (`vp.sweep.yz`): a narrow hot line run across the window
 // now and then, burning on the bevels and lifting the face as it goes.
-const METAL_GLINT: f32 = 0.025;
+const METAL_GLINT: f32 = 0.04;
 // A pressed-in well (the input bar) is a plate too, sunk: it takes the
 // sheen at this much of a raised plate's, lit from below.
 const METAL_WELL_SHEEN: f32 = 0.7;
@@ -325,11 +325,11 @@ fn metal_light(pos: vec2<f32>) -> vec2<f32> {
   let lean = (pos.y - vp.size.y * 0.5) * METAL_LEAN;
   let dx = (pos.x - cx - lean) / (METAL_STREAK * w);
   let lite = exp(-dx * dx * 1.4);
-  let dark = exp(-pow(dx - 2.4, 2.0) * 0.6);
+  let dark = exp(-pow(dx - 2.2, 2.0) * 1.2);
   let echo = exp(-pow(dx - 4.6, 2.0) * 1.5);
   let g = (pos.x - vp.sweep.y * w - lean) / (METAL_GLINT * w);
   let glint = vp.sweep.z * exp(-g * g);
-  return vec2<f32>(1.2 * lite - 0.85 * dark + 0.45 * echo, glint);
+  return vec2<f32>(1.2 * lite - 0.75 * dark + 0.45 * echo, glint);
 }
 
 // The face of a metal plate: `rgb` brushed, lit from the top, under the

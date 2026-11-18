@@ -85,7 +85,8 @@ fn the_pages_are_metal_greys() {
 /// the quiet roles and the signals). At the two ends of the swing (the
 /// sheen's peak, the grain's darkest hairline) the reading text still holds:
 /// the ink at 7:1, muted text at 4.5:1, and the quiet roles at 2.5:1, a dip
-/// only as wide as the sheen streak.
+/// only as wide as the mirror's dark band (silver) or the sheen (mercury)
+/// as it sways past.
 #[test]
 fn every_ink_reads_on_the_brushed_face() {
     for id in [ThemeId::Mercury, ThemeId::Silver] {
