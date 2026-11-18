@@ -12,7 +12,8 @@
 // `holo`: x is how holographic the glass is (crew-theme `holo`, 0 on every
 // theme but neon's); `foil` the violet its rim and frame-light turn to. y is
 // how far the cards stand in RELIEF (crew-theme `LiquidStyle::relief`, 0 on
-// every theme but the neumorphic ones): see `neu`.
+// every theme but the neumorphic ones): see `neu`. z is how much those cards
+// are brushed METAL (`metal_face`), w 1 when the target stores linear colour.
 struct Vp { size: vec2<f32>, tilt: vec2<f32>, page: vec4<f32>, holo: vec4<f32>, foil: vec4<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
 
@@ -116,6 +117,32 @@ const NEU_WELL: f32 = 0.6;
 const NEU_RIM: f32 = 1.5;
 const NEU_RIM_LIT: f32 = 0.55;
 const NEU_RIM_SHADE: f32 = 0.2;
+// METAL (`vp.holo.z`, crew-theme `LiquidStyle::metal`): a relief card is a
+// brushed plate. METAL_SWING is crew-theme's `METAL_SWING` (the inks of a
+// metal palette are floored against both ends of it): the most the face
+// moves from its tint toward white or toward black.
+const METAL_SWING: f32 = 0.12;
+// crew-theme's `METAL_REST_DARK` and `METAL_UP_DARK`: a dark plate rests a
+// step lighter than its page (steel at the page's depth reads as black), and
+// takes less of the swing toward white.
+const METAL_REST_DARK: f32 = 0.07;
+const METAL_UP_DARK: f32 = 0.6;
+// The brushing: hairlines one px tall, each a run of grain METAL_RUN px long
+// on average, so the face reads as rubbed along x, not as frost.
+const METAL_RUN: f32 = 140.0;
+// The sheen: brushed metal throws its highlight ACROSS the grain, a broad
+// soft streak, leaning a little, that the pointer slides over the plate.
+// Beside it a darker band (the room's floor in the mirror), then a fainter
+// second light: light, dark, light, as a polished bar shows.
+const METAL_STREAK: f32 = 0.20;
+const METAL_LEAN: f32 = 0.35;
+const METAL_SLIDE: f32 = 0.30;
+// The chamfer: a machined bevel METAL_BEVEL px wide round the plate, burning
+// on the light's side and dark on the far one, with a dark hairline at the
+// very edge where the bevel meets the page.
+const METAL_BEVEL: f32 = 3.0;
+const METAL_BEVEL_LIT: f32 = 0.75;
+const METAL_BEVEL_SHADE: f32 = 0.55;
 // Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
 const GLOW_W: f32 = 24.0;
 
@@ -258,6 +285,58 @@ fn hash21(p: vec2<f32>) -> f32 {
   return fract(sin(h) * 43758.5453123);
 }
 
+// One brushed hairline's grain at (x, y), signed -0.5..0.5: a row a px tall,
+// its value drifting along x over runs of METAL_RUN px.
+fn brushed(x: f32, y: f32) -> f32 {
+  let row = floor(y);
+  let u = x / METAL_RUN + hash21(vec2<f32>(row, 7.0)) * 13.0;
+  let a = hash21(vec2<f32>(row, floor(u)));
+  let b = hash21(vec2<f32>(row, floor(u) + 1.0));
+  let fine = mix(a, b, smoothstep(0.0, 1.0, fract(u)));
+  // Rows rubbed together in bundles of a few px, so the grain has a weave.
+  let bundle = hash21(vec2<f32>(floor(y / 3.0), 3.0));
+  return 0.65 * (fine - 0.5) + 0.35 * (bundle - 0.5);
+}
+
+// The face of a metal plate: `rgb` brushed, lit from the top, with the sheen
+// streak the pointer slides. A well (pressed in) keeps the grain only.
+// Signed light `k` in -1..1 moves the face toward white or toward black, at
+// most METAL_SWING of the way, so every ink keeps the contrast it was
+// floored at.
+fn metal_face(in: VsOut, rgb: vec3<f32>, well: f32, m: f32) -> vec3<f32> {
+  let w = max(in.hsize.x * 2.0, 1.0);
+  let x = in.local.x + in.hsize.x;
+  let y = in.local.y + in.hsize.y;
+  let down = clamp(y / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
+  var k = 0.55 * brushed(x, y);
+  if (well <= 0.0) {
+    // Top-lit: the upper face a touch brighter than the lower.
+    k = k + 0.30 * (0.5 - down);
+    // The streak leans with the height and slides with the pointer.
+    let cx = (0.30 + METAL_SLIDE * vp.tilt.x) * w;
+    let dx = (x - cx - (y - in.hsize.y) * METAL_LEAN) / (METAL_STREAK * w);
+    let lite = exp(-dx * dx);
+    let dark = exp(-pow(dx - 2.2, 2.0) * 0.7);
+    let echo = exp(-pow(dx - 4.2, 2.0) * 1.2);
+    k = k + 1.0 * lite - 0.30 * dark + 0.30 * echo;
+  }
+  k = clamp(k * m, -1.0, 1.0);
+  // The swing is measured in sRGB, as the inks were floored: on a linear
+  // target (`vp.holo.w` 1) the face is lifted out of it and put back.
+  let lin = vp.holo.w > 0.5;
+  var c = select(rgb, pow(max(rgb, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.2)), lin);
+  var up = METAL_SWING;
+  if (dot(c, vec3<f32>(0.2126, 0.7152, 0.0722)) < 0.5) {
+    if (well <= 0.0) {
+      c = mix(c, vec3<f32>(1.0), METAL_REST_DARK * m);
+    }
+    up = METAL_SWING * METAL_UP_DARK;
+  }
+  c = mix(c, vec3<f32>(1.0), up * max(k, 0.0));
+  c = c * (1.0 - METAL_SWING * max(-k, 0.0));
+  return select(c, pow(c, vec3<f32>(2.2)), lin);
+}
+
 // A card in relief. Raised (lift >= 0): the two shadows fall OUTSIDE it, the
 // light one on the light's side. Pressed in (lift < 0, the input bar): they
 // fall INSIDE, the other way round, the page's lip shading the well's near
@@ -286,6 +365,10 @@ fn neu(in: VsOut, d: f32, inside: f32, rim_cut: f32, t: f32, face: f32) -> vec4<
     let band = 1.0 - smoothstep(0.0, SCAN_W, abs((across + t) * 0.5 - centre));
     rgb = mix(rgb, in.hl.xyz, 0.10 * band);
   }
+  let metal = vp.holo.z;
+  if (metal > 0.0) {
+    rgb = metal_face(in, rgb, well, metal);
+  }
   if (well <= 0.0) {
     let g = dot(in.local / max(in.hsize, vec2<f32>(1.0, 1.0)), light) * 0.7071;
     rgb = mix(rgb, in.hl.xyz, NEU_CONVEX * hl_a * clamp(g, 0.0, 1.0));
@@ -310,11 +393,20 @@ fn neu(in: VsOut, d: f32, inside: f32, rim_cut: f32, t: f32, face: f32) -> vec4<
   }
   // The hairline: lit toward the light, shaded away from it (a well's the
   // other way round), cut where a legend stands on the edge.
-  let band = smoothstep(-NEU_RIM, 0.0, d) * inside * (1.0 - rim_cut);
+  // On metal the hairline is a machined chamfer: wider, burning toward the
+  // light in white, dark away from it, with a dark seam at the very edge.
+  let rim_w = mix(NEU_RIM, METAL_BEVEL, metal);
+  let rim_lit = mix(NEU_RIM_LIT * hl_a, METAL_BEVEL_LIT, metal);
+  let rim_shade = mix(NEU_RIM_SHADE * sh_a, METAL_BEVEL_SHADE, metal);
+  let rim_rgb = mix(in.hl.xyz, vec3<f32>(1.0), metal);
+  let band = smoothstep(-rim_w, mix(0.0, 1.0 - rim_w, metal), d) * inside * (1.0 - rim_cut);
   let n = sdf_normal(in.local, in.hsize, radius);
   let facing = dot(n, light) * select(1.0, -1.0, well > 0.0);
-  rgb = mix(rgb, in.hl.xyz, NEU_RIM_LIT * hl_a * band * pow(clamp(facing, 0.0, 1.0), 1.5));
-  rgb = rgb * (1.0 - NEU_RIM_SHADE * sh_a * band * pow(clamp(-facing, 0.0, 1.0), 1.5));
+  let rim_pow = mix(1.5, 1.2, metal);
+  rgb = mix(rgb, rim_rgb, rim_lit * band * pow(clamp(facing, 0.0, 1.0), rim_pow));
+  rgb = rgb * (1.0 - rim_shade * band * pow(clamp(-facing, 0.0, 1.0), rim_pow));
+  let seam = smoothstep(-1.2, 0.0, d) * inside * (1.0 - rim_cut);
+  rgb = rgb * (1.0 - 0.35 * metal * seam);
 
   // The card over its shadows, the dark one over the light one, premultiplied.
   let under_a = dark + lite * (1.0 - dark);

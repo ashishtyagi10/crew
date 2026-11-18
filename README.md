@@ -912,7 +912,7 @@ configurable property: font family/size, font smoothing (the `/smooth`
 ladder), text gamma
 (the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, card border
-marks, revealed invisibles, the 3D backdrop (`theme · off · orbit · prism · mercury`,
+marks, revealed invisibles, the 3D backdrop (`theme · off · orbit · prism`,
 as `/look 3d`), launch-maximized, Option as Meta, scrollback
 length (`scrollback`, default 10 000 lines, 100–100 000 — a save resizes the
 panes already open), and the whole
@@ -957,7 +957,7 @@ comments). A rotation changes palette every 10 minutes; `light` and `dark`
 are one page each and stay put. And `auto` walks every look in turn —
 `dark` → `light` → `crt` → `glass` → `neon` → `classic` → `purple` → `prism` → `soft` → `metal` → `dark` — a new one
 every 10 minutes, whatever the clock or the OS appearance. Inside each look it shows every palette,
-one after another, so every lap (210 minutes) shows all twenty-one.
+one after another, so every lap (220 minutes) shows all twenty-two.
 
 `neon` is a holographic control room in electric blue, violet and cyan, and
 it is always dark, whatever the OS appearance or the clock. A fine grid glows
@@ -1012,24 +1012,27 @@ split beam's colours: ice-mint keywords, lilac types, sky calls, coral
 numbers, jade strings. `/theme prism` turns it on; `/look 3d off` keeps the
 page and drops the scene.
 
-`metal` is liquid metal: one gunmetal page of sheer glass over a 3D scene of
-mercury, on by default. Pools of chrome wobble at three depths, each a few
-lobes circling so close that they read as one blob forever folding into
-itself, with lone droplets between. What makes them metal is what they
-mirror: a small studio drawn for them (a dark floor, a bright steel horizon,
-a white softbox overhead and tall strip lights, cool steel on one side and
-warm copper on the other), so the chrome shines silver with a copper rim.
-The accent is steel, a grey with only a cold cast, the frame and ring run
-silver to blued steel, and the face is IBM Plex Mono. `/theme metal` (or
-`liquid-metal`, `chrome`, `mercury`) turns it on; `/look 3d off` keeps the
-page and drops the scene.
+`metal` is brushed metal: the panes themselves are metal plates, in two
+palettes, gunmetal `mercury` and aluminium `silver`. Like `soft`, no frame
+is stroked; each card is a solid plate standing out of the page, and its
+face is brushed (fine hairline grain along the plate), carries a broad
+sheen streak across the grain that slides as the pointer moves over the
+window, and is cut round with a machined bevel, bright on the light's side
+and dark on the far one. A dark plate rests a step lighter than its page, so
+gunmetal reads as steel rather than black; the brushing moves the face at
+most 12% either way, and the words are held to their contrast on the face as
+drawn. `mercury` has
+white words and a rose-gold accent; `silver` engraved near-black words and an
+anodized-titanium violet. The faces are IBM Plex Mono (mercury) and
+JetBrains Mono (silver). `/theme metal` (or `liquid-metal`, `chrome`)
+rotates between them; `/theme mercury` or `/theme silver` pins one.
 
 **The 3D backdrop** is `/look 3d` (or `/3d`): `theme` (the default) draws
-the theme's own scene — prism and metal have one — `off` draws none on any
-theme, and `orbit` (a metal knot with a ring of crystals), `prism` or `mercury` draws that
+the theme's own scene — prism has one — `off` draws none on any
+theme, and `orbit` (a metal knot with a ring of crystals) or `prism` draws that
 scene on every glass theme. A paper page's panes are solid, so the scene
 shows only behind glass.
-That makes **twenty-one palettes** in all.
+That makes **twenty-two palettes** in all.
 
 Almost every colour in a palette is **derived, not chosen**: the ramp produces
 the whole text ladder and all sixteen ANSI slots from the page and the ink, a

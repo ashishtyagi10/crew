@@ -42,7 +42,7 @@ fn toggle_theme_cycles_every_mode_and_wraps() {
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Relief));
     assert_eq!(app.config.theme.as_deref(), Some("soft"));
-    // …then metal, mercury's liquid metal and its 3D scene…
+    // …then metal, the brushed plates (mercury, silver)…
     app.toggle_theme();
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Metal));
     assert_eq!(app.config.theme.as_deref(), Some("metal"));

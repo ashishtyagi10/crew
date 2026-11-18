@@ -7,6 +7,7 @@
 //! input bar, whose fieldset frame *is* the thing being judged — can be shot
 //! at the full canvas instead of being nested inside the harness's card.
 use crew_render::{CellGrid, PaneScene};
+use std::cell::Cell;
 
 pub const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 const BPP: u32 = 4;
@@ -39,6 +40,10 @@ pub fn draw_crt(
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
     draw_with(w, h, font_px, true, 1.0, scenes)
+}
+
+thread_local! {
+    pub(crate) static TILT: Cell<(f32, f32)> = const { Cell::new((0.0, 0.0)) }; // pointer light
 }
 
 pub(crate) fn draw_with(
@@ -103,6 +108,7 @@ pub(crate) fn draw_with(
     grid.set_window_opacity(opacity);
     let (cw, ch) = grid.cell_size();
     grid.set_scene(&device, &scenes(cw, ch));
+    grid.set_glass_light(TILT.with(Cell::get));
     grid.prepare(&device, &queue, w, h);
     let mut stage = crew_render::stage3d::Stage3dPass::new(&device, FORMAT);
     stage.prepare(&device, &queue, (w, h)); // nothing while `/look 3d` is off

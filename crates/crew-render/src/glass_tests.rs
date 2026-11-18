@@ -165,3 +165,20 @@ fn a_pop_ups_rule_words_stand_on_its_page_feathered() {
         "the page is mixed in by it"
     );
 }
+
+/// The brushed-metal constants in `glass.wgsl` are crew-theme's: the theme's
+/// tests floor every ink on the face `crew_theme::metal_face` computes, and
+/// that is only the face drawn while the two agree.
+#[test]
+fn the_shader_brushes_metal_as_the_theme_measures_it() {
+    let src = include_str!("glass.wgsl");
+    let get = |name: &str| -> f32 {
+        let at = src.find(&format!("const {name}: f32 = ")).expect(name);
+        let rest = &src[at..];
+        let v = &rest[rest.find('=').unwrap() + 1..rest.find(';').unwrap()];
+        v.trim().parse().unwrap()
+    };
+    assert_eq!(get("METAL_SWING"), crew_theme::METAL_SWING);
+    assert_eq!(get("METAL_REST_DARK"), crew_theme::METAL_REST_DARK);
+    assert_eq!(get("METAL_UP_DARK"), crew_theme::METAL_UP_DARK);
+}

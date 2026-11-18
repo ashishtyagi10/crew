@@ -940,13 +940,13 @@ The docked command bar supports:
   neumorphism — four palettes (`porcelain`, `sand`, `mist`, and the dark
   `slate`) whose cards have no frame at all: each is the page's own colour,
   raised out of it by a light shadow and a dark one, with the input bar
-  pressed in; and `metal`, liquid metal: a gunmetal page over a 3D scene of
-  chrome mercury;
+  pressed in; and `metal`, brushed metal plates in two palettes, gunmetal
+  `mercury` and aluminium `silver`;
   `auto` **walks every look in turn** —
   `dark → light → crt → glass → neon → classic → purple → prism → soft → metal` — a new one every 10
   minutes, and inside each look every palette one after another (both
   tubes, the four glass palettes, the five classics, the four soft
-  palettes), so a lap shows all 21 themes and takes 210 minutes, whatever the
+  palettes), so a lap shows all 22 themes and takes 220 minutes, whatever the
   clock or the OS appearance). A fresh install with no
   saved theme starts on `auto`. No argument reports the current selection —
   for `auto`, the look on screen and the one coming next.
@@ -4335,7 +4335,7 @@ value.
 - **CANVAS** — **Glass** (←/→/Space cycle `off · low · medium · high`),
   **Motion** (`off · subtle · full`), **Density**, **Line
   spacing**, **Contrast**, **Shape cues**, **Gradient colour** (`off · subtle
-  · lively`), **3D backdrop** (`theme · off · orbit · prism · mercury`, the same
+  · lively`), **3D backdrop** (`theme · off · orbit · prism`, the same
   settings as `/look 3d`; `theme` is the theme's own scene), and the on/off switches **Card border marks**, **Reveal
   invisibles** and **Code diagnostics (LSP)**.
 - **WINDOW** — **Nav width**, **Scrollback** (lines each terminal keeps,
@@ -4519,11 +4519,11 @@ palette to it).
 
 Crew offers **nine themes**: **`light`**, **`dark`**, **`glass`**,
 **`crt`**, **`neon`**, **`classic`**, **`purple`**, **`prism`**, **`soft`**, **`metal`** and **`auto`**. `light` and `dark` are one page each.
-`glass`, `crt`, `classic` and `soft` are *rotations*, changing palette every 10 minutes. `neon`, `purple`, `prism` and `metal` are one dark
+`glass`, `crt`, `classic`, `soft` and `metal` are *rotations*, changing palette every 10 minutes. `neon`, `purple` and `prism` are one dark
 page each, whatever the OS appearance or the clock. `auto` **walks every look in
 turn** — `dark → light → crt → glass → neon → classic → purple → prism → soft → metal`, then `dark` again — moving on
 every 10 minutes (through the develop-fade), whatever the clock or the OS appearance. Inside
-a look with several palettes (`crt`, `glass`, `classic`, `soft`) it shows each in turn rather
+a look with several palettes (`crt`, `glass`, `classic`, `soft`, `metal`) it shows each in turn rather
 than one at random, so every lap (200 minutes) shows all 20 themes. Switching to it moves off the look on screen at once.
 With no theme saved at all, crew defaults to `auto`.
 
@@ -4640,31 +4640,34 @@ focused frame gets, so it always outshines the unfocused frames (raised to
   of hues (coral, jade, citrine, sky, lilac, ice aqua); code has ice-mint
   keywords, lilac types, sky calls, coral numbers and jade strings. The face
   is SF Mono. `/theme prism` turns it on.
-- **`metal`** — liquid metal, one gunmetal page (`(12, 13, 16)`) of sheer
-  glass over a 3D scene of mercury, on by default: pools of chrome at three
-  depths, each two or three lobes circling so close they overlap and read as
-  one blob folding into itself, every lobe squashing and stretching as
-  liquid does, with lone droplets between, in a fog of the page's colour.
-  The lobes are fully metallic, so they are lit by what they mirror: a cube
-  environment drawn for them (a floor in the page's colour, a bright horizon
-  in the key's steel, a white softbox overhead, and strip lights in the
-  key's steel, the activity's copper and the ring's blued steel), which
-  threers prefilters by roughness. The accent is steel `(175, 186, 202)`, a
-  grey with only a cold cast — a near-white silver sat on paper-dark and an
-  icy chrome on tokyo-night, past the near-duplicate gate — the ring runs
-  silver to blued steel, activity is copper and the bell a lemon brass. Code
-  has blued-steel keywords, cyan types, brass calls and copper numbers; the
-  face is IBM Plex Mono. `/theme metal` turns it on (`liquid-metal`,
-  `liquidmetal`, `chrome` and the palette's own name `mercury` too).
+- **`metal`** — brushed metal plates (the user, 2026-11-17: "actual metal
+  look … some shiny look"), two palettes: `mercury`, gunmetal `(28, 29, 31)`
+  with white words and a rose-gold accent `(214, 164, 156)`, and `silver`,
+  aluminium `(224, 228, 234)` with engraved near-black words and an
+  anodized-titanium violet `(72, 44, 128)`. The cards are relief cards (no
+  frame, a solid slab standing out of the page, as `soft`'s), and
+  `LiquidStyle::metal` makes each a plate: hairline grain along x, a sheen
+  streak across the grain (light, dark, light, as a polished bar shows) that
+  the pointer slides, and a 3 px machined bevel, white toward the light and
+  dark away from it, with a dark seam at the edge. A dark plate rests
+  `METAL_REST_DARK` (7%) of the way from its page toward white, since the
+  ladder pins the page near black; the face then moves at most `METAL_SWING`
+  (12%, in sRGB; 60% of it upward on a dark plate). `crew_theme::metal_face`
+  computes the drawn face: at rest every ink role keeps its floor (7:1 ink,
+  4.5:1 muted, 3:1 the rest), and at the sheen's peak and the darkest grain
+  the ink keeps 7:1, muted 4.5:1 and the quiet roles 2.5:1. There is no 3D
+  scene. Mercury's face is IBM Plex Mono and
+  silver's JetBrains Mono. `/theme metal` turns it on (`liquid-metal`,
+  `liquidmetal` and `chrome` too); `/theme mercury` or `/theme silver` pins
+  one.
 
 **The 3D backdrop** (`/look 3d`, or `/3d`) is a threers scene drawn on
 crew's own GPU device behind the panes, lit in the theme's colours, turning
 on its own clock (40 s a turn) only while a pane works, and still at Motion
 off. The setting `backdrop_3d` is `theme` (saved empty, the default: the
-theme's own scene, which `prism` and `metal` have), `off` (none, even on
-prism), `orbit` (a metal knot with a ring of crystals, low on the right),
-`prism` (the drifting prisms) or `mercury` (the wobbling chrome pools), each
-on any theme. `/look 3d` with no argument says what is
+theme's own scene, which `prism` has), `off` (none, even on
+prism), `orbit` (a metal knot with a ring of crystals, low on the right) or
+`prism` (the drifting prisms), each on any theme. `/look 3d` with no argument says what is
 drawn and why (`prism (the theme's)`). The first frame a scene shows builds
 its GPU pipelines, which takes a moment; they are kept after that, so `auto`
 walking into prism once a lap does not pay for them again. A paper page's
@@ -4672,10 +4675,10 @@ panes are solid, so the scene shows only behind a glass theme.
 
 The picker offers the nine themes first and then **every other palette by
 name**, under a heading; a palette named there is pinned (no rotation). The
-Ink Reader pages, neon's, amethyst, prism and mercury are not repeated there:
-`dark`, `light`, `neon`, `purple`, `prism` and `metal` already are them, and
-their names `paper-dark`, `paper-light`, `neon-dark`, `amethyst` and
-`mercury` load as those looks (`prism` names its look and its page alike).
+Ink Reader pages, neon's, amethyst and prism are not repeated there:
+`dark`, `light`, `neon`, `purple` and `prism` already are them, and
+their names `paper-dark`, `paper-light`, `neon-dark` and `amethyst`
+load as those looks (`prism` names its look and its page alike).
 Older palettes were folded into these nine and their names still load the
 nearest survivor: `glass-sky` and `glass-dawn` → `glass-clear`; `sepia-dark`
 and `harbor` → `dark`; `sepia-light` → `light`; `fern` →
@@ -4807,6 +4810,6 @@ characters, not its columns.
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `glass`, `neon`, `classic`, `purple`, `prism`, `soft`, `metal`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset = `auto`, every look in turn |
-| `backdrop_3d` | empty = the theme's | the 3D scene behind the panes (`/look 3d`): empty for the theme's own (`prism` and `metal` have one), `off`, `orbit`, `prism` or `mercury`; also Settings → **3D backdrop** |
+| `backdrop_3d` | empty = the theme's | the 3D scene behind the panes (`/look 3d`): empty for the theme's own (`prism` has one), `off`, `orbit` or `prism`; also Settings → **3D backdrop** |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `scrollback` | `10000` | lines a terminal pane keeps above its screen, 100–100 000; Settings → **Scrollback** applies it to open panes at once (a shrink drops the oldest lines) |

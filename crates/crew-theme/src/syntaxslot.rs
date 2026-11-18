@@ -169,9 +169,7 @@ pub const PRISM: SyntaxSlots = SyntaxSlots {
     comment: None,
 };
 
-/// Porcelain: indigo keywords (the blue slot, its accent), teal types, plum
-/// calls, rust numbers, green strings, ochre identifiers: printed inks.
-/// Mercury (liquid metal): blued-steel keywords, cyan types (the cold
+/// Mercury (gunmetal plates): blued-steel keywords, cyan types (the cold
 /// shine), brass calls, copper numbers (its warm rim light), green strings,
 /// and identifiers in the magenta of an oil-slick sheen.
 pub const MERCURY: SyntaxSlots = SyntaxSlots {
@@ -184,6 +182,21 @@ pub const MERCURY: SyntaxSlots = SyntaxSlots {
     comment: None,
 };
 
+/// Silver (polished aluminium plates): blued-steel keywords, brass types,
+/// teal calls, copper numbers, green strings, plum identifiers, in engraved
+/// inks dark enough for the plate's sheen.
+pub const SILVER: SyntaxSlots = SyntaxSlots {
+    keyword: 4,
+    ty: 3,
+    func: 6,
+    number: 1,
+    string: 2,
+    code: 5,
+    comment: None,
+};
+
+/// Porcelain: indigo keywords (the blue slot, its accent), teal types, plum
+/// calls, rust numbers, green strings, ochre identifiers: printed inks.
 pub const PORCELAIN: SyntaxSlots = SyntaxSlots {
     keyword: 4,
     ty: 6,

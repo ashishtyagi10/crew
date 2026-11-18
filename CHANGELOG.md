@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.18
+
+**Metal is now brushed metal plates, in mercury and silver.**
+
+Themes:
+- `/theme metal` is brushed metal. The panes themselves are metal plates: no frame is drawn, each card stands out of the page as a solid plate with fine hairline brushing along it, a broad sheen across the grain that slides as the pointer moves over the window, and a machined bevel round the edge, bright on the light's side and dark on the far one.
+- It comes in two palettes, and `metal` changes between them every 10 minutes. `mercury` is gunmetal with white words and a rose-gold accent, in IBM Plex Mono. `silver` (new) is aluminium with engraved near-black words and an anodized-titanium violet accent, in JetBrains Mono. `/theme mercury` or `/theme silver` pins one; `liquid-metal` and `chrome` still turn on `metal`.
+- A gunmetal plate sits a step lighter than its page, so it reads as steel rather than black. The brushing and sheen move the face only a little either way, and the words keep their contrast at the brightest and darkest points.
+- The chrome mercury 3D scene is gone, and so is the `mercury` choice in `/look 3d` and Settings → **3D backdrop**. `metal` no longer draws a scene behind the panes.
+- `auto` shows silver after mercury: a lap now shows all twenty-two palettes and takes 220 minutes. `Ctrl+Shift+L` steps to silver after mercury too.
+
 ## 0.30.17
 
 **New metal theme: liquid chrome over a 3D scene of mercury.**

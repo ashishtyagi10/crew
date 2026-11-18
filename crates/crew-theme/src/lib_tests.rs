@@ -231,9 +231,9 @@ fn cycle_next_walks_every_mode_and_wraps() {
     // ...then soft, the neumorphic cards...
     assert_eq!(cycle_next(9), "soft");
     assert_eq!(current_id().mode(), RandomMode::Relief);
-    // ...then metal, mercury's liquid metal...
+    // ...then metal, the brushed plates...
     assert_eq!(cycle_next(10), "metal");
-    assert_eq!(current_id(), ThemeId::Mercury);
+    assert_eq!(current_id().mode(), RandomMode::Metal);
     // ...then auto, which moves straight on to another look...
     assert_eq!(cycle_next(11), "auto");
     assert_ne!(current_id().mode(), RandomMode::Metal);
@@ -417,10 +417,10 @@ fn every_retired_theme_name_still_resolves() {
     // its light page retired the same day. The five editor classics and
     // amethyst were drawn on 2026-10-28, prism on 2026-11-08, and the four
     // neumorphic palettes (porcelain, sand, mist, slate) on 2026-11-12, and
-    // mercury on 2026-11-17.
+    // mercury and silver on 2026-11-17.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
-        44,
+        45,
         "every retiree is listed"
     );
 }
@@ -1089,7 +1089,6 @@ fn the_ink_reader_pages_are_their_rotations() {
         ("paper-light", RandomMode::Light, ThemeId::PaperLight),
         ("amethyst", RandomMode::Purple, ThemeId::Amethyst),
         ("prism", RandomMode::Prism, ThemeId::Prism),
-        ("mercury", RandomMode::Metal, ThemeId::Mercury),
     ] {
         assert_eq!(parse_selection(name), Some(Selection::Mode(mode)), "{name}");
         assert_eq!(page.selection(), Selection::Mode(mode), "{name}");

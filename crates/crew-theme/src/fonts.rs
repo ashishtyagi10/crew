@@ -209,6 +209,15 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
+        // Silver, its light twin, leads with JetBrains Mono: as engineered,
+        // and a step of the walk from mercury changes the face.
+        ThemeId::Silver => &[
+            "JetBrains Mono",
+            "IBM Plex Mono",
+            "SF Mono",
+            "Menlo",
+            "Lilex",
+        ],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).

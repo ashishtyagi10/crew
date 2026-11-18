@@ -226,7 +226,8 @@ impl GlassLayer {
         let foil = crate::color::target_rgba(t.broadcast, 1.0, self.srgb);
         // …and how far its cards stand in relief, beside it (`neu` in the
         // shader): 0 on every theme but the neumorphic ones.
-        let mut v = [k, t.relief(), 0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+        let lin = if self.srgb { 1.0 } else { 0.0 };
+        let mut v = [k, t.relief(), t.metal(), lin, 0.0, 0.0, 0.0, 1.0];
         v[4..].copy_from_slice(&foil);
         queue.write_buffer(&self.vp_buf, 32, f32s_as_bytes(&v));
     }

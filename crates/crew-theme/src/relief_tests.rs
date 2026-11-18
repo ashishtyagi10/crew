@@ -7,6 +7,17 @@ const RELIEF: [ThemeId; 4] = [
     ThemeId::Slate,
 ];
 
+/// Relief's palettes and metal's, which are relief cards brushed: every
+/// palette whose cards stand out of the page.
+const RAISED: [ThemeId; 6] = [
+    ThemeId::Porcelain,
+    ThemeId::Sand,
+    ThemeId::Mist,
+    ThemeId::Slate,
+    ThemeId::Mercury,
+    ThemeId::Silver,
+];
+
 /// `soft` (neumorphism) is a look of four palettes: its name rotates among them, each
 /// pins itself by name, and the picker lists all four.
 #[test]
@@ -31,13 +42,13 @@ fn relief_is_a_look_of_four() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
-/// Only these four stand in relief, and each page leaves both of a card's
+/// Only these stand in relief (soft's four and metal's two), and each page leaves both of a card's
 /// shadows room: something lighter to throw, and something darker.
 #[test]
 fn only_relief_palettes_stand_in_relief_with_room_for_both_shadows() {
     for id in ALL_THEMES {
         let t = id.theme();
-        assert_eq!(t.relief() > 0.0, RELIEF.contains(&id), "{}", id.as_str());
+        assert_eq!(t.relief() > 0.0, RAISED.contains(&id), "{}", id.as_str());
         if t.relief() == 0.0 {
             continue;
         }
@@ -56,7 +67,7 @@ fn only_relief_palettes_stand_in_relief_with_room_for_both_shadows() {
 /// never so faint the card is lost in its page.
 #[test]
 fn a_relief_card_is_a_solid_slab_with_a_shadow() {
-    for id in RELIEF {
+    for id in RAISED {
         let t = id.theme();
         let g = glass_style_for(t);
         assert_eq!(g.tint, t.page_bg, "{}", id.as_str());

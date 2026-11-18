@@ -21,7 +21,6 @@ fn the_ladder_offers_theme_off_then_every_scene() {
     assert_eq!(rows.len(), 2 + Stage::ALL.len());
     assert!(rows.iter().any(|(n, _)| n == "orbit"));
     assert!(rows.iter().any(|(n, _)| n == "prism"));
-    assert!(rows.iter().any(|(n, _)| n == "mercury"));
 }
 
 /// The prism theme turns its scene on by itself; `off` turns it off; a
@@ -34,9 +33,6 @@ fn the_prism_theme_turns_its_scene_on_by_default() {
     assert_eq!(resolve("", ThemeId::GlassNight), None);
     assert_eq!(resolve("orbit", ThemeId::Prism), Some(Stage::Orbit));
     assert_eq!(resolve("prism", ThemeId::GlassNight), Some(Stage::Prism));
-    // The liquid-metal theme brings its mercury the same way.
-    assert_eq!(resolve("", ThemeId::Mercury), Some(Stage::Mercury));
-    assert_eq!(resolve("off", ThemeId::Mercury), None);
 }
 
 /// What a frame publishes follows the live theme: the default setting
@@ -73,8 +69,7 @@ fn the_frame_lights_the_scene_in_the_users_accent() {
 }
 
 /// The settings form offers the 3D backdrop: its picker steps the same
-/// settings `/look 3d` keeps (theme → off → orbit → prism → mercury →
-/// theme), shows the
+/// settings `/look 3d` keeps (theme → off → orbit → prism → theme), shows the
 /// default as `theme`, and Save carries the pick into the config.
 #[test]
 fn the_settings_form_steps_and_saves_the_backdrop() {
@@ -82,17 +77,16 @@ fn the_settings_form_steps_and_saves_the_backdrop() {
     let mut p = SettingsPane::new(crate::config::CrewConfig::default(), vec![]);
     p.focus = FIELDS.iter().position(|&f| f == Field::Backdrop3d).unwrap();
     let mut seen = vec![p.draft.backdrop_3d.clone()];
-    for _ in 0..5 {
+    for _ in 0..4 {
         cycle_value(&mut p, false);
         seen.push(p.draft.backdrop_3d.clone());
     }
-    assert_eq!(seen, ["", "off", "orbit", "prism", "mercury", ""]);
+    assert_eq!(seen, ["", "off", "orbit", "prism", ""]);
     assert_eq!(label(""), "theme");
     cycle_value(&mut p, true);
-    assert_eq!(p.draft.backdrop_3d, "mercury", "← steps back and wraps");
-    for _ in 0..3 {
-        cycle_value(&mut p, true);
-    }
+    assert_eq!(p.draft.backdrop_3d, "prism", "← steps back and wraps");
+    cycle_value(&mut p, true);
+    cycle_value(&mut p, true);
     let SettingsAction::Apply(cfg) = p.save() else {
         panic!("save must apply");
     };
