@@ -85,7 +85,8 @@ fn the_pages_are_metal_greys() {
 /// the quiet roles and the signals). At the two ends of the swing (the
 /// sheen's peak, the grain's darkest hairline) the reading text still holds:
 /// the ink at 7:1, muted text at 4.5:1, and the quiet roles at 2.5:1, a dip
-/// only as wide as the sheen streak.
+/// only as wide as the mirror's dark band (silver) or the sheen (mercury)
+/// as it sways past.
 #[test]
 fn every_ink_reads_on_the_brushed_face() {
     for id in [ThemeId::Mercury, ThemeId::Silver] {
@@ -127,4 +128,23 @@ fn a_dark_plate_rests_a_step_above_its_page() {
     assert!(face.0 >= 40 && face.0 > t.page_bg.0, "{face:?}");
     let s = ThemeId::Silver.theme();
     assert_eq!(metal_face(s.page_bg, false, 0.0), s.page_bg);
+}
+
+/// The polish runs AWAY from the ink, where it costs no word any contrast
+/// (2026-11-17: "not shiny enough"): silver's sheen burns most of the way to
+/// white, mercury's mirror band falls most of the way to black, each far
+/// past what the face may move toward its ink.
+#[test]
+fn the_shine_runs_away_from_the_ink() {
+    let s = ThemeId::Silver.theme();
+    let peak = metal_face(s.page_bg, false, 1.0);
+    assert!(peak.0 >= 238, "silver sheen {peak:?}");
+    let m = ThemeId::Mercury.theme();
+    let rest = metal_face(m.page_bg, true, 0.0);
+    let deep = metal_face(m.page_bg, true, -1.0);
+    assert!(
+        f32::from(deep.0) <= f32::from(rest.0) * 0.55,
+        "{rest:?} → {deep:?}"
+    );
+    const { assert!(METAL_SHINE > 2.0 * METAL_SWING) };
 }

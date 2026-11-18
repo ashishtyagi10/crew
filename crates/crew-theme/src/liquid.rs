@@ -52,38 +52,47 @@ pub struct LiquidStyle {
     pub metal: f32,
 }
 
-/// The most a metal plate's face moves from where it rests, as a fraction of
-/// the way to white (the sheen) or to black (the grain's dark hairlines and
-/// the far side), in sRGB. crew-render's `metal_face` draws what
-/// [`metal_face`] computes; `metal_tests` holds every ink against it.
-pub const METAL_SWING: f32 = 0.12;
+/// The most a metal plate's face moves from where it rests TOWARD its ink
+/// (a light plate darkening: the grain's dark hairlines, the mirror's dark
+/// band), as a fraction of the way to black, in sRGB. crew-render's
+/// `metal_face` draws what [`metal_face`] computes; `metal_tests` holds every
+/// ink against it.
+pub const METAL_SWING: f32 = 0.16;
+
+/// How far a plate's face moves AWAY from its ink: silver toward white under
+/// the sheen, mercury toward black in the mirror's dark band. It costs no
+/// word any contrast, so it is free to be large: it is the polish (the user,
+/// 2026-11-17: "not shiny enough").
+pub const METAL_SHINE: f32 = 0.5;
 
 /// Where a DARK plate rests: this far from its page toward white. A dark
 /// palette's page is pinned near black by its ladder (ink at 10:1, the bright
 /// white ANSI slot at 16.8:1), and steel at that depth reads as black (the
 /// user, 2026-11-17: "instead of black"), so the plate stands a step lighter
-/// than the page it is raised from. A pressed-in well stays at the page.
+/// than the page it is raised from. The input bar's well does too: a well at
+/// the page's depth read as a black slot, not as metal.
 pub const METAL_REST_DARK: f32 = 0.07;
 
-/// How much of [`METAL_SWING`] a dark plate takes toward white: the sheen
-/// on a dark plate is held lower, so the quiet inks keep 3:1 under it.
+/// How much of [`METAL_SWING`] a dark plate takes toward white (toward its
+/// ink): the sheen on a dark plate is held lower, so the quiet inks keep
+/// 2.5:1 under it.
 pub const METAL_UP_DARK: f32 = 0.6;
 
 /// The face of a metal plate over `page` at signed light `k` (-1..=1: the
-/// grain's dark hairlines to the sheen's peak), in sRGB: what the glass
+/// darkest the light takes it to the sheen's peak), in sRGB: what the glass
 /// shader's `metal_face` draws, for the tests that floor the inks on it.
 pub fn metal_face(page: (u8, u8, u8), dark: bool, k: f32) -> (u8, u8, u8) {
     let k = k.clamp(-1.0, 1.0);
     let f = |v: u8| {
         let mut c = f32::from(v) / 255.0;
-        let up = if dark {
+        let (up, down) = if dark {
             c += (1.0 - c) * METAL_REST_DARK;
-            METAL_SWING * METAL_UP_DARK
+            (METAL_SWING * METAL_UP_DARK, METAL_SHINE)
         } else {
-            METAL_SWING
+            (METAL_SHINE, METAL_SWING)
         };
         c += (1.0 - c) * up * k.max(0.0);
-        c *= 1.0 - METAL_SWING * (-k).max(0.0);
+        c *= 1.0 - down * (-k).max(0.0);
         (c * 255.0).round() as u8
     };
     (f(page.0), f(page.1), f(page.2))

@@ -179,6 +179,7 @@ fn the_shader_brushes_metal_as_the_theme_measures_it() {
         v.trim().parse().unwrap()
     };
     assert_eq!(get("METAL_SWING"), crew_theme::METAL_SWING);
+    assert_eq!(get("METAL_SHINE"), crew_theme::METAL_SHINE);
     assert_eq!(get("METAL_REST_DARK"), crew_theme::METAL_REST_DARK);
     assert_eq!(get("METAL_UP_DARK"), crew_theme::METAL_UP_DARK);
 }

@@ -108,7 +108,7 @@ pub(crate) fn draw_with(
     grid.set_window_opacity(opacity);
     let (cw, ch) = grid.cell_size();
     grid.set_scene(&device, &scenes(cw, ch));
-    grid.set_glass_light(TILT.with(Cell::get));
+    crate::metalsheen::light_shot(&mut grid, TILT.with(Cell::get));
     grid.prepare(&device, &queue, w, h);
     let mut stage = crew_render::stage3d::Stage3dPass::new(&device, FORMAT);
     stage.prepare(&device, &queue, (w, h)); // nothing while `/look 3d` is off

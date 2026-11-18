@@ -1015,13 +1015,18 @@ page and drops the scene.
 `metal` is brushed metal: the panes themselves are metal plates, in two
 palettes, gunmetal `mercury` and aluminium `silver`. Like `soft`, no frame
 is stroked; each card is a solid plate standing out of the page, and its
-face is brushed (fine hairline grain along the plate), carries a broad
-sheen streak across the grain that slides as the pointer moves over the
-window, and is cut round with a machined bevel, bright on the light's side
-and dark on the far one. A dark plate rests a step lighter than its page, so
-gunmetal reads as steel rather than black; the brushing moves the face at
-most 12% either way, and the words are held to their contrast on the face as
-drawn. `mercury` has
+face is brushed (fine hairline grain along the plate) and polished: one
+sheen streak (light, a deep mirror-dark band, light again) is laid across
+the whole window, so the same lamp crosses every plate. It slides as the
+pointer moves, sways slowly on its own, and every few seconds a glint runs
+across the window, burning along the bevels as it passes (Motion `subtle`
+keeps a gentler sway and no glint; `off` holds the light still). Each plate
+is cut round with a machined bevel, bright on the light's side and dark on
+the far one, and the input bar is a plate too, pressed in. A dark plate rests
+a step lighter than its page, so gunmetal reads as steel rather than black.
+The polish runs away from the words: silver burns up to half way to white and
+mercury falls half way to black, while toward the words the face moves at
+most 16%, so every word holds its contrast on the face as drawn. `mercury` has
 white words and a rose-gold accent; `silver` engraved near-black words and an
 anodized-titanium violet. The faces are IBM Plex Mono (mercury) and
 JetBrains Mono (silver). `/theme metal` (or `liquid-metal`, `chrome`)
