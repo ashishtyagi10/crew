@@ -103,6 +103,7 @@ pub mod glasslegend;
 pub mod gradients;
 pub mod highlight;
 pub mod holo;
+pub mod linklift;
 mod liquid;
 pub mod marks;
 mod modernstyle;
