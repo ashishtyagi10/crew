@@ -14,6 +14,7 @@
 use crew_render::{CellView, PaneScene};
 
 use crate::layout::Rect;
+use crate::reliefbutton::RAISE;
 
 /// How deep an in-card well is pressed: the input bar's depth at rest
 /// (`spotlight::composer_lift`), so the two read as one material.
@@ -145,7 +146,9 @@ pub(crate) fn press(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32) {
     let (tint, page) = (crate::chatink::code_bg(), crew_theme::theme().page_bg);
     let fields = crate::relieffield::fields(&scenes[at].cells, tint);
     crate::relieffield::clear(&mut scenes[at].cells, &fields, tint, page);
-    if all.is_empty() && cut.is_empty() && fields.is_empty() {
+    let keys = crate::reliefbutton::keys(&scenes[at].cells, page);
+    crate::reliefbutton::onto_plate(&mut scenes[at].cells, &keys, page);
+    if all.is_empty() && cut.is_empty() && fields.is_empty() && keys.is_empty() {
         return;
     }
     // A box of several panels is a well a panel (`reliefsplit`); read the
@@ -166,6 +169,10 @@ pub(crate) fn press(scenes: &mut Vec<PaneScene>, cw: f32, ch: f32) {
             .iter()
             .map(|w| crate::navreliefscene::sheet(rect_of(w, origin, cw, ch), cw, ch, DEPTH)),
     );
+    let raised = keys
+        .iter()
+        .map(|k| crate::reliefbutton::rect_of(k, origin, cw, ch));
+    scenes.extend(raised.map(|r| crate::navreliefscene::sheet(r, cw, ch, RAISE)));
 }
 
 #[cfg(test)]
