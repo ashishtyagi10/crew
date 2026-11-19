@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.19
+
+**Metal shines and sways; quiet words read on dark themes.**
+
+Metal (`mercury`, `silver`):
+- The plates are polished, not just brushed. One sheen is laid across the whole window, so the same light crosses every plate. It still slides as the pointer moves, and now sways slowly on its own too.
+- Every 9 seconds a glint runs across the window, flaring along the plates' bevelled edges as it passes. Motion `subtle` keeps a gentler sway and no glint; Motion `off` holds the light still. The sheen only moves while the window has focus.
+- The polish goes further where it does not hurt the words: silver brightens up to half way to white, and mercury darkens up to half way to black. Toward the words the face still moves only a little, so every word keeps its contrast.
+- The input bar is a metal plate too, pressed into the page, and it takes the sheen.
+
+Dark themes:
+- Quieter text is easier to read: legends, hints, dimmed text and placeholder text are drawn brighter. Light themes and the tube themes keep their old shades.
+- Links are brighter, so the word asking to be clicked is no longer the dimmest coloured word on screen.
+- Danger red (a load figure past its limit, a failed swarm worker) is brighter, so an alarm no longer reads quieter than a caution.
+
+Soft and metal themes:
+- Buttons are raised keys: Save and Cancel, and the to-do list's chip for showing done items, stand up off the card with their labels on them, instead of being flat bars of colour. Save keeps its accent colour so it still reads as the one to press.
+- In the side panel, the tab you are on stands up out of the panel like a key, while the other tabs stay pressed in. Before, only the colour of its number and name told you which tab was current.
+
 ## 0.30.18
 
 **Metal is now brushed metal plates, in mercury and silver.**
