@@ -674,6 +674,7 @@ mod sweepshot_tests;
 mod sysdials;
 mod tabcard;
 mod tabcmd;
+mod tabentry;
 mod tablines;
 mod tabnav;
 mod tabrestore;
