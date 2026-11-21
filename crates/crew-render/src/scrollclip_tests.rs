@@ -38,6 +38,8 @@ fn no_shift_touches_nothing() {
     let mut quads = vec![q(90.0, 30.0)];
     shift_and_clip(&mut quads, 0.0, 100.0, 200.0);
     assert_eq!((quads[0].y, quads[0].h), (90.0, 30.0));
-    assert_eq!(layout_rows(10, 200.0, 20.0, 0.0), (10, 200.0));
-    assert_eq!(layout_rows(10, 200.0, 20.0, -4.0), (11, 220.0));
+    assert_eq!(window(210.0, 20.0, 0.0), (10, 210.0, 210.0));
+    // Shifted: one more row laid out, cut at the last whole row, not the
+    // 10 px of slack under it.
+    assert_eq!(window(210.0, 20.0, -4.0), (11, 230.0, 200.0));
 }

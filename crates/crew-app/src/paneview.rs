@@ -34,7 +34,7 @@ pub(crate) fn push_pane_scenes(
     pinned: bool,
 ) {
     // Cells and the paint under them, one pass (`Pane::art`, `scrollpx`).
-    let (mut cells, mut paint) = crate::scrollpx::art(p, foc, ch / cw);
+    let (mut cells, mut paint) = crate::scrollpx::art(p, foc, cw, ch);
     // The caret's wake, over this pane's own paint: only the focused pane has
     // one, and it is drawn under the text so the glyph it crosses stays read.
     if foc {

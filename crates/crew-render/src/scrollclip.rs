@@ -10,12 +10,16 @@
 //! has pushed them, so nothing that builds them has to know.
 use crate::quads::Quad;
 
-/// Rows (and the height) to lay a scene's text out at: one more while it is
-/// shifted, for the row coming in at the bottom.
-pub(crate) fn layout_rows(rows: usize, h: f32, cell_h: f32, scroll_px: f32) -> (usize, f32) {
+/// A scene `h` px tall as laid out and cut: `(rows, text height, clip
+/// height)`. Shifted, it lays out one more row, for the line coming in at
+/// the bottom, and is cut at its last whole row rather than its rect: the
+/// slack under that row shows nothing at rest, so a sliver of the incoming
+/// line there would appear and vanish at the ends of every glide.
+pub(crate) fn window(h: f32, cell_h: f32, scroll_px: f32) -> (usize, f32, f32) {
+    let rows = ((h / cell_h).floor() as usize).max(1);
     match scroll_px != 0.0 {
-        true => (rows + 1, h + cell_h),
-        false => (rows, h),
+        true => (rows + 1, h + cell_h, rows as f32 * cell_h),
+        false => (rows, h, h),
     }
 }
 

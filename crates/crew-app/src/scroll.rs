@@ -125,8 +125,8 @@ impl CrewApp {
     /// Route a mouse-wheel scroll to the pane under the cursor. A full-screen
     /// program (alt-screen/mouse app) receives the wheel as input bytes; any
     /// other pane scrolls its own scrollback.
-    /// Either way it travels there ([`crate::scrollglide`]); `wheel` picks the
-    /// notch's easy spring over the trackpad's stiff one.
+    /// A `wheel` notch travels there ([`crate::scrollglide::start`]); a
+    /// trackpad row follows closely ([`crate::scrollglide::start_track`]).
     pub(crate) fn scroll_at_cursor(&mut self, lines: i32, wheel: bool) {
         if lines == 0 {
             return;
@@ -150,13 +150,9 @@ impl CrewApp {
         let mods = crate::mousereport::wheel_mods(self.mods.state());
         if let Some(pane) = self.panes.get_mut(i) {
             if !forward_wheel(pane, lines, cell, mods) {
-                // A trackpad's rows ride a stiff spring: drawn between rows,
-                // its own momentum stays in charge.
                 match wheel {
                     true => crate::scrollglide::start(pane, lines),
-                    false => {
-                        crate::scrollglide::start_at(pane, lines, crate::scrollglide::TRACK_OMEGA)
-                    }
+                    false => crate::scrollglide::start_track(pane, lines),
                 }
             }
             self.redraw();
