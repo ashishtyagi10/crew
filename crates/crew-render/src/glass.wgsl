@@ -17,7 +17,8 @@
 // `sweep`: the metal's light on its own clock (crew-app `metalsheen`): x how
 // far the sheen has drifted across the window (a fraction of its width), y
 // where a passing glint stands (a fraction of the width; off the window when
-// none runs), z that glint's strength 0..1.
+// none runs), z that glint's strength 0..1, w the molten surface's clock in
+// seconds (`liquid`: its magnitude; drops fall only while it is positive).
 struct Vp { size: vec2<f32>, tilt: vec2<f32>, page: vec4<f32>, holo: vec4<f32>, foil: vec4<f32>, sweep: vec4<f32> };
 @group(0) @binding(0) var<uniform> vp: Vp;
 
@@ -154,6 +155,31 @@ const METAL_GLINT: f32 = 0.04;
 // A pressed-in well (the input bar) is a plate too, sunk: it takes the
 // sheen at this much of a raised plate's, lit from below.
 const METAL_WELL_SHEEN: f32 = 0.7;
+// LIQUID metal (the user, 2026-11-18: "like drop, wave, almost like water but
+// made of molten liquid metal"): the plates are one pool of mercury laid
+// across the window. A height field of slow swells, and now and then a drop
+// falling in and ringing outward, tilts the surface; the tilt BENDS the
+// sheen streak (a mirror shows the lamp where its surface points, so the
+// light, dark, light bands wobble through the waves) and shades each slope
+// by the lamp, a hot crest where it faces it. The clock (`vp.sweep.w`, s)
+// wraps every LIQUID_WRAP s (crew-app `metalsheen::LIQUID_WRAP_MS`); every
+// swell turns a whole number of times in that and the drops' period divides
+// it, so the wrap is seamless.
+const LIQUID_WRAP: f32 = 240.0;
+// How far (px) one unit of slope moves where the mirror finds the streak.
+const LIQUID_BEND: f32 = 240.0;
+// How much a slope facing the lamp lightens the face (and one facing away
+// darkens it), and the hot crest where it faces it squarely.
+const LIQUID_SHADE: f32 = 2.4;
+const LIQUID_CREST: f32 = 0.7;
+// A drop falls every LIQUID_DROP_EVERY s (one of LIQUID_DROPS slots, each its
+// own LIQUID_DROP_EVERY * LIQUID_DROPS s cycle) and its ring runs outward at
+// LIQUID_RING_SPEED px/s, LIQUID_RING_LEN px from crest to crest, dying away
+// over its cycle. Broad and slow, so the ambient pace never strobes it.
+const LIQUID_DROPS: i32 = 3;
+const LIQUID_DROP_EVERY: f32 = 2.0;
+const LIQUID_RING_SPEED: f32 = 150.0;
+const LIQUID_RING_LEN: f32 = 90.0;
 // The chamfer: a machined bevel METAL_BEVEL px wide round the plate, burning
 // on the light's side and dark on the far one, with a dark hairline at the
 // very edge where the bevel meets the page.
@@ -332,18 +358,77 @@ fn metal_light(pos: vec2<f32>) -> vec2<f32> {
   return vec2<f32>(1.2 * lite - 0.75 * dark + 0.45 * echo, glint);
 }
 
-// The face of a metal plate: `rgb` brushed, lit from the top, under the
-// metal's light (`metal_light`). A well (pressed in) is lit from below and
-// takes METAL_WELL_SHEEN of it. How far `k` moves the face: see METAL_SWING.
-fn metal_face(in: VsOut, rgb: vec3<f32>, well: f32, m: f32) -> vec3<f32> {
+// One swell of the pool: amplitude `a` px, wavelength `len` px, heading
+// `dir`, turning `n` whole times per LIQUID_WRAP. Returns (d/dx, d/dy).
+fn swell(p: vec2<f32>, t: f32, a: f32, len: f32, dir: vec2<f32>, n: f32, ph: f32) -> vec2<f32> {
+  let f = 6.2831853 / len;
+  let w = 6.2831853 * n / LIQUID_WRAP;
+  return a * f * cos(f * dot(p, dir) - w * t + ph) * dir;
+}
+
+// The molten surface's slope at window pixel `p` at clock `t` (s): four
+// swells crossing (interfering, so no row of waves reads as corrugation),
+// warped by one another, plus the rings of the drops still running when
+// `drops`.
+fn liquid(p: vec2<f32>, t: f32, drops: bool) -> vec2<f32> {
+  // A slow warp so the crests meander rather than march in straight lines.
+  let wp = p + 60.0 * vec2<f32>(
+    sin(p.y / 310.0 + 6.2831853 * 7.0 * t / LIQUID_WRAP),
+    cos(p.x / 270.0 - 6.2831853 * 9.0 * t / LIQUID_WRAP));
+  var g = swell(wp, t, 9.0, 760.0, vec2<f32>(0.80, 0.60), 17.0, 0.0);
+  g = g + swell(wp, t, 7.0, 540.0, vec2<f32>(-0.55, 0.83), 23.0, 1.7);
+  g = g + swell(wp, t, 5.0, 420.0, vec2<f32>(0.96, -0.28), 29.0, 4.1);
+  g = g + swell(wp, t, 3.5, 300.0, vec2<f32>(-0.20, -0.98), 37.0, 2.6);
+  if (!drops) { return g; }
+  let cycle = LIQUID_DROP_EVERY * f32(LIQUID_DROPS);
+  let k = 6.2831853 / LIQUID_RING_LEN;
+  for (var i = 0; i < LIQUID_DROPS; i = i + 1) {
+    let tt = t + LIQUID_DROP_EVERY * f32(i);
+    let epoch = floor(tt / cycle);
+    let age = tt - epoch * cycle;
+    // Where this drop lands: anywhere but hard against the window's edge.
+    let at = vec2<f32>(hash21(vec2<f32>(epoch, f32(i) + 0.5)),
+                       hash21(vec2<f32>(f32(i) + 9.5, epoch))) * 0.8 + 0.1;
+    let v = p - at * vp.size;
+    let r = max(length(v), 0.001);
+    let front = LIQUID_RING_SPEED * age;
+    let behind = front - r;
+    // A packet a few crests long riding the front, fading as it spreads
+    // and as the drop ages, and not yet anywhere the front has not reached.
+    let b = behind / (LIQUID_RING_LEN * 1.6);
+    let env = exp(-b * b)
+      * exp(-age * 0.9) / (1.0 + r / 260.0);
+    var dr = 6.0 * k * env * cos(k * behind);
+    // The splash where it fell: a dimple that rebounds and dies.
+    let s = 26.0;
+    let splash = 9.0 * exp(-r * r / (s * s)) * cos(age * 7.0) * exp(-age * 2.4);
+    dr = dr - splash * 2.0 * r / (s * s);
+    g = g + dr * v / r;
+  }
+  return g;
+}
+
+// The face of a metal plate: `rgb` lit from the top, under the metal's light
+// (`metal_light`) as its molten surface (slope `g`) reflects it. A well
+// (pressed in) is lit from below and takes METAL_WELL_SHEEN of it. How far
+// `k` moves the face: see METAL_SWING.
+fn metal_face(in: VsOut, rgb: vec3<f32>, well: f32, m: f32, g: vec2<f32>) -> vec3<f32> {
   let x = in.local.x + in.hsize.x;
   let y = in.local.y + in.hsize.y;
   let down = clamp(y / max(in.hsize.y * 2.0, 1.0), 0.0, 1.0);
   let sunk = well > 0.0;
-  let l = metal_light(in.pos.xy);
-  var k = 0.55 * brushed(x, y);
+  let l = metal_light(in.pos.xy + g * LIQUID_BEND);
+  // Molten, not brushed: only a whisper of grain is left, to keep the
+  // gradients from banding.
+  var k = 0.06 * brushed(x, y);
   k = k + 0.30 * (0.5 - down) * select(1.0, -1.0, sunk);
   k = k + (l.x + l.y) * select(1.0, METAL_WELL_SHEEN, sunk);
+  // Each slope shaded by the lamp: the surface's normal against the light
+  // (up and to the left, well above the window), level water at zero.
+  let n = normalize(vec3<f32>(-g, 1.0));
+  let lamp = normalize(vec3<f32>(LIGHT, 1.1));
+  let lit = dot(n, lamp) - lamp.z;
+  k = k + LIQUID_SHADE * lit + LIQUID_CREST * smoothstep(0.06, 0.15, lit);
   k = clamp(k * m, -1.0, 1.0);
   // The swing is measured in sRGB, as the inks were floored: on a linear
   // target (`vp.holo.w` 1) the face is lifted out of it and put back.
@@ -390,8 +475,11 @@ fn neu(in: VsOut, d: f32, inside: f32, rim_cut: f32, t: f32, face: f32) -> vec4<
     rgb = mix(rgb, in.hl.xyz, 0.10 * band);
   }
   let metal = vp.holo.z;
+  var g = vec2<f32>(0.0);
   if (metal > 0.0) {
-    rgb = metal_face(in, rgb, well, metal);
+    g = liquid(in.pos.xy, abs(vp.sweep.w), vp.sweep.w > 0.0)
+      * select(1.0, METAL_WELL_SHEEN, well > 0.0);
+    rgb = metal_face(in, rgb, well, metal, g);
   }
   if (well <= 0.0) {
     let g = dot(in.local / max(in.hsize, vec2<f32>(1.0, 1.0)), light) * 0.7071;
@@ -422,7 +510,7 @@ fn neu(in: VsOut, d: f32, inside: f32, rim_cut: f32, t: f32, face: f32) -> vec4<
   let rim_w = mix(NEU_RIM, METAL_BEVEL, metal);
   // The chamfer catches the lamp: hottest where the streak or a glint
   // crosses it, and a glint lights even its far side as it passes.
-  let lamp = metal_light(in.pos.xy);
+  let lamp = metal_light(in.pos.xy + g * LIQUID_BEND);
   let catch_lit = clamp(0.75 + 0.35 * lamp.x + lamp.y, 0.0, 1.0);
   let rim_lit = mix(NEU_RIM_LIT * hl_a, METAL_BEVEL_LIT * catch_lit, metal);
   let rim_shade = mix(NEU_RIM_SHADE * sh_a, METAL_BEVEL_SHADE, metal);
