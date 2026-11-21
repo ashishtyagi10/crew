@@ -14,6 +14,7 @@ const PIXELS_PER_LINE: f32 = 24.0;
 pub(crate) fn forward_to_program(pane: &mut Pane, bytes: &[u8]) {
     if let PaneContent::Terminal(t) = &mut pane.content {
         t.pty.scroll_to_bottom();
+        pane.glide.scroll.stop();
         let _ = t.input.write_all(bytes).and_then(|_| t.input.flush());
     }
 }
@@ -51,7 +52,7 @@ fn forward_key(
 }
 
 /// Scroll one pane's content by `lines` (positive = up/older).
-fn scroll_pane(pane: &mut Pane, lines: i32) {
+pub(crate) fn scroll_pane(pane: &mut Pane, lines: i32) {
     let cols = pane.grid.cols;
     let rows = pane.grid.rows;
     match &mut pane.content {
@@ -124,7 +125,8 @@ impl CrewApp {
     /// Route a mouse-wheel scroll to the pane under the cursor. A full-screen
     /// program (alt-screen/mouse app) receives the wheel as input bytes; any
     /// other pane scrolls its own scrollback.
-    pub(crate) fn scroll_at_cursor(&mut self, lines: i32) {
+    /// `glide` travels there (see [`crate::scrollglide`]) rather than jumping.
+    pub(crate) fn scroll_at_cursor(&mut self, lines: i32, glide: bool) {
         if lines == 0 {
             return;
         }
@@ -147,7 +149,10 @@ impl CrewApp {
         let mods = crate::mousereport::wheel_mods(self.mods.state());
         if let Some(pane) = self.panes.get_mut(i) {
             if !forward_wheel(pane, lines, cell, mods) {
-                scroll_pane(pane, lines);
+                match glide {
+                    true => crate::scrollglide::start(pane, lines),
+                    false => scroll_pane(pane, lines),
+                }
             }
             self.redraw();
         }
@@ -158,7 +163,7 @@ impl CrewApp {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_key(pane, |m| crate::altscroll::page_bytes(m, up)) {
                 let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
-                scroll_pane(pane, if up { page } else { -page });
+                crate::scrollglide::start(pane, if up { page } else { -page });
             }
             self.redraw();
         }
@@ -169,8 +174,7 @@ impl CrewApp {
     pub(crate) fn scroll_focused_end(&mut self, to_top: bool) {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_key(pane, |m| crate::altscroll::end_bytes(m, to_top)) {
-                // The grid clamps a huge delta to the available history range.
-                scroll_pane(pane, if to_top { i32::MAX / 2 } else { i32::MIN / 2 });
+                crate::scrollglide::start_end(pane, to_top);
             }
             self.redraw();
         }

@@ -72,6 +72,8 @@ impl CrewApp {
         let glide_dt = crate::glide::frame_dt(now, self.glide_prev_ms);
         self.glide_prev_ms = now;
         self.glide_active = false;
+        // Scrolls in flight hand their panes this frame's rows.
+        crate::scrollglide::step_all(&mut self.panes, glide_dt);
         self.reconcile_grid();
         // Before anything is drawn: a key prompt this frame won't show must
         // not survive holding a secret (see `close_hidden_keyentry`).
