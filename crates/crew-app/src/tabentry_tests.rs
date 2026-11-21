@@ -64,11 +64,14 @@ fn going_up_the_list_drops_the_tab_in_from_above() {
     settle(&mut app);
     let first_tab = app.tabs.id_at(1).unwrap();
     app.activate_tab(first_tab);
+    std::thread::sleep(std::time::Duration::from_millis(150));
     app.build_frame();
     let drawn = app.panes[0].rect;
     assert!(app.glide_active, "the tab's card is travelling");
+    // Most of the 8% travel is still ahead after the first frame.
+    let travel = tile.h * TRAVEL;
     assert!(
-        drawn.y < tile.y - 10.0,
+        drawn.y < tile.y - 0.6 * travel,
         "starts above its tile: {drawn:?} vs {tile:?}"
     );
     settle(&mut app);

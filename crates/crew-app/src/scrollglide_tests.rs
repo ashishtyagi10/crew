@@ -145,3 +145,31 @@ fn a_snap_to_the_bottom_cancels_the_glide() {
     assert_eq!(offset(&panes[0]), 0);
     assert!(!panes[0].glide.scroll.moving());
 }
+
+/// Through `build_frame`, after an idle stretch: a three-row notch shows at
+/// most one row on its first frame — the glide starts from rest rather than
+/// being stepped through the idle gap (`glide::first_dt`).
+#[test]
+fn a_notch_after_idle_starts_gently() {
+    let _g = crate::appearanceguard::theme_test_guard();
+    set_level(MotionLevel::Full);
+    let mut app = crate::app::CrewApp {
+        geo_override: Some((8.0, 17.0, 1280.0, 720.0, 1.0)),
+        ..Default::default()
+    };
+    app.panes.push(shell_with_history());
+    app.build_frame();
+    std::thread::sleep(std::time::Duration::from_millis(150));
+    start(&mut app.panes[0], 3);
+    app.build_frame();
+    let first = offset(&app.panes[0]);
+    assert!(first <= 1, "first frame of a notch: {first} rows");
+    for _ in 0..100 {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        app.build_frame();
+        if !app.panes[0].glide.scroll.moving() {
+            break;
+        }
+    }
+    assert_eq!(offset(&app.panes[0]), 3);
+}

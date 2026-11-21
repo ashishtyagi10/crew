@@ -20,17 +20,18 @@ const ZERO: Rect = Rect {
     h: 0.0,
 };
 
-/// Cmd+D: the new pane (focused) comes out of the pane focus just left, at
-/// the new tile's own size — position travels, size never does.
+/// Cmd+D: the new pane (focused) comes out of the side of the pane focus
+/// just left, at the new tile's own size — position travels, size never does.
 #[test]
-fn a_split_starts_at_its_parent_at_its_own_size() {
+fn a_split_starts_toward_its_parent_at_its_own_size() {
     let panes = vec![pane(r(10.0, 20.0, 800.0, 600.0)), pane(ZERO)];
     let placed = [
         (0, r(10.0, 20.0, 400.0, 600.0)),
         (1, r(410.0, 20.0, 400.0, 600.0)),
     ];
     let got = entry(&panes, &placed, 1, 0);
-    assert_eq!(got, Some((1, r(10.0, 20.0, 400.0, 600.0))));
+    // A fifth of the 400 px back toward the parent's corner.
+    assert_eq!(got, Some((1, r(330.0, 20.0, 400.0, 600.0))));
 }
 
 /// A pane opened in the background comes out of the focused pane.
@@ -47,7 +48,7 @@ fn a_background_pane_comes_out_of_the_focused_one() {
         (2, r(400.0, 0.0, 200.0, 300.0)),
     ];
     let got = entry(&panes, &placed, 1, 0).map(|(i, f)| (i, f.x));
-    assert_eq!(got, Some((2, 300.0)));
+    assert_eq!(got, Some((2, 380.0)), "toward pane 1 at x=300, not pane 0");
 }
 
 /// Panes born together, a first pane with nothing to come out of, and a
@@ -102,13 +103,12 @@ fn a_split_travels_from_its_parent_to_its_tile() {
     assert!(parent.w > 0.0);
     app.panes.push(pane(ZERO));
     app.focused = 1;
+    // Idle first, as a real split is: the trip must not be spent on the
+    // frame that starts it (`glide::first_dt`).
+    std::thread::sleep(std::time::Duration::from_millis(150));
     app.build_frame();
     let first = app.panes[1].rect;
     assert!(app.glide_active, "the new card is moving");
-    assert!(
-        (first.x - parent.x).abs() < 40.0,
-        "starts at its parent: {first:?} vs {parent:?}"
-    );
     let mut last = first;
     for _ in 0..200 {
         std::thread::sleep(std::time::Duration::from_millis(5));
@@ -126,5 +126,12 @@ fn a_split_travels_from_its_parent_to_its_tile() {
     assert!(
         last.x > parent.x + 100.0,
         "landed on its own tile: {last:?}"
+    );
+    // It started between its parent's corner and its tile, with most of the
+    // reach still ahead of it on that first frame.
+    let reach = (last.x - parent.x) * REACH;
+    assert!(
+        first.x > parent.x && first.x < last.x - 0.6 * reach,
+        "started toward its parent: {first:?}, parent {parent:?}, tile {last:?}"
     );
 }
