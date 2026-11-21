@@ -61,6 +61,7 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
 /// [`crate::app::CrewApp::clock_tick`] serves once a second instead.
 pub(crate) fn pane_animating(p: &Pane) -> bool {
     (pane_working(p) && crate::motion::level() != crate::motion::MotionLevel::Off)
+        || p.glide.scroll.moving()
         || match &p.content {
             PaneContent::Chat(c) => {
                 c.is_fading() || c.is_revealing() || c.chrome_animating(crate::anim::now_ms())

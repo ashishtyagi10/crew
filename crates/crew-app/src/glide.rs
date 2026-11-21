@@ -42,6 +42,10 @@ pub(crate) struct Glide {
     y: Spring,
     w: Spring,
     h: Spring,
+    /// The pane's scroll in flight ([`crate::scrollglide`]) — the other spring
+    /// a pane carries. Kept across a reseed or a snap: those are about where
+    /// the card is, not where its content is scrolled to.
+    pub(crate) scroll: crate::scrollglide::ScrollGlide,
 }
 
 impl Glide {
@@ -52,6 +56,7 @@ impl Glide {
             y: Spring::at(r.y),
             w: Spring::at(r.w),
             h: Spring::at(r.h),
+            scroll: Default::default(),
         }
     }
 
@@ -74,7 +79,7 @@ impl Glide {
     pub(crate) fn step(&mut self, target: Rect, dt_ms: u64, snap: bool) -> (Rect, bool) {
         let cur = self.rect();
         if snap || cur.w <= 0.0 || cur.h <= 0.0 {
-            *self = Glide::at(target);
+            self.reseed(target);
             return (target, true);
         }
         let dt = dt_ms as f32;
@@ -105,7 +110,10 @@ impl Glide {
     /// spring's knowledge, and a spring that kept integrating from a stale
     /// position would yank the pane back toward where it thought it was.
     pub(crate) fn reseed(&mut self, r: Rect) {
-        *self = Glide::at(r);
+        *self = Glide {
+            scroll: self.scroll,
+            ..Glide::at(r)
+        };
     }
 }
 

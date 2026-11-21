@@ -618,6 +618,7 @@ mod runpane;
 mod schemepush;
 mod scroll;
 mod scrollboost;
+mod scrollglide;
 mod search;
 mod searchall;
 mod select;
