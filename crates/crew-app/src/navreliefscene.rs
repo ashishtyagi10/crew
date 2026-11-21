@@ -34,6 +34,7 @@ pub(crate) fn sheet(r: Rect, cw: f32, ch: f32, lift: f32) -> PaneScene {
         pictures: Vec::new(),
         stretch: true,
         overlay: false,
+        scroll_px: 0.0,
         paint: Vec::new(),
     }
 }

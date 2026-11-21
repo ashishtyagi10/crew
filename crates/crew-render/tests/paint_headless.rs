@@ -48,6 +48,7 @@ fn scene(alpha: f32, cols: u16, rows: u16) -> Vec<PaneScene> {
         pictures: Vec::new(),
         stretch: false,
         overlay: false,
+        scroll_px: 0.0,
         paint: vec![Paint::solid(
             0.0,
             0.0,

@@ -161,5 +161,6 @@ fn scene(x: f32, y: f32, w: f32, h: f32, overlay: bool) -> crew_render::PaneScen
         stretch: false,
         overlay,
         paint: Vec::new(),
+        scroll_px: 0.0,
     }
 }

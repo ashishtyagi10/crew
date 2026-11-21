@@ -14,10 +14,11 @@ use crate::roundborder::Border;
 use crate::scenecache::{pane_sig, PrevPass};
 use crate::scriptrun::RunArea;
 
-/// `(Buffer, origin_x, origin_y, pane_w, pane_h, runs)` for one rendered
-/// pane: its snapped buffer, and the runs of joining script drawn whole over
-/// it (see [`crate::scriptrun`]).
-pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32, Vec<RunArea>);
+/// `(Buffer, origin_x, origin_y, pane_w, pane_h, runs, dy)` for one rendered
+/// pane: its snapped buffer, the runs of joining script drawn whole over it
+/// (see [`crate::scriptrun`]), and how far its text is drawn below the
+/// origin while the clip stays on the pane ([`crate::scrollclip`]).
+pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32, Vec<RunArea>, f32);
 
 /// One pane to be rendered: its cell data, pixel rect, and focus state.
 /// Columns a cell's character occupies — the same one-or-two the layout
@@ -84,6 +85,11 @@ pub struct PaneScene {
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
     pub overlay: bool,
+    /// How far the content is drawn below its rows, in px — the fraction of a
+    /// row a smooth scroll is between two lines (`scrollclip`). Non-zero
+    /// cells carry one more row under the last, and everything is clipped to
+    /// the scene's rect.
+    pub scroll_px: f32,
 }
 
 /// An empty, unfocused, frameless scene with no scan and no lift — what a
@@ -106,6 +112,7 @@ impl Default for PaneScene {
             pictures: Vec::new(),
             stretch: false,
             overlay: false,
+            scroll_px: 0.0,
         }
     }
 }
@@ -467,7 +474,13 @@ fn emit_cells(
     out: &mut Out<'_>,
 ) {
     let cols = ((pane.w / cell_w).floor() as usize).max(1);
-    let rows = ((pane.h / cell_h).floor() as usize).max(1);
+    let (rows, text_h) = crate::scrollclip::layout_rows(
+        ((pane.h / cell_h).floor() as usize).max(1),
+        pane.h,
+        cell_h,
+        pane.scroll_px,
+    );
+    let first_quad = out.quads.len();
     // One text Buffer per pane — last frame's, when the signature matches
     // (position is not part of the signature; a moved pane reuses too).
     // Shaped first, so the rules under a run of joining script can follow
@@ -480,7 +493,7 @@ fn emit_cells(
     };
     let (buf, runs) = buf.map(|b| (b.0, b.5)).unwrap_or_else(|| {
         let (buf, specs) =
-            build_pane_text(font_system, &pane.cells, cols, rows, pane.w, pane.h, params);
+            build_pane_text(font_system, &pane.cells, cols, rows, pane.w, text_h, params);
         let runs = crate::scriptrun::place(font_system, &buf, &specs, params);
         (buf, runs)
     });
@@ -564,9 +577,14 @@ fn emit_cells(
         ));
     }
 
+    let (top, bottom) = (pane.y, pane.y + pane.h);
+    let mut tail = out.quads.split_off(first_quad);
+    crate::scrollclip::shift_and_clip(&mut tail, pane.scroll_px, top, bottom);
+    out.quads.append(&mut tail);
     out.sigs.push(sig);
+    let dy = pane.scroll_px;
     out.buffers
-        .push((buf, pane.x, pane.y, pane.w, pane.h, runs));
+        .push((buf, pane.x, pane.y, pane.w, pane.h, runs, dy));
 }
 
 #[cfg(test)]

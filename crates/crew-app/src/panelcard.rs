@@ -66,6 +66,7 @@ pub fn push_ghost(
         pictures: Vec::new(),
         stretch: true,
         overlay: false,
+        scroll_px: 0.0,
         paint: Vec::new(),
     });
 }
@@ -141,6 +142,7 @@ pub(crate) fn push_framed(
         pictures: Vec::new(),
         stretch: false,
         overlay: false,
+        scroll_px: 0.0,
     });
     scenes.push(PaneScene {
         cells: frame,
@@ -162,6 +164,7 @@ pub(crate) fn push_framed(
         pictures: Vec::new(),
         stretch: true,
         overlay: false,
+        scroll_px: 0.0,
         paint: Vec::new(),
     });
 }

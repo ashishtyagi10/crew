@@ -67,7 +67,7 @@ fn a_card_stroke_covers_its_cell_on_every_row() {
     let (mut fs, buf, cell_h) = grid();
     let mut swash = SwashCache::new();
     let (w, h) = (buf.size().0.unwrap_or(0.0), buf.size().1.unwrap_or(0.0));
-    let panes = vec![(buf, 0.0, 0.0, w, h, Vec::new())];
+    let panes = vec![(buf, 0.0, 0.0, w, h, Vec::new(), 0.0)];
     crate::smoothing::presmooth(&mut swash, &mut fs, &panes);
     let buf = &panes[0].0;
     let base = baseline(buf);

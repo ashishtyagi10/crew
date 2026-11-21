@@ -8,15 +8,20 @@
 //! notch mid-flight adds to where it is going and keeps the speed it has,
 //! which is what makes a run of notches one smooth motion, not a stutter.
 //!
-//! Whole rows, on purpose: every reader of the offset (selection, find,
-//! marks, pictures, hit-testing) keeps meaning what it meant. A pixel offset
-//! would need cell backgrounds clipped to the card and a row from beyond the
-//! viewport, neither of which the renderer has.
+//! The offset itself stays in whole rows, so every reader of it (selection,
+//! find, marks, pictures, hit-testing) keeps meaning what it meant. A
+//! terminal is DRAWN at the fraction between them: the pane takes the row
+//! ABOVE where the spring is (`ceil`), so the content only ever has to slide
+//! UP by under a row, and the one line that uncovers is the line just under
+//! the viewport — which the terminal hands over (`PtyTerm::row_below`) and
+//! the renderer clips to the card (`crew_render::scrollclip`). Other panes
+//! keep whole-row steps: their rows are built from their own offsets.
 //!
 //! Bounded: a critically damped spring converges and the snap ends it, so
 //! [`crate::paneview::pane_animating`] goes quiet. At Motion off nothing is
 //! queued; the scroll is the jump it always was. The trackpad never comes
-//! here: it brings its own momentum, and a spring on top is only lag.
+//! here on a stiff spring ([`TRACK_OMEGA`]): it brings its own momentum, so
+//! the spring only spreads each whole row it hands over across a few frames.
 use crate::pane::{Pane, PaneContent};
 use crate::spring::Spring;
 
@@ -24,11 +29,25 @@ use crate::spring::Spring;
 /// ~300 ms — fast enough to never feel like waiting.
 const OMEGA: f32 = 24.0;
 
-/// One pane's scroll in flight. Units are rows.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// Stiffness for the trackpad: three frames to follow a row, about.
+pub(crate) const TRACK_OMEGA: f32 = 60.0;
+
+/// Spring units per row. [`Spring`] settles within half a unit; in rows that
+/// was half a row, and a pixel-drawn scroll snapping the last half row was
+/// the jump it exists to remove. Half a 16th of a row is about a pixel at
+/// the largest cell heights; finer only drags out an invisible tail.
+const UNIT: f32 = 16.0;
+
+/// One pane's scroll in flight. Units are rows, [`UNIT`]s inside the spring.
+#[derive(Clone, Debug, Default)]
 pub(crate) struct ScrollGlide {
     /// How far the glide has travelled, and how fast it is going.
     pos: Spring,
+    /// The stiffness this trip runs at; 0 is [`OMEGA`].
+    omega: f32,
+    /// A terminal's line just under its viewport, for the frame being drawn
+    /// while it is between two rows.
+    pub(crate) edge: Option<Vec<crew_term::RenderCell>>,
     /// How far it was asked to travel (positive = up, into history).
     total: f32,
     /// Whole rows already handed to the pane.
@@ -41,7 +60,22 @@ pub(crate) struct ScrollGlide {
 impl ScrollGlide {
     /// Ask for `lines` more, on top of whatever is still in flight.
     pub(crate) fn push(&mut self, lines: i32) {
-        self.total += lines as f32;
+        self.total += lines as f32 * UNIT;
+    }
+
+    /// [`Self::push`] at stiffness `omega` (the trackpad's).
+    pub(crate) fn push_at(&mut self, lines: i32, omega: f32) {
+        self.omega = omega;
+        self.push(lines);
+    }
+
+    /// Where the drawing is relative to the rows handed over, in rows:
+    /// `(-1, 0]`, the content drawn that far UP. Zero at rest.
+    pub(crate) fn residual(&self) -> f32 {
+        match self.moving() {
+            true => (self.pos.pos / UNIT - self.applied as f32).clamp(-0.999, 0.0),
+            false => 0.0,
+        }
     }
 
     /// Whether rows are still owed to the pane. Not just `total`: a reverse
@@ -61,11 +95,14 @@ impl ScrollGlide {
         if !self.moving() {
             return 0;
         }
-        self.pos.step(self.total, dt_ms as f32, OMEGA);
+        let omega = if self.omega > 0.0 { self.omega } else { OMEGA };
+        self.pos.step(self.total, dt_ms as f32, omega);
         let settled = self.pos.settled(self.total);
+        // The row at or above the spring, so the remainder is drawn by
+        // sliding up (see the module docs) — exact once it settles.
         let want = match settled {
-            true => self.total.round() as i32,
-            false => self.pos.pos.round() as i32,
+            true => (self.total / UNIT).round() as i32,
+            false => (self.pos.pos / UNIT).ceil() as i32,
         };
         let delta = want - self.applied;
         self.applied = want;
@@ -79,6 +116,11 @@ impl ScrollGlide {
 /// Scroll `pane` by `lines`: queued on its glide while motion is on, at once
 /// when it is off.
 pub(crate) fn start(pane: &mut Pane, lines: i32) {
+    start_at(pane, lines, OMEGA);
+}
+
+/// [`start`] at stiffness `omega`.
+pub(crate) fn start_at(pane: &mut Pane, lines: i32, omega: f32) {
     if lines == 0 {
         return;
     }
@@ -89,7 +131,7 @@ pub(crate) fn start(pane: &mut Pane, lines: i32) {
     if !pane.glide.scroll.moving() {
         pane.glide.scroll.mark = term_offset(pane);
     }
-    pane.glide.scroll.push(lines);
+    pane.glide.scroll.push_at(lines, omega);
 }
 
 /// Shift+Home/End. A terminal knows exactly how far its ends are, so the
@@ -136,6 +178,12 @@ pub(crate) fn step_all(panes: &mut [Pane], dt_ms: u64) -> bool {
         if p.glide.scroll.moving() {
             p.glide.scroll.mark = after;
         }
+        // The line the slide uncovers, read now, for this frame's drawing.
+        let between = p.glide.scroll.residual() != 0.0;
+        p.glide.scroll.edge = match &mut p.content {
+            PaneContent::Terminal(t) if between => t.pty.row_below(false),
+            _ => None,
+        };
     }
     panes.iter().any(|p| p.glide.scroll.moving())
 }

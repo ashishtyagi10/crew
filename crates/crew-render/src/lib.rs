@@ -42,6 +42,7 @@ mod scenetarget;
 mod scriptplace;
 mod scriptrun;
 mod scriptshape;
+mod scrollclip;
 mod sizeadjust;
 mod smoothing;
 mod solidcard;

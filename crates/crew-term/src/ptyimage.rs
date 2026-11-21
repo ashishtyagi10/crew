@@ -1,5 +1,6 @@
 //! The picture half of a pane's output (what to show and what to drop), and
-//! the scrollback search. Child module of `pty`, split for the 200-line cap.
+//! the reads into the scrollback beyond the view: the search, and the row
+//! under it. Child module of `pty`, split for the 200-line cap.
 use super::*;
 
 impl PtyTerm {
@@ -20,5 +21,11 @@ impl PtyTerm {
     /// Reads the grid in one pass without moving the view (see `modelscroll`).
     pub fn find_back(&self, from: usize, hit: &mut dyn FnMut(&str) -> bool) -> Option<usize> {
         self.core.find_back(from, hit)
+    }
+
+    /// The line just under the viewport, as row `rows` (one past the last);
+    /// `None` at the live bottom. See `modelscroll`.
+    pub fn row_below(&mut self, focused: bool) -> Option<Vec<RenderCell>> {
+        self.core.row_below(focused)
     }
 }

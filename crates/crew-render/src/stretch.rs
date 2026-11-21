@@ -142,6 +142,7 @@ pub(crate) fn parts(pane: &PaneScene, s: &Split, cell_w: f32, cell_h: f32) -> Ve
             },
             focused: pane.focused,
             overlay: pane.overlay,
+            scroll_px: pane.scroll_px,
             ..Default::default()
         }
     };

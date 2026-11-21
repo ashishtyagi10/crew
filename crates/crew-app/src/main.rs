@@ -620,6 +620,7 @@ mod schemepush;
 mod scroll;
 mod scrollboost;
 mod scrollglide;
+mod scrollpx;
 mod search;
 mod searchall;
 mod select;

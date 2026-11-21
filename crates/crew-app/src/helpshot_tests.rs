@@ -53,6 +53,7 @@ fn help_shot_at(
             pictures: Vec::new(),
             stretch: false,
             overlay: true,
+            scroll_px: 0.0,
             paint: Vec::new(),
         }]
     })?;

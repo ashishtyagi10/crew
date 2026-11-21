@@ -10,7 +10,7 @@ src/appregister.rs 291
 src/blocked.rs 267
 src/blocked_tests.rs 413
 src/canvas/canvas_tests.rs 208
-src/cardshot_tests.rs 210
+src/cardshot_tests.rs 204
 src/channel/telegram/mod.rs 286
 src/channel/telegram/mod_tests.rs 201
 src/chat_tests.rs 1885
