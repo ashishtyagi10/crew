@@ -46,6 +46,19 @@ real gaps below.
 - Not done: the outgoing tab still vanishes; a 3D flip (the 2026-11-08 wish)
   needs a render pass on `Stage3dPass`'s pattern.
 
+### R4 — pixel-smooth scrolling (user asked after R1–R3)
+- Behaviour: a terminal is drawn BETWEEN rows while its scroll glides. The
+  pane takes the row at or above the spring (`ceil`), so the remainder is
+  always a slide UP of under a row, and the one line it uncovers is the line
+  under the viewport (`PtyTerm::row_below`, read by stepping the view down
+  one and back on the app thread). The renderer draws the content scene
+  `scroll_px` up and clips its quads (`crew_render::scrollclip`) and text to
+  the card. Trackpad scrolls now ride the glide too, on a stiff spring.
+- Scope: terminals only; viewer/chat/todo keep whole-row glides (their rows
+  come from their own offsets). Motion off draws on the grid.
+- Measured: `build_frame` tests (shift in (-ch, 0), extra row = next line,
+  rest = on grid), renderer clip tests, shots on paper-dark/glass/paper-light.
+
 ## Pending release
 - **Scroll glides** (R1): a wheel notch, Shift+PageUp/PageDown and
   Shift+Home/End moved scrollback in one frame, so the eye lost its place.
@@ -54,6 +67,11 @@ real gaps below.
   one motion. Typing during a glide cancels it; the trackpad stays direct.
   Motion off keeps the jump, and an idle pane costs no frames. (From
   browsers' and WezTerm/Warp's smooth scrolling.)
+- **Pixel-smooth scrolling** (R4): a terminal no longer steps a whole row at
+  a time while it scrolls; it is drawn between rows, the line at the edge
+  sliding in under the card's frame, for the wheel, Shift+PageUp/PageDown,
+  Shift+Home/End and the trackpad. Costs nothing at rest; Motion off keeps
+  rows. (From Ghostty, Warp and every browser.)
 - **New panes come out of their parent** (R2): Cmd+D's new card used to be
   set straight onto its tile while its neighbours glided aside. It now starts
   a fifth of the way back toward the pane that opened it and slides to its
@@ -101,6 +119,17 @@ real gaps below.
   applied (rustfmt had rewrapped the asserts) — caught by a mutation that
   passed. Also: the also-wrong `tabentry` doc now says cards coming up pass
   over the input bar for a few frames.
+- **R4 (unreleased) — pixel-smooth scrolling.** `ScrollGlide` now runs in
+  16ths of a row (the spring's half-unit snap was half a ROW, a visible jump
+  once the remainder is drawn), takes `ceil` rows, reports `residual()` in
+  (-1, 0] and holds `edge` (the line below) for the frame. `scrollpx.rs`
+  splices the edge into `Pane::art` and sets the content scene's
+  `scroll_px`; `PaneScene.scroll_px` + `PaneBuffer`'s 7th field carry it
+  through `crew-render`. Mutations caught: no shift, no edge row, first_dt.
+  The old mirror test asserted ROW steps were symmetric — not true under
+  ceil, so it now asserts the drawn position mirrors. Line cap: a test
+  literal moved to `..Default::default()` (cardshot 210 → 204) and an e2e
+  test moved to `scrollpx_tests.rs`. Gate green.
 
 ## Result
 Three rounds merged untagged (8 PM job releases). CI's "CI" workflow is red

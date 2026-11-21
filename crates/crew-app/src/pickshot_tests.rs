@@ -169,6 +169,7 @@ fn pick_shot_key_prompt() {
                 pictures: Vec::new(),
                 stretch: false,
                 overlay: true,
+                scroll_px: 0.0,
                 paint: Vec::new(),
             }]
         });

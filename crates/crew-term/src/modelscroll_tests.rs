@@ -59,3 +59,31 @@ fn a_wide_character_is_one_column_of_text() {
     // Top row of three: the spacers behind 日 and 本 are not read as text.
     assert_eq!(find(&t, 0, "日本 ok"), Some(2));
 }
+
+/// The row under the view is the line the view shows last one step further
+/// down, numbered one past the screen — and reading it leaves the view where
+/// it was. Nothing is under the live bottom.
+#[test]
+fn row_below_is_the_next_line_down_and_leaves_the_view_alone() {
+    let mut t = super::TermCore::new(GridSize { cols: 20, rows: 4 });
+    for i in 0..30 {
+        t.feed(format!("L{i}\r\n").as_bytes());
+    }
+    assert!(
+        t.row_below(false).is_none(),
+        "nothing under the live bottom"
+    );
+    t.scroll(5);
+    let shown: String = t
+        .cells(false)
+        .iter()
+        .filter(|c| c.row == 3)
+        .map(|c| c.c)
+        .collect();
+    let below = t.row_below(false).unwrap();
+    assert_eq!(t.display_offset(), 5);
+    assert!(below.iter().all(|c| c.row == 4));
+    let text: String = below.iter().map(|c| c.c).collect();
+    let n: u32 = shown.trim()[1..].parse().unwrap();
+    assert_eq!(text.trim(), format!("L{}", n + 1));
+}

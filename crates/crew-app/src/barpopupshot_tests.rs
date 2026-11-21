@@ -53,6 +53,7 @@ fn shot(name: &str, w: u32, text: &str) -> Option<Vec<u8>> {
                 pictures: Vec::new(),
                 stretch: false,
                 overlay: false,
+                scroll_px: 0.0,
                 paint: Vec::new(),
             },
             PaneScene {
@@ -70,6 +71,7 @@ fn shot(name: &str, w: u32, text: &str) -> Option<Vec<u8>> {
                 pictures: Vec::new(),
                 stretch: false,
                 overlay: true,
+                scroll_px: 0.0,
                 paint: Vec::new(),
             },
         ]

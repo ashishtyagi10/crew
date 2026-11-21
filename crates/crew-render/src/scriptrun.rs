@@ -148,9 +148,11 @@ pub(crate) struct RunArea {
 /// Every buffer a pass draws, with its origin and the pane rect that clips
 /// it (left, top, right, bottom): each pane's snapped buffer, then its runs.
 pub(crate) fn areas(buffers: &[PaneBuffer]) -> impl Iterator<Item = (&Buffer, f32, f32, [f32; 4])> {
-    buffers.iter().flat_map(|(buf, ox, oy, pw, ph, runs)| {
+    buffers.iter().flat_map(|(buf, ox, oy, pw, ph, runs, dy)| {
         let (ox, oy) = (*ox, *oy);
+        // Clipped where the pane is; drawn where its scroll has it.
         let clip = [ox, oy, ox + pw, oy + ph];
+        let oy = oy + dy;
         std::iter::once((buf, ox, oy, clip)).chain(
             runs.iter()
                 .map(move |r| (&*r.buf, ox + r.dx, oy + r.dy, clip)),

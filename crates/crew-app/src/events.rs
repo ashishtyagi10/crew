@@ -217,9 +217,9 @@ impl CrewApp {
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let lines = self.wheel_lines_boosted(delta);
-                // A wheel's notches glide; a trackpad brings its own momentum.
-                let glide = matches!(delta, winit::event::MouseScrollDelta::LineDelta(..));
-                self.scroll_at_cursor(lines, glide);
+                // A wheel's notches ease; a trackpad's rows follow it closely.
+                let wheel = matches!(delta, winit::event::MouseScrollDelta::LineDelta(..));
+                self.scroll_at_cursor(lines, wheel);
             }
             WindowEvent::KeyboardInput { event, .. } => self.on_key_event(event_loop, &event),
             WindowEvent::Occluded(hidden) => self.set_occluded(hidden),

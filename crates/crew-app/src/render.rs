@@ -225,6 +225,7 @@ impl CrewApp {
             pictures: Vec::new(),
             stretch: true,
             overlay: false,
+            scroll_px: 0.0,
             paint: Vec::new(),
         });
 
@@ -290,6 +291,7 @@ impl CrewApp {
                 pictures: Vec::new(),
                 stretch: false,
                 overlay: true,
+                scroll_px: 0.0,
                 paint: Vec::new(),
             });
             return scenes;
@@ -332,6 +334,7 @@ impl CrewApp {
                 pictures: Vec::new(),
                 stretch: false,
                 overlay: true,
+                scroll_px: 0.0,
                 paint: Vec::new(),
             });
         }

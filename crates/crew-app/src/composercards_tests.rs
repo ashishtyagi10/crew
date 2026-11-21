@@ -32,6 +32,7 @@ fn card_shot(name: &str, w: u32, card: impl Fn(u16) -> crate::popupplace::Popup)
             pictures: Vec::new(),
             stretch: false,
             overlay: true,
+            scroll_px: 0.0,
             paint: Vec::new(),
         }]
     });

@@ -33,8 +33,8 @@ pub(crate) fn push_pane_scenes(
     git: &crate::gitfleet::GitFleet,
     pinned: bool,
 ) {
-    // Cells and the sub-cell paint under them, in one pass — see `Pane::art`.
-    let (mut cells, mut paint) = p.art(foc, ch / cw);
+    // Cells and the paint under them, one pass (`Pane::art`, `scrollpx`).
+    let (mut cells, mut paint) = crate::scrollpx::art(p, foc, ch / cw);
     // The caret's wake, over this pane's own paint: only the focused pane has
     // one, and it is drawn under the text so the glyph it crosses stays read.
     if foc {
@@ -206,7 +206,7 @@ pub(crate) fn push_pane_scenes(
         w: (r.x + r.w - cw - cx).max(0.0),
         h: (r.y + r.h - ch - cy).max(0.0),
         focused: foc,
-        ..Default::default()
+        ..crate::scrollpx::scene(p, ch)
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
     let title = p.title_text();

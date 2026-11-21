@@ -80,6 +80,7 @@ fn scene(w: u32, h: u32, cw: f32, ch: f32) -> Vec<PaneScene> {
         pictures: Vec::new(),
         stretch: false,
         overlay: false,
+        scroll_px: 0.0,
         paint: Vec::new(),
     }]
 }

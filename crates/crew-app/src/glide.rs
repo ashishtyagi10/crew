@@ -36,7 +36,7 @@ const OMEGA: f32 = 18.0;
 /// Four independent springs, not one: a pane moving right while growing taller
 /// is two different distances at two different speeds, and a single scalar
 /// would have to pick one of them to be wrong about.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct Glide {
     x: Spring,
     y: Spring,
@@ -111,7 +111,7 @@ impl Glide {
     /// position would yank the pane back toward where it thought it was.
     pub(crate) fn reseed(&mut self, r: Rect) {
         *self = Glide {
-            scroll: self.scroll,
+            scroll: std::mem::take(&mut self.scroll),
             ..Glide::at(r)
         };
     }

@@ -54,17 +54,11 @@ fn card_scene(w: u32, h: u32, cw: f32, ch: f32, b: &Bar) -> Vec<PaneScene> {
         w: cols as f32 * cw,
         h: rows as f32 * ch,
         focused: b.focused,
-        bordered: false,
         glass: true,
-        scan: -1.0,
-        lift: 0.0,
-        glint: -1.0,
-        pictures: Vec::new(),
-        stretch: false,
-        overlay: false,
         // The thumb, the progress bar and the row marks are Paint, not cells
         // (see `cardpaint`, `cardmarks`): a shot without them is missing them.
         paint: crate::cardmarks::painted(cols, rows, b, (0.0, cw, ch), 0),
+        ..Default::default()
     }]
 }
 

@@ -25,6 +25,25 @@ impl TermCore {
         self.term.grid().display_offset()
     }
 
+    /// The cells of the line just under the viewport, numbered one past its
+    /// last row — what a pixel-smooth scroll shows sliding in at the bottom
+    /// edge. `None` at the live bottom, where nothing is below. The view is
+    /// stepped down one line to read it and straight back, on this thread,
+    /// so nothing else ever sees it moved.
+    pub(crate) fn row_below(&mut self, focused: bool) -> Option<Vec<RenderCell>> {
+        let off = self.display_offset();
+        let last = (self.term.grid().screen_lines() as u16).checked_sub(1)?;
+        if off == 0 {
+            return None;
+        }
+        self.scroll(-1);
+        let cells = self.cells(focused);
+        self.scroll(1);
+        debug_assert_eq!(self.display_offset(), off);
+        let below = cells.into_iter().filter(|c| c.row == last);
+        Some(below.map(|c| RenderCell { row: last + 1, ..c }).collect())
+    }
+
     /// Every line the viewport can reach: the scrollback history plus the live
     /// screen. The denominator of a scroll indicator — `display_offset` alone
     /// says how far back you are, never how far back there is.
