@@ -23,6 +23,17 @@ real gaps below.
 - Measured: unit tests on the spring's line stepping; motion off = today's jump.
 - Rows: + `scrollglide.rs`; nothing on screen added.
 
+### R2 — a new pane slides out of its parent
+- Gap (re-scoped): open already assembles and close already collapses
+  (`ghost.rs`); what was missing is WHERE a new card comes from — it was set
+  straight onto its tile while its neighbours glided aside.
+- Behaviour: the single fresh pane starts at the pane that opened it (the one
+  focus just left, or the focused one for a background open) and rides the
+  grid springs to its tile. Position only: a size animation would resize a
+  new shell's pty on every frame.
+- Measured: `build_frame` test — first frame at the parent, size constant,
+  settles on its own tile. Rows: + `paneentry.rs`.
+
 ## Pending release
 - **Scroll glides** (R1): a wheel notch, Shift+PageUp/PageDown and
   Shift+Home/End moved scrollback in one frame, so the eye lost its place.
@@ -31,6 +42,12 @@ real gaps below.
   one motion. Typing during a glide cancels it; the trackpad stays direct.
   Motion off keeps the jump, and an idle pane costs no frames. (From
   browsers' and WezTerm/Warp's smooth scrolling.)
+- **New panes come out of their parent** (R2): Cmd+D's new card used to be
+  set straight onto its tile while its neighbours glided aside. It now starts
+  where the pane that opened it sits and slides to its place at its final
+  size, so the split reads as one pane becoming two. Panes born together (a
+  restored session) still just assemble. (From macOS window zoom-from-origin
+  and zellij's split animation.)
 
 ## Log
 - **R1 (unreleased) — scroll glides.** `scrollglide.rs` (`ScrollGlide` on
@@ -41,3 +58,8 @@ real gaps below.
   spring. Mutations caught: end-of-buffer stop, snap-to-bottom cancel. Gate:
   fmt, check 0 warnings, 41 suites green. Not driven live (no new pixels;
   the timing is unit-tested).
+- **R2 (unreleased) — new panes come out of their parent.** `paneentry.rs::entry`
+  picks the ONE fresh pane in `placed.full` and its parent (focus_prev when
+  focus moved to the new pane, else focused), seeded into `pane.rect` in the
+  glide loop so the existing reseed→spring path carries it. Mutation caught:
+  dropping the seed fails the `build_frame` end-to-end test. Gate green.
