@@ -40,6 +40,7 @@ impl CrewApp {
         if to == self.tabs.active || self.tabs.pos(to).is_none() {
             return;
         }
+        self.tabs.enter = crate::tabentry::direction(&self.tabs, to);
         let cur = std::mem::take(&mut self.grid);
         if let Some(t) = self.tabs.get_mut(self.tabs.active) {
             t.grid = cur;

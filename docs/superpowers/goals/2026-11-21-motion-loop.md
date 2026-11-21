@@ -34,6 +34,18 @@ real gaps below.
 - Measured: `build_frame` test — first frame at the parent, size constant,
   settles on its own tile. Rows: + `paneentry.rs`.
 
+### R3 — a tab comes in from its side of the list
+- Gap (re-scoped): a switch already re-assembles the incoming cards; what it
+  never said was WHICH WAY you went — Cmd+Shift+] and [ looked identical.
+- Behaviour: a tab further down the nav rises in from below, one further up
+  drops in from above — 8% of each card's height, on the grid springs, with
+  the assemble it already had. Short on purpose: a full slide would pass over
+  the input bar and title (nothing clips panes to the content area).
+- Measured: `build_frame` test — first frame above the tile going up the list,
+  lands exactly. Rows: + `tabentry.rs`, `Tabs.enter`.
+- Not done: the outgoing tab still vanishes; a 3D flip (the 2026-11-08 wish)
+  needs a render pass on `Stage3dPass`'s pattern.
+
 ## Pending release
 - **Scroll glides** (R1): a wheel notch, Shift+PageUp/PageDown and
   Shift+Home/End moved scrollback in one frame, so the eye lost its place.
@@ -48,6 +60,11 @@ real gaps below.
   size, so the split reads as one pane becoming two. Panes born together (a
   restored session) still just assemble. (From macOS window zoom-from-origin
   and zellij's split animation.)
+- **Tabs arrive from their side of the list** (R3): every tab switch drew the
+  same arrival, so nothing said which way you had gone. A tab further down
+  the nav now rises in from below and one further up drops in from above, a
+  short travel on the grid's springs. Motion off snaps. (From macOS Spaces
+  and iOS push transitions.)
 
 ## Log
 - **R1 (unreleased) — scroll glides.** `scrollglide.rs` (`ScrollGlide` on
@@ -63,3 +80,14 @@ real gaps below.
   focus moved to the new pane, else focused), seeded into `pane.rect` in the
   glide loop so the existing reseed→spring path carries it. Mutation caught:
   dropping the seed fails the `build_frame` end-to-end test. Gate green.
+- **R3 (unreleased) — tabs arrive from their side.** `switch_grid` records
+  `Tabs.enter` (nav-order sign, so `sync_tabs`/`own_tab` switches get it too);
+  the glide loop takes it once and seeds each placed pane at
+  `tabentry::start(tile, dir)`; the zoom path clears it. Mutation caught:
+  disabling the seed fails the `build_frame` test. Gate green.
+
+## Result
+Three rounds merged untagged (8 PM job releases). CI's "CI" workflow is red
+on pre-existing crew-plugin clippy errors and unused workspace deps — red
+before this loop and untouched by it; crew-app clippy is clean on every file
+these rounds touched.

@@ -31,6 +31,9 @@ pub(crate) struct Tabs {
     pub list: Vec<Tab>,
     pub active: u32,
     next: u32,
+    /// Which way the last switch went in nav order (+1 down the list, -1 up,
+    /// 0 none), until the next frame's glide takes it ([`crate::tabentry`]).
+    pub enter: i32,
 }
 
 impl Default for Tabs {
@@ -42,6 +45,7 @@ impl Default for Tabs {
             }],
             active: 1,
             next: 2,
+            enter: 0,
         }
     }
 }

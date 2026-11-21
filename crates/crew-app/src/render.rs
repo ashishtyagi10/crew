@@ -87,6 +87,7 @@ impl CrewApp {
         };
         let zoomed = self.zoomed_pane();
         let mut scenes = if let Some(i) = zoomed {
+            self.tabs.enter = 0;
             // Zoom: render only the focused pane, expanded to the full content area.
             if let Some(r) = zoom_tile(content, self.gutter()) {
                 // Travel out of the tile the pane occupied: at t=0 the zoomed
@@ -120,11 +121,17 @@ impl CrewApp {
             let snap = matches!(crate::motion::level(), crate::motion::MotionLevel::Off);
             let entry =
                 crate::paneentry::entry(&self.panes, &placed.full, self.focused, self.focus_prev);
+            let tab_dir = std::mem::take(&mut self.tabs.enter);
             for &(idx, rect) in &placed.full {
                 let p = &mut self.panes[idx];
-                // A new card starts where the pane that opened it is.
+                // A new card starts where the pane that opened it is; a tab
+                // just brought forward comes in from the side of the list it
+                // was on.
                 if let Some((_, from)) = entry.filter(|(i, _)| *i == idx) {
                     p.rect = from;
+                }
+                if tab_dir != 0 {
+                    p.rect = crate::tabentry::start(rect, tab_dir);
                 }
                 // Anything that moved the pane without the spring's knowledge
                 // (zoom's own lerp, a drag, a resize) left `rect` and the
