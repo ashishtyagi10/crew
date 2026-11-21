@@ -516,6 +516,7 @@ mod panecardink;
 mod panechartshot_tests;
 mod panedir;
 mod panedrag;
+mod paneentry;
 mod panefit;
 mod paneglance;
 mod panegutter;

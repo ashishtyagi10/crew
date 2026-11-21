@@ -118,8 +118,14 @@ impl CrewApp {
             // as the same cards rearranging. Hit-testing stays on the placed
             // targets — clicks land where the panes are heading.
             let snap = matches!(crate::motion::level(), crate::motion::MotionLevel::Off);
+            let entry =
+                crate::paneentry::entry(&self.panes, &placed.full, self.focused, self.focus_prev);
             for &(idx, rect) in &placed.full {
                 let p = &mut self.panes[idx];
+                // A new card starts where the pane that opened it is.
+                if let Some((_, from)) = entry.filter(|(i, _)| *i == idx) {
+                    p.rect = from;
+                }
                 // Anything that moved the pane without the spring's knowledge
                 // (zoom's own lerp, a drag, a resize) left `rect` and the
                 // spring disagreeing; adopt the drawn rect before stepping, or
