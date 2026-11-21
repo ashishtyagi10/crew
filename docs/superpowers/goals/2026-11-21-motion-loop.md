@@ -56,8 +56,8 @@ real gaps below.
   browsers' and WezTerm/Warp's smooth scrolling.)
 - **New panes come out of their parent** (R2): Cmd+D's new card used to be
   set straight onto its tile while its neighbours glided aside. It now starts
-  where the pane that opened it sits and slides to its place at its final
-  size, so the split reads as one pane becoming two. Panes born together (a
+  a fifth of the way back toward the pane that opened it and slides to its
+  place at its final size, so the split reads as one pane becoming two. Panes born together (a
   restored session) still just assemble. (From macOS window zoom-from-origin
   and zellij's split animation.)
 - **Tabs arrive from their side of the list** (R3): every tab switch drew the
@@ -85,6 +85,22 @@ real gaps below.
   the glide loop takes it once and seeds each placed pane at
   `tabentry::start(tile, dir)`; the zoom path clears it. Mutation caught:
   disabling the seed fails the `build_frame` test. Gate green.
+
+- **Fix (unreleased) — motions start from rest; the split starts beside its
+  parent.** Review found that the frame which STARTS a motion after idle was
+  stepped through the whole idle gap (`frame_dt` clamps at 100 ms): ~70% of a
+  scroll notch and ~54% of an entrance landed before the first drawn frame,
+  and the tests never idled so never saw it. `glide::first_dt` gives a glide
+  starting from rest a 16 ms step; `step_all` now feeds `glide_active` so a
+  running scroll keeps the measured clock. Shots (`entryshot_tests.rs`,
+  paper-dark + glass-night, first frame and +60 ms) showed R2's card starting
+  ON its parent drew both panes' text through each other on every non-glass
+  page; `paneentry::REACH = 0.2` starts it a fifth of the way back instead.
+  The end-to-end tests now idle 150 ms before the triggering frame; the
+  `first_dt` mutation fails all three. Two test edits had silently not
+  applied (rustfmt had rewrapped the asserts) — caught by a mutation that
+  passed. Also: the also-wrong `tabentry` doc now says cards coming up pass
+  over the input bar for a few frames.
 
 ## Result
 Three rounds merged untagged (8 PM job releases). CI's "CI" workflow is red

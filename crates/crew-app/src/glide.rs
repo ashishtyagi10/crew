@@ -125,6 +125,19 @@ pub(crate) fn frame_dt(now: u64, prev: u64) -> u64 {
     now.saturating_sub(prev).min(100)
 }
 
+/// The step a glide takes this frame: the measured frame time while one is
+/// already moving, and a nominal 60 fps frame for one that starts now. The
+/// first frame after an idle stretch measures the whole stretch (clamped to
+/// 100 ms by [`frame_dt`]), and a spring stepped that far from rest covers
+/// over half its trip before the first frame of it is drawn — a scroll notch
+/// became two rows at once and an entrance started halfway in.
+pub(crate) fn first_dt(frame_dt: u64, moving: bool) -> u64 {
+    match moving {
+        true => frame_dt,
+        false => frame_dt.min(16),
+    }
+}
+
 #[cfg(test)]
 #[path = "glide_tests.rs"]
 mod tests;

@@ -7,9 +7,10 @@
 //! down the list rises in from below and one further up drops in from above —
 //! the same direction the accent moves in the nav.
 //!
-//! A short travel on the grid's own springs, not a full-height slide: the
-//! cards stay inside the content area instead of passing over the input bar
-//! or the title, and the assemble already carries most of the arrival.
+//! A short travel on the grid's own springs, not a full-height slide: nothing
+//! clips panes to the content area, so a card coming up from below passes
+//! over the input bar for its first frames (going up, the window edge cuts
+//! it). 8% keeps that to a few rows, and the assemble carries the rest.
 //! Position only, like every entrance (`paneentry`): no pty is resized on the
 //! way in. Motion off snaps, as the glide always does.
 use crate::layout::Rect;

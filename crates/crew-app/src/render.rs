@@ -69,11 +69,14 @@ impl CrewApp {
         );
         self.theme_fade_tick(now);
         // Grid glide clock: measured between frames, clamped after idle.
-        let glide_dt = crate::glide::frame_dt(now, self.glide_prev_ms);
+        let frame_dt = crate::glide::frame_dt(now, self.glide_prev_ms);
         self.glide_prev_ms = now;
-        self.glide_active = false;
+        // A glide that starts on this frame starts from rest: stepping it
+        // through the idle gap since the last frame would land most of it
+        // before anything was drawn (`glide::first_dt`).
+        let glide_dt = crate::glide::first_dt(frame_dt, self.glide_active);
         // Scrolls in flight hand their panes this frame's rows.
-        crate::scrollglide::step_all(&mut self.panes, glide_dt);
+        self.glide_active = crate::scrollglide::step_all(&mut self.panes, glide_dt);
         self.reconcile_grid();
         // Before anything is drawn: a key prompt this frame won't show must
         // not survive holding a secret (see `close_hidden_keyentry`).
@@ -229,7 +232,7 @@ impl CrewApp {
         // glided on the grid's frame clock, handed to the glass pass.
         let pointer = self.cursor_in.then_some(self.cursor);
         self.pointer_light.aim(pointer, (sw, sh));
-        self.pointer_light.step(glide_dt, crate::motion::level());
+        self.pointer_light.step(frame_dt, crate::motion::level());
         // …and the metal's own light, on its clock (`metalsheen`).
         let sweep = crate::metalsheen::live();
         if let Some(r) = self.renderer.as_mut() {
@@ -240,7 +243,7 @@ impl CrewApp {
         let hovered = self.cursor_in.then(|| self.pane_at_cursor()).flatten();
         self.hover_lift
             .aim(crate::helpscrim::hover(self.help_open, hovered));
-        self.hover_lift.step(glide_dt, crate::motion::level());
+        self.hover_lift.step(frame_dt, crate::motion::level());
         self.hover_lift.apply(&mut scenes, &self.panes);
         crate::helpscrim::apply(&mut scenes, self.help_open);
         // The solidity pass holds only overlays (collected below, once they are

@@ -4,8 +4,13 @@
 //! from and set it straight down on its tile: the frame drew itself in
 //! (`spawn_timeline`) while the panes beside it glided aside, so the room
 //! opened in one motion and the card arrived in another. Now the card starts
-//! where the pane that opened it sits — Cmd+D's split comes out of the pane
-//! you split — and rides the same springs to its tile.
+//! a short way back toward the pane that opened it — Cmd+D's split comes out
+//! of the side of the pane you split — and rides the same springs to its tile.
+//!
+//! A short way, not all the way. Only glass gives a card a sheet; on every
+//! other page a card is see-through, so one starting ON its parent drew both
+//! panes' text through each other for its first frames (shot 2026-11-21).
+//! [`REACH`] keeps the direction and the overlap near what the snap had.
 //!
 //! Position only, never size. A pane's drawn rect is relaid out every frame,
 //! and a terminal's grid follows it: a card growing out of nothing would
@@ -17,8 +22,12 @@
 use crate::layout::Rect;
 use crate::pane::Pane;
 
+/// How far back toward the parent's corner the card starts, as a share of
+/// the distance between the two.
+const REACH: f32 = 0.2;
+
 /// The fresh pane to slide in this frame and the rect it starts from: its
-/// own tile, moved to the parent's corner. `None` when there is no single
+/// own tile, pulled [`REACH`] of the way toward the parent's corner. `None` when there is no single
 /// fresh pane or no parent on screen to come out of.
 ///
 /// `placed` is this frame's `(pane, tile)` list; the parent is the pane focus
@@ -49,8 +58,8 @@ pub(crate) fn entry(
     Some((
         idx,
         Rect {
-            x: from.x,
-            y: from.y,
+            x: tile.x + (from.x - tile.x) * REACH,
+            y: tile.y + (from.y - tile.y) * REACH,
             ..tile
         },
     ))
@@ -59,3 +68,7 @@ pub(crate) fn entry(
 #[cfg(test)]
 #[path = "paneentry_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "entryshot_tests.rs"]
+mod shots;

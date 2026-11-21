@@ -113,8 +113,8 @@ pub(crate) fn start_end(pane: &mut Pane, to_top: bool) {
     start(pane, lines);
 }
 
-/// One frame of every pane's glide.
-pub(crate) fn step_all(panes: &mut [Pane], dt_ms: u64) {
+/// One frame of every pane's glide; whether any is still moving.
+pub(crate) fn step_all(panes: &mut [Pane], dt_ms: u64) -> bool {
     for p in panes.iter_mut().filter(|p| p.glide.scroll.moving()) {
         let before = term_offset(p);
         // The terminal went back to its live bottom under us — the user
@@ -137,6 +137,7 @@ pub(crate) fn step_all(panes: &mut [Pane], dt_ms: u64) {
             p.glide.scroll.mark = after;
         }
     }
+    panes.iter().any(|p| p.glide.scroll.moving())
 }
 
 fn term_offset(p: &Pane) -> Option<usize> {
