@@ -22,6 +22,10 @@ pub(crate) const DRIFT: f32 = 0.22;
 pub(crate) const GLINT_EVERY_MS: u64 = 9_000;
 /// …and takes this long to cross the window.
 pub(crate) const GLINT_RUN_MS: u64 = 2_200;
+/// The molten surface's clock (`sweep[3]`, `liquid` in `glass.wgsl`) wraps
+/// this often, ms: the shader's `LIQUID_WRAP` (s). Every swell turns a whole
+/// number of times in it, so the wrap is seamless.
+pub(crate) const LIQUID_WRAP_MS: u64 = 240_000;
 
 #[cfg(test)]
 thread_local! {
@@ -31,25 +35,29 @@ thread_local! {
 }
 
 /// The sweep the glass pass is handed at `now_ms` (crew-render `set_sweep`):
-/// the sheen's drift, the glint's place across the window and its strength.
-/// At rest (`[0, -1, 0, 0]`) on a theme that is not metal and at Motion off;
-/// at Subtle the sway is half as wide and no glint runs.
+/// the sheen's drift, the glint's place across the window and its strength,
+/// and the molten surface's clock in seconds — positive at Full, where drops
+/// fall into it; negative at Subtle, where it only swells.
+/// At rest (`[0, -1, 0, 0]`, a still pool) on a theme that is not metal and
+/// at Motion off; at Subtle the sway is half as wide and no glint runs.
 pub(crate) fn sweep(now_ms: u64, metal: bool, motion: MotionLevel) -> [f32; 4] {
     if !metal || motion == MotionLevel::Off {
         return REST;
     }
     let full = motion == MotionLevel::Full;
+    let pool = (now_ms % LIQUID_WRAP_MS).max(1) as f32 / 1000.0;
+    let pool = if full { pool } else { -pool };
     let phase = (now_ms % DRIFT_MS) as f32 / DRIFT_MS as f32;
     let drift = DRIFT * (TAU * phase).sin() * if full { 1.0 } else { 0.5 };
     let run = (now_ms % GLINT_EVERY_MS) as f32 / GLINT_RUN_MS as f32;
     if !full || run >= 1.0 {
-        return [drift, -1.0, 0.0, 0.0];
+        return [drift, -1.0, 0.0, pool];
     }
     // Eased across, from just off the left edge to just off the right, and
     // brightest mid-window so it never pops in or out.
     let eased = run * run * (3.0 - 2.0 * run);
     let at = -0.15 + 1.3 * eased;
-    [drift, at, (std::f32::consts::PI * run).sin(), 0.0]
+    [drift, at, (std::f32::consts::PI * run).sin(), pool]
 }
 
 /// The sweep for this frame: the live clock, or under test [`AT`]'s (the

@@ -113,6 +113,9 @@ fn theme_metal_shot() {
                 (0.0, 0.0),
                 Some(crate::metalsheen::GLINT_RUN_MS / 2),
             ),
+            // …and the pool mid-drop, between glints: the molten surface
+            // swells and rings on its own.
+            ("-drop", (0.0, 0.0), Some(4_300)),
             // …and typing: the input bar pressed in as deep as it goes.
             ("-typing", (0.0, 0.0), None),
         ] {

@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.20
+
+**Metal turns molten: swells and falling drops ripple the plates.**
+
+Metal (`mercury`, `silver`):
+- The plates are now one pool of liquid metal across the whole window. Slow swells cross it, their crests wandering rather than running in straight lines.
+- Every 2 seconds a drop lands in the pool: rings spread out from where it fell and a small splash bounces back up.
+- The sheen follows the surface, so the light bends over each swell and ripple, with a bright edge along the crests.
+- The fine brushed lines are now barely there: the metal looks molten, not brushed.
+- Motion `subtle` keeps the swells but no drops fall; Motion `off` leaves a still pool.
+- Words keep the same contrast as before, however the surface moves.
+
 ## 0.30.19
 
 **Metal shines and sways; quiet words read on dark themes.**
