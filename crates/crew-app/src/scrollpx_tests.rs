@@ -81,7 +81,7 @@ fn the_added_row_is_the_next_line_down() {
     crate::scrollglide::step_all(&mut app.panes, 16);
     let p = &app.panes[0];
     let rows = p.grid.rows;
-    let (cells, _) = super::art(p, false, 0.5);
+    let (cells, _) = super::art(p, false, 8.0, CH);
     let line = |r: u16| -> String {
         let mut cs: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
         cs.sort_by_key(|c| c.col);
@@ -138,11 +138,20 @@ fn scroll_px_shot_mid_scroll() {
     use crew_theme::ThemeId;
     let _g = crate::app::theme_test_guard();
     set_level(MotionLevel::Full);
-    for id in [ThemeId::PaperDark, ThemeId::GlassNight, ThemeId::PaperLight] {
+    let cases = [
+        (ThemeId::PaperDark, "mid", -0.6..=-0.4),
+        (ThemeId::GlassNight, "mid", -0.6..=-0.4),
+        (ThemeId::PaperLight, "mid", -0.6..=-0.4),
+        // The tail of a glide, and rest: no sliver in the slack under the
+        // last row (`scrollclip::window`).
+        (ThemeId::PaperDark, "tail", -0.12..=-0.03),
+        (ThemeId::PaperDark, "rest", 0.0..=0.0),
+    ];
+    for (id, name, want) in cases {
         crew_theme::set_theme(id);
-        let px = crate::shotdraw_tests::draw(1280, 720, 13.0, |cw, ch| {
+        let px = crate::shotdraw_tests::draw(1280, 712, 13.0, |cw, ch| {
             let mut app = CrewApp {
-                geo_override: Some((cw, ch, 1280.0, 720.0, 1.0)),
+                geo_override: Some((cw, ch, 1280.0, 712.0, 1.0)),
                 ..Default::default()
             };
             let grid = GridSize { cols: 40, rows: 10 };
@@ -164,9 +173,10 @@ fn scroll_px_shot_mid_scroll() {
             crate::scrollglide::start(&mut app.panes[0], 6);
             // Step until the frame is drawn about half a row off the grid.
             let mut scenes = app.build_frame();
-            for _ in 0..60 {
+            for _ in 0..200 {
                 let r = app.panes[0].glide.scroll.residual();
-                if (-0.6..=-0.4).contains(&r) {
+                let rest = *want.end() == 0.0 && !app.panes[0].glide.scroll.moving();
+                if rest || (*want.end() < 0.0 && want.contains(&r)) {
                     break;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(3));
@@ -178,6 +188,7 @@ fn scroll_px_shot_mid_scroll() {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
-        crate::shotdraw_tests::write_png(&format!("scrollpx-{}", id.as_str()), &px, 1280, 720);
+        let shot = format!("scrollpx-{name}-{}", id.as_str());
+        crate::shotdraw_tests::write_png(&shot, &px, 1280, 712);
     }
 }

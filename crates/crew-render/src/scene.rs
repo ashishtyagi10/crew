@@ -474,12 +474,7 @@ fn emit_cells(
     out: &mut Out<'_>,
 ) {
     let cols = ((pane.w / cell_w).floor() as usize).max(1);
-    let (rows, text_h) = crate::scrollclip::layout_rows(
-        ((pane.h / cell_h).floor() as usize).max(1),
-        pane.h,
-        cell_h,
-        pane.scroll_px,
-    );
+    let (rows, text_h, clip_h) = crate::scrollclip::window(pane.h, cell_h, pane.scroll_px);
     let first_quad = out.quads.len();
     // One text Buffer per pane — last frame's, when the signature matches
     // (position is not part of the signature; a moved pane reuses too).
@@ -577,14 +572,16 @@ fn emit_cells(
         ));
     }
 
-    let (top, bottom) = (pane.y, pane.y + pane.h);
-    let mut tail = out.quads.split_off(first_quad);
-    crate::scrollclip::shift_and_clip(&mut tail, pane.scroll_px, top, bottom);
-    out.quads.append(&mut tail);
+    // At rest nothing is moved or copied: a still frame costs what it did.
+    if pane.scroll_px != 0.0 {
+        let mut tail = out.quads.split_off(first_quad);
+        crate::scrollclip::shift_and_clip(&mut tail, pane.scroll_px, pane.y, pane.y + clip_h);
+        out.quads.append(&mut tail);
+    }
     out.sigs.push(sig);
     let dy = pane.scroll_px;
     out.buffers
-        .push((buf, pane.x, pane.y, pane.w, pane.h, runs, dy));
+        .push((buf, pane.x, pane.y, pane.w, clip_h, runs, dy));
 }
 
 #[cfg(test)]

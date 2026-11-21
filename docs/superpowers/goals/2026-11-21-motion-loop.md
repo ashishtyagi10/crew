@@ -70,8 +70,9 @@ real gaps below.
 - **Pixel-smooth scrolling** (R4): a terminal no longer steps a whole row at
   a time while it scrolls; it is drawn between rows, the line at the edge
   sliding in under the card's frame, for the wheel, Shift+PageUp/PageDown,
-  Shift+Home/End and the trackpad. Costs nothing at rest; Motion off keeps
-  rows. (From Ghostty, Warp and every browser.)
+  Shift+Home/End and the trackpad. Other panes (viewer, chat, todo, inbox)
+  keep whole-row glides and a direct trackpad. Costs nothing at rest; Motion
+  off keeps rows. (From Ghostty, Warp and every browser.)
 - **New panes come out of their parent** (R2): Cmd+D's new card used to be
   set straight onto its tile while its neighbours glided aside. It now starts
   a fifth of the way back toward the pane that opened it and slides to its
@@ -130,6 +131,19 @@ real gaps below.
   ceil, so it now asserts the drawn position mirrors. Line cap: a test
   literal moved to `..Default::default()` (cardshot 210 → 204) and an e2e
   test moved to `scrollpx_tests.rs`. Gate green.
+- **R4 fix (unreleased) — pixel mode for terminals only.** Review found R4
+  had given EVERY pane the `ceil` rows and the trackpad spring, but only
+  terminals draw the remainder: chat/viewer/todo/inbox got lag (a trackpad
+  row ~110 ms late, a notch's last row held ~330 ms going down) with no
+  smoothness. `ScrollGlide.pixel` (set when a terminal starts a glide)
+  picks `ceil`; every other pane rounds to the nearest row, and
+  `start_track` scrolls non-terminals directly. Restored a row-symmetry test
+  for whole-row panes (mutation: ceil fails it). Also: shift in whole px
+  (`scrollpx::shift`, clamped under a row — a −0.999 remainder rounded to a
+  full row in one run), the edge row only spliced when the shift is
+  non-zero, the clip cut at the last whole row (`scrollclip::window`; shots
+  at mid, tail and rest show no sliver in the slack), and the quad
+  split/append skipped at rest. State split to `scrollstate.rs` (cap).
 
 ## Result
 Three rounds merged untagged (8 PM job releases). CI's "CI" workflow is red
