@@ -97,6 +97,18 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   on the owner's index. Hook rides `keys.rs`'s hint line (at 200, no growth).
 - Live GUI not driven: osascript has no assistive access this session.
 
+### R6 (perf) — a caret crossing blocks stops re-doing the document
+- Cost found: each ↓ that crossed into another block re-parsed the whole
+  document to find the block (`block_at`, 1.2 ms on the 327 KB manual) and
+  re-rendered all of it to splice the reveal in (~6 ms), on the frame thread.
+- `md/memo.rs`: the block list and the unrevealed render are kept for the
+  last text seen (hash-keyed; render also by width); `block_at` picks from
+  the list, `render_revealed` splices onto a copy. `md::render` is pure in
+  (text, width) — checked: no theme/config reads.
+- Measured (release, `time_downs_through_the_manual`, 200 ↓): 7.12 ms →
+  2.96 ms each. Left: the rest is still whole-document per crossing (tab
+  prep, the picture pass, the byte remap, the copy) — the next row.
+
 ### Fix-ups after review (R2, R3)
 - **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
   `/dump readme.md` — an overwrite — already via the folder's prefix rows,
@@ -154,6 +166,12 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   cursor, and the pane behind loses its focus ring while the tree has the
   keys. (From VS Code's Explorer.)
 
+- **Editing a long markdown file is quicker** (R6): moving the caret from
+  one block to the next in the live preview re-read and re-drew the whole
+  document each time — ~7 ms a keystroke in crew's 327 KB manual. The
+  document's blocks and its render are now kept until the text changes:
+  ~3 ms. (Obsidian's and VS Code's incremental preview.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
@@ -161,4 +179,5 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R2 | nav | 7f237aa9 | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |
 | R3 | perf | bd923d7d | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
 | R4 | ai | 44b9ca9c | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |
-| R5 | nav | (this) | Explorer from the keyboard | mouse-only → Cmd+Shift+E + arrows, 4 tests, 2 shots |
+| R5 | nav | aaf4da63 | Explorer from the keyboard | mouse-only → Cmd+Shift+E + arrows, 4 tests, 2 shots |
+| R6 | perf | (this) | md caret crossings memoized | 7.12 → 2.96 ms per ↓ (release, 327 KB) |

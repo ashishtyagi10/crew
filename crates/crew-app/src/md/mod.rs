@@ -9,6 +9,7 @@ mod dashwrap_tests;
 mod footnote;
 pub(crate) mod heading;
 mod layout;
+mod memo;
 mod parse;
 pub(crate) mod picture;
 pub(crate) mod reveal;
@@ -57,7 +58,9 @@ pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
 /// [`render`], with the block `r` drawn as the markdown it is written in — the editor's view
 /// of the block its caret is in (see [`reveal`]).
 pub(crate) fn render_revealed(text: &str, cols: usize, r: Option<reveal::Reveal>) -> Vec<MdLine> {
-    let lines = render(text, cols);
+    // The render without a reveal is the same for every block the caret crosses: kept per
+    // version of the text and width ([`memo`]), and the reveal spliced onto a copy.
+    let lines = (*memo::render(text, cols)).clone();
     match r {
         Some(r) => reveal::apply(lines, text, r, cols),
         None => lines,
