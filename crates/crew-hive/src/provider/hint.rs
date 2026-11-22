@@ -23,6 +23,7 @@ enum Fix {
     Credit,
     Context,
     Model,
+    Access,
 }
 
 /// One row: the fix, and the phrasings that call for it. Each phrasing is a
@@ -95,6 +96,20 @@ const ROWS: &[Row] = &[
             &["model:", "not_found_error"],
         ],
     },
+    // The model exists and the key is good, but this account may not call
+    // it: DashScope's `AccessDenied.Unpurchased` (a model not activated, or
+    // a free quota spent — every model on the account answers it at once),
+    // OpenAI's org without access. After `Model`, so OpenAI's "does not
+    // exist or you do not have access" stays a model it does not serve.
+    Row {
+        fix: Fix::Access,
+        when: &[
+            &["unpurchased"],
+            &["access to model denied"],
+            &["eligible for using the model"],
+            &["does not have access to model"],
+        ],
+    },
 ];
 
 /// `msg`, led by `lead`, with the fix when the error is one a person can
@@ -115,6 +130,11 @@ pub(super) fn told(lead: &str, msg: &str, body: &str) -> String {
         Some(Fix::Context) => {
             "the conversation no longer fits the model's context; start a fresh pane".into()
         }
+        Some(Fix::Access) => format!(
+            "this account may not call {} (not activated, or its free quota is spent); \
+             enable it with the provider, or /model picks another",
+            named(msg)
+        ),
         Some(Fix::Model) => format!(
             "this host does not serve {}; /model picks another",
             named(msg)

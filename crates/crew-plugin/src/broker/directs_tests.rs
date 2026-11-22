@@ -10,24 +10,45 @@ fn chain(name: &str) -> &'static [&'static str] {
 }
 
 /// Google limited Gemini 2.5 to projects that already used it, so a GA
-/// Gemini 3 model leads; a preview may back it up but never lead; 2.5 Pro
-/// stays LAST, for the keys that still reach it.
+/// Gemini 3 model leads; a preview may back it up but never lead.
 #[test]
-fn gemini_leads_with_a_ga_model_and_keeps_2_5_last() {
+fn gemini_leads_with_a_ga_model() {
     let c = chain("gemini");
     assert_eq!(c[0], "gemini-3.8-flash");
     assert!(!c[0].contains("preview"));
-    assert_eq!(c.last(), Some(&"gemini-2.5-pro"));
 }
 
 /// OpenAI's head must take function tools on Chat Completions at the default
 /// reasoning effort, which rules the GPT-6 family out (see `DIRECT`).
 #[test]
 fn openai_leads_with_the_newest_model_that_takes_tools_on_chat_completions() {
-    assert_eq!(chain("openai"), ["gpt-5.5", "gpt-5", "gpt-4.1"]);
+    assert_eq!(chain("openai"), ["gpt-5.5", "gpt-4.1"]);
     assert!(DIRECT
         .iter()
         .all(|d| d.chain.iter().all(|m| !m.starts_with("gpt-6"))));
+}
+
+/// No chain names a model its vendor has retired or set a shutdown date for
+/// within a month (each vendor's deprecations page, read 2026-11-22): a rung
+/// that 404s costs a failed call before the next one answers.
+#[test]
+fn no_chain_names_a_retiring_model() {
+    const RETIRING: &[&str] = &[
+        "gpt-5",          // OpenAI shuts it down 2026-12-11
+        "gemini-2.5-pro", // routed to 3.8 Flash from 2026-12-01
+        "deepseek-chat",  // retired 2026-07-24
+        "deepseek-reasoner",
+        "qwen-turbo", // decommissioned 2026-10-10
+    ];
+    let dashscope = (
+        "dashscope",
+        crate::broker::discover::DEFAULT_DASHSCOPE_CHAIN,
+    );
+    for (name, c) in DIRECT.iter().map(|d| (d.name, d.chain)).chain([dashscope]) {
+        for m in c {
+            assert!(!RETIRING.contains(m), "{name}: {m}");
+        }
+    }
 }
 
 /// `deepseek-chat` / `deepseek-reasoner` were retired 2026-07-24.
