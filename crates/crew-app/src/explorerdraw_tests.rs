@@ -30,7 +30,7 @@ fn a_tree_draws_with_chevrons_guides_and_a_capitalised_root() {
     let items = e.items(&root);
     e.toggle(&items[2]); // src/deep
     let items = e.items(&root);
-    let drawn = rows_of(&cells(&items, 0, None, None, (30, 20)));
+    let drawn = rows_of(&cells(&items, 0, Marks::default(), (30, 20)));
     assert!(drawn[0].contains("EXPLORER"), "{drawn:?}");
     assert!(
         drawn[1].starts_with(" \u{25be} CREW-EXPLORER-DRAW"),
@@ -51,7 +51,7 @@ fn a_scrolled_tree_starts_at_its_scroll_and_stops_at_the_panel() {
     let refs: Vec<&str> = names.iter().map(String::as_str).collect();
     let root = crate::explorer::tests::tree("scroll", &refs);
     let items = Explorer::default().items(&root);
-    let c = cells(&items, 5, None, None, (20, 10));
+    let c = cells(&items, 5, Marks::default(), (20, 10));
     let drawn = rows_of(&c);
     assert_eq!(drawn[1].trim(), items[5].name);
     assert!(c.iter().all(|c| c.row < 10 && c.col < 20));

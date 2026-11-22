@@ -79,6 +79,24 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   fix. Unverified: fable-5-2 cache rate (10% assumed, errs high), its and
   qwen4-max's context windows (0 = unknown), Argon tools on the compat wire.
 
+### R5 (nav) — the Explorer from the keyboard
+- Behaviour: Cmd+Shift+E (VS Code) opens the nav on the Explorer and hands
+  the tree the keys: ↑/↓ or j/k move, →/Enter/Space open a folder (→ again
+  steps in) or preview a file in the tree's one viewer and keep the keys,
+  ← closes a folder or goes to the parent, Home/End, Esc or the chord again
+  gives them back. Any other key ends the mode and reaches the pane.
+- Whose keys: `TreeKeys { row, owner }` — the tree holds them only while
+  the pane focused when it took them (or the viewer it opened) is still
+  focused and the bar is not, so a click, Cmd+I or a new pane ends it with
+  no path having to know. The focused pane draws unringed meanwhile.
+- Cursor = the far pane's cursor bar (bold white on the inked accent),
+  whole row. Shots `navbar_shot_tree_keys` on TokyoNight + Porcelain.
+- Measured: 4 tests (chord, walk/open/preview, give-back, bar); mutation
+  (no owner hand-over after a preview) fails the walk test once the test
+  starts with focus elsewhere — it first survived, the preview had landed
+  on the owner's index. Hook rides `keys.rs`'s hint line (at 200, no growth).
+- Live GUI not driven: osascript has no assistive access this session.
+
 ### Fix-ups after review (R2, R3)
 - **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
   `/dump readme.md` — an overwrite — already via the folder's prefix rows,
@@ -129,6 +147,13 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   (`AccessDenied.Unpurchased`) got the bare sentence; it now says to enable
   the model with the provider or pick another with `/model`.
 
+- **The Explorer from the keyboard** (R5): the file tree was mouse-only.
+  **Cmd+Shift+E** opens it and gives it the keys — arrows (or j/k) to move,
+  → or Enter to open a folder or preview a file, ← to close or go up, Esc
+  to hand the keys back. The row you are on is a bar like the far pane's
+  cursor, and the pane behind loses its focus ring while the tree has the
+  keys. (From VS Code's Explorer.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
@@ -136,3 +161,4 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R2 | nav | 7f237aa9 | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |
 | R3 | perf | bd923d7d | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
 | R4 | ai | 44b9ca9c | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |
+| R5 | nav | (this) | Explorer from the keyboard | mouse-only → Cmd+Shift+E + arrows, 4 tests, 2 shots |

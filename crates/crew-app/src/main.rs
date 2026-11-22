@@ -440,6 +440,7 @@ mod crtglassshot_tests;
 mod explorer;
 mod explorerdraw;
 mod explorerhit;
+mod explorerkeys;
 #[cfg(test)]
 #[path = "frameshot_tests.rs"]
 mod frameshot_tests;

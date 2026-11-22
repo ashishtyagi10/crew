@@ -16,15 +16,27 @@ fn x(depth: u16) -> u16 {
     1 + 2 * depth
 }
 
-/// The tree's cells for a panel `cols` × `rows`, the list scrolled by `scroll`. `hover` is the
-/// item under the pointer, `picked` the file last opened from the tree.
+/// What a row can be marked for: the item under the pointer, the file last opened from the
+/// tree, and the keyboard's cursor row while the tree holds the keys.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct Marks<'a> {
+    pub hover: Option<usize>,
+    pub picked: Option<&'a Path>,
+    pub cursor: Option<usize>,
+}
+
+/// The tree's cells for a panel `cols` × `rows`, the list scrolled by `scroll`.
 pub(crate) fn cells(
     items: &[Item],
     scroll: usize,
-    hover: Option<usize>,
-    picked: Option<&Path>,
+    marks: Marks,
     (cols, rows): (u16, u16),
 ) -> Vec<CellView> {
+    let Marks {
+        hover,
+        picked,
+        cursor,
+    } = marks;
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
     let mut out =
@@ -57,8 +69,25 @@ pub(crate) fn cells(
             _ => item.name.clone(),
         };
         put(&mut out, at + 2, row, cols, &name, fg);
+        if cursor == Some(k) {
+            bar(&mut out, row, cols);
+        }
     }
     out
+}
+
+/// The keyboard's row as the far pane draws its cursor: the whole row a bar of the accent,
+/// deepened until white reads on it, the words on it bold white.
+fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
+    let (ink, fill) = crate::segment::inked(crate::palette::accent());
+    for col in 0..cols {
+        if !out.iter().any(|c| c.row == row && c.col == col) {
+            put(out, col, row, cols, " ", ink);
+        }
+    }
+    for c in out.iter_mut().filter(|c| c.row == row) {
+        (c.fg, c.bg, c.bold) = (ink, fill, true);
+    }
 }
 
 /// Write `s` at `col` on `row`, clipped to the panel.

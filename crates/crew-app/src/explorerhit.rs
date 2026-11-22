@@ -79,7 +79,7 @@ impl CrewApp {
     /// Open `path` in the tree's preview viewer: the one it opened last, given this file
     /// instead — unless that pane is gone or holds unsaved edits, when a new viewer opens beside
     /// the panes on screen (not in a tab of its own: a tab per click buries the grid).
-    fn explorer_open(&mut self, path: PathBuf) {
+    pub(crate) fn explorer_open(&mut self, path: PathBuf) {
         let preview = self.sidebar.explorer.preview;
         let reuse = self.panes.iter().position(|p| {
             Some(p.born_ms) == preview
@@ -118,7 +118,16 @@ impl CrewApp {
         let items = e.items(&self.explorer_root());
         let hover = self.explorer_item_at_cursor();
         let scroll = scrolled(self, items.len());
-        crate::explorerdraw::cells(&items, scroll, hover, e.picked.as_deref(), (cols, rows))
+        let cursor = self
+            .tree_has_keys()
+            .then(|| e.keys.map(|k| k.row))
+            .flatten();
+        let marks = crate::explorerdraw::Marks {
+            hover,
+            picked: e.picked.as_deref(),
+            cursor,
+        };
+        crate::explorerdraw::cells(&items, scroll, marks, (cols, rows))
     }
 }
 
