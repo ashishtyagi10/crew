@@ -184,7 +184,7 @@ pub(crate) fn draw_with(
         let src = row * padded as usize;
         px.extend_from_slice(&mapped[src..src + unpadded]);
     }
-    for c in px.chunks_exact_mut(4) {
+    for c in px.as_chunks_mut::<4>().0 {
         c.swap(0, 2); // BGRA -> RGBA
     }
     Some(px)

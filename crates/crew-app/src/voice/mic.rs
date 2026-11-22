@@ -8,7 +8,9 @@
 //! ALSA headers at build time, and crew's install is deliberately a single binary with no
 //! system dependencies; a Linux build therefore reports no microphone rather than failing to
 //! compile, and voice is unavailable there until somebody wants it enough to add the dep.
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+use std::sync::atomic::Ordering;
 
 /// This machine's audio, through whatever backend the platform has.
 pub(crate) struct Device;
@@ -17,6 +19,7 @@ pub(crate) struct Device;
 /// three times the size at 48 kHz for no accuracy, and this is the whole of the conversion:
 /// speech is band-limited well under 8 kHz, so the aliasing a proper filter would remove is
 /// not in the signal to begin with.
+#[cfg_attr(not(any(target_os = "macos", target_os = "windows")), allow(dead_code))]
 fn to_mic_rate(input: &[f32], from: u32, channels: u16) -> Vec<i16> {
     let from = from.max(1);
     let channels = channels.max(1) as usize;

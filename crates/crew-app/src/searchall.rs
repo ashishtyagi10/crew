@@ -45,8 +45,8 @@ impl CrewApp {
     /// before you go looking in any of them.
     pub(crate) fn find_errors_everywhere(&mut self) {
         let mut hits: Vec<(usize, usize)> = Vec::new();
-        for i in 0..self.panes.len() {
-            if let PaneContent::Terminal(t) = &self.panes[i].content {
+        for (i, p) in self.panes.iter().enumerate() {
+            if let PaneContent::Terminal(t) = &p.content {
                 let n = count_errors(&t.pty);
                 if n > 0 {
                     hits.push((i, n));
@@ -89,8 +89,8 @@ impl CrewApp {
             return;
         }
         let mut hits: Vec<(usize, usize)> = Vec::new();
-        for i in 0..self.panes.len() {
-            if let PaneContent::Terminal(t) = &self.panes[i].content {
+        for (i, p) in self.panes.iter().enumerate() {
+            if let PaneContent::Terminal(t) = &p.content {
                 let n = count_scrollback(&t.pty, term);
                 if n > 0 {
                     hits.push((i, n));
