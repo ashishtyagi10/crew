@@ -9,6 +9,10 @@ fn first_frame_records_without_dipping() {
 
 #[test]
 fn a_theme_change_starts_the_fade_then_it_decays_to_none() {
+    // The fade's Timeline reads the process-wide motion level: without the
+    // guard a parallel test holding Motion off made it born settled (seen on
+    // the Windows job, 2026-11-22).
+    let _g = crate::app::motion_test_guard();
     let mut app = CrewApp::default();
     app.theme_fade_tick(1_000);
     // Simulate a switch by lying about what was seen — equivalent to the
