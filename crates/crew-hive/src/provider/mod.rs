@@ -16,6 +16,7 @@ mod effort;
 mod error;
 mod fellback;
 mod hint;
+mod hintmatch;
 mod io;
 mod mock;
 mod openai_http;

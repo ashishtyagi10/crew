@@ -15,6 +15,9 @@
 //! row that matches, so the order is the precedence; the key comes first
 //! because it is the one fix that always works.
 
+pub(super) use super::hintmatch::hay;
+use super::hintmatch::{has, named};
+
 /// Which fix an error calls for.
 #[derive(Clone, Copy)]
 enum Fix {
@@ -151,60 +154,17 @@ pub(super) fn overflows(msg: &str, body: &str) -> bool {
     matches!(fix(msg, body), Some(Fix::Context))
 }
 
+/// Whether the error is the key being refused — the same row the hint reads.
+pub(super) fn is_key(msg: &str, body: &str) -> bool {
+    matches!(fix(msg, body), Some(Fix::Key))
+}
+
 /// The fix the first matching row calls for, if any.
 fn fix(msg: &str, body: &str) -> Option<Fix> {
     let hay = hay(msg, body);
     ROWS.iter()
         .find(|r| r.when.iter().any(|all| all.iter().all(|f| has(&hay, f))))
         .map(|r| r.fix)
-}
-
-/// The sentence and the envelope's `type`/`code` words, lowercased. A code
-/// is often the plainest statement of the problem: OpenRouter's wrapped 429
-/// says only "Provider returned error", and its `code` says 429.
-fn hay(msg: &str, body: &str) -> String {
-    let mut hay = msg.to_lowercase();
-    if let Ok(v) = serde_json::from_str::<serde_json::Value>(body) {
-        for obj in [&v, &v["error"]] {
-            for key in ["type", "code"] {
-                let word = match &obj[key] {
-                    serde_json::Value::String(s) => s.to_lowercase(),
-                    serde_json::Value::Number(n) => n.to_string(),
-                    _ => continue,
-                };
-                hay.push(' ');
-                hay.push_str(&word);
-            }
-        }
-    }
-    hay
-}
-
-/// Whether `frag` is in `hay`. A number must stand alone: "401" matched
-/// inside "you requested 40100 tokens" and told a person with an overlong
-/// thread that their key was wrong.
-fn has(hay: &str, frag: &str) -> bool {
-    if !frag.bytes().all(|b| b.is_ascii_digit()) {
-        return hay.contains(frag);
-    }
-    let digit = |i: Option<&u8>| i.is_some_and(u8::is_ascii_digit);
-    let b = hay.as_bytes();
-    hay.match_indices(frag)
-        .any(|(i, _)| !digit(b.get(i.wrapping_sub(1))) && !digit(b.get(i + frag.len())))
-}
-
-/// The model the sentence names: OpenAI's and DashScope's put it in
-/// backticks, Anthropic's after `model: `. "that model" when it names none.
-fn named(msg: &str) -> &str {
-    let ticked = msg
-        .split('`')
-        .nth(1)
-        .filter(|_| msg.matches('`').count() >= 2);
-    let after = || msg.split_once("model: ")?.1.split_whitespace().next();
-    ticked
-        .filter(|s| !s.trim().is_empty())
-        .or_else(after)
-        .unwrap_or("that model")
 }
 
 #[cfg(test)]
