@@ -40,8 +40,19 @@ impl Reveal {
     }
 }
 
-/// The block to reveal for a caret on byte `at` of `src`, if `at` is in one.
+/// The block to reveal for a caret on byte `at` of `src`, if `at` is in one: the innermost of
+/// [`blocks`] holding it — a loose item's paragraph rather than the whole item. The blocks are
+/// parsed once per version of the text ([`super::memo`]), not once per crossing.
 pub(crate) fn block_at(src: &str, at: u32) -> Option<Reveal> {
+    let all = super::memo::blocks(src);
+    all.iter()
+        .filter(|b| b.holds(at))
+        .min_by_key(|b| b.to - b.from)
+        .copied()
+}
+
+/// Every block a caret could reveal in `src`, widened to whole lines.
+pub(super) fn blocks(src: &str) -> Vec<Reveal> {
     let opts = Options::ENABLE_TABLES
         | Options::ENABLE_STRIKETHROUGH
         | Options::ENABLE_TASKLISTS
@@ -82,12 +93,7 @@ pub(crate) fn block_at(src: &str, at: u32) -> Option<Reveal> {
             _ => {}
         }
     }
-    found
-        .into_iter()
-        .map(|b| widen(src, b))
-        .filter(|b| b.holds(at))
-        // Innermost: a loose item's paragraph rather than the whole item.
-        .min_by_key(|b| b.to - b.from)
+    found.into_iter().map(|b| widen(src, b)).collect()
 }
 
 /// Out to whole lines: back to the start of the first, on to the end of the last.
