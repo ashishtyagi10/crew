@@ -18,7 +18,7 @@ use crate::git::GitInfo;
 /// Minimum seconds between queries for one directory.
 const POLL_SECS: u64 = 3;
 
-type Answer = (PathBuf, Option<GitInfo>);
+type Answer = (PathBuf, Option<(GitInfo, crate::gitfiles::Files)>);
 
 /// The directory that should be asked next: the one that is due and has been
 /// waiting longest. Pure, so the schedule is testable without a repo.
@@ -37,6 +37,8 @@ fn next_due(asked: &HashMap<PathBuf, u64>, dirs: &[PathBuf], now: u64) -> Option
 pub(crate) struct GitFleet {
     /// Last answer per directory; `Some(None)` means "asked, not a repo".
     known: HashMap<PathBuf, Option<GitInfo>>,
+    /// Each folder's changed files, from the same answer (the Explorer's marks).
+    files: HashMap<PathBuf, crate::gitfiles::Files>,
     /// Unix second each directory was last asked about.
     asked: HashMap<PathBuf, u64>,
     /// The one query allowed to be in flight.
@@ -50,7 +52,9 @@ impl GitFleet {
     pub(crate) fn poll(&mut self, dirs: &[PathBuf], now: u64) {
         if let Some(rx) = &self.rx {
             match rx.try_recv() {
-                Ok((dir, info)) => {
+                Ok((dir, answer)) => {
+                    let (info, files) = answer.unzip();
+                    self.files.insert(dir.clone(), files.unwrap_or_default());
                     self.known.insert(dir, info);
                     self.rx = None;
                 }
@@ -60,6 +64,7 @@ impl GitFleet {
         }
         // Panes close; their answers should not outlive them.
         self.known.retain(|d, _| dirs.contains(d));
+        self.files.retain(|d, _| dirs.contains(d));
         self.asked.retain(|d, _| dirs.contains(d));
         let Some(dir) = next_due(&self.asked, dirs, now) else {
             return;
@@ -67,7 +72,7 @@ impl GitFleet {
         self.asked.insert(dir.clone(), now);
         let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
-            let info = crate::git::query(&dir);
+            let info = crate::gitfiles::query(&dir);
             let _ = tx.send((dir, info));
         });
         self.rx = Some(rx);
@@ -77,6 +82,11 @@ impl GitFleet {
     /// arrives, and for a directory that is not a repo.
     pub(crate) fn info(&self, dir: Option<&Path>) -> Option<&GitInfo> {
         self.known.get(dir?)?.as_ref()
+    }
+
+    /// The changed files git last reported for `dir`'s repository.
+    pub(crate) fn files(&self, dir: &Path) -> Option<&crate::gitfiles::Files> {
+        self.files.get(dir)
     }
 }
 

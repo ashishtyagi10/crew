@@ -502,7 +502,13 @@ and back finds the tree as you left it); click a file to open it in a viewer
 pane, where `i` edits a markdown one. The wheel scrolls the tree. A folder is
 re-read when its listing is more than two seconds old, so a file an agent just
 wrote appears on its own; past 2000 entries a folder says how many it is not
-showing. The **gear** at the bar's foot opens the settings.
+showing. In a git repository the tree wears **git's marks**, as VS Code's
+does: a changed file's name in its change's colour with a letter at the row's
+end (**M** modified, **A** added, **U** untracked, **D** deleted, **!** in
+conflict), and a folder holding changes tinted with a dot — read from the same
+`git status` the nav already asks every few seconds, so it costs no extra git.
+**Cmd+Shift+E** hands the tree the keyboard (see the keys table). The **gear**
+at the bar's foot opens the settings.
 Click an icon to open its section; click the open section's icon to put the
 panel away, as VS Code does; any icon on a put-away nav opens it on that
 section. `/nav panes`, `/nav system`, `/nav activity` and `/nav explorer` open
