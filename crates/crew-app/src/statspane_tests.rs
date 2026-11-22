@@ -1,8 +1,8 @@
 use super::*;
+use crate::navlayout::Tail;
 
-/// The section offsets `cells` walks down must land the LOG exactly where
-/// [`crate::navlayout`] says it does — the draw and the hit paths read the
-/// same numbers from two different code paths, and this is the seam.
+/// The Activity section must draw its LOG exactly where its layout says it does — the draw
+/// and the hit paths (the LOG's wheel scroll) read the same numbers, and this is the seam.
 #[test]
 fn the_drawn_log_starts_on_the_row_the_layout_reserved() {
     let _g = crate::app::theme_test_guard();
@@ -21,17 +21,19 @@ fn the_drawn_log_starts_on_the_row_the_layout_reserved() {
         .collect();
     let panes: Vec<crate::panelist::PaneRow> = Vec::new();
     let (cols, rows) = (26u16, 48u16);
-    let l = s.layout(rows, crate::navlayout::Tail::Log(log.len()), 0);
+    let activity = crate::navsection::NavSection::Activity;
+    let tail = crate::navlayout::Tail::Log(log.len());
+    let l = crate::navsectionlayout::layout_for(activity, rows, tail, log.len(), 0);
     assert!(l.log_lines > 0, "the fixture has room for a LOG");
-    let cells = s.cells(
-        cols,
-        rows,
-        &crate::tabnav::NavList::from(panes.clone()),
-        &log,
-        0,
-        None,
-        None,
-    );
+    let list = crate::tabnav::NavList::from(panes.clone());
+    let input = crate::navpanel::PanelInput {
+        panes: &list,
+        log: &log,
+        log_back: 0,
+        glance: None,
+        strip: None,
+    };
+    let cells = s.panel_cells(activity, &l, cols, rows, &input);
     // The `LOG` legend sits on the rule row the layout named.
     let legend: String = {
         let mut v: Vec<_> = cells.iter().filter(|c| c.row == l.log_top).collect();
@@ -39,15 +41,10 @@ fn the_drawn_log_starts_on_the_row_the_layout_reserved() {
         v.iter().map(|c| c.c).collect()
     };
     assert!(legend.contains("LOG"), "row {}: {legend:?}", l.log_top);
-    // The block's last row is its gap: the PANES rule below it needs air,
-    // and a LOG that grew into the gap would sit flush against it.
-    let gap_row = l.log_top + l.log_block() - 1;
-    assert!(
-        !cells.iter().any(|c| c.row == gap_row),
-        "row {gap_row} is the LOG block's trailing gap and must stay empty"
-    );
-    // …and the PANES rule is on the very next row.
-    assert_eq!(l.panes_top, gap_row + 1);
+    // Every line the LOG drew is inside the block the layout gave it, and the block fits.
+    assert!(cells.iter().all(|c| c.row < l.log_top + l.log_block()));
+    assert!(l.log_top + l.log_block() <= rows);
+    assert_eq!(l.panes_top, None, "Activity shows no pane list");
 }
 
 /// The seam [`crate::navlayout`] exists for, asserted end to end: for
@@ -100,16 +97,18 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
         })
         .collect();
     let cols = 26u16;
-    let l = s.layout(rows, crate::navlayout::Tail::Log(log.len()), n);
-    let cells = s.cells(
-        cols,
-        rows,
-        &crate::tabnav::NavList::from(panes.clone()),
-        &log,
-        0,
-        None,
-        None,
-    );
+    let sec = crate::navsection::NavSection::Panes;
+    let l = crate::navsectionlayout::layout_for(sec, rows, Tail::Log(log.len()), log.len(), n);
+    let list = crate::tabnav::NavList::from(panes.clone());
+    let input = crate::navpanel::PanelInput {
+        panes: &list,
+        log: &log,
+        log_back: 0,
+        glance: None,
+        strip: None,
+    };
+    let cells = s.panel_cells(sec, &l, cols, rows, &input);
+    let top = l.panes_top.expect("the Panes section shows the list");
     for (k, p) in panes.iter().enumerate() {
         // The row this pane's own TITLE was drawn on, found in the frame
         // rather than recomputed from the offsets under test. The title,
@@ -117,7 +116,7 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
         // and a finder that cannot tell them apart proves nothing.
         let drawn = cells
             .iter()
-            .filter(|c| c.row >= l.panes_top && c.col >= 5)
+            .filter(|c| c.row >= top && c.col >= 5)
             .find(|c| {
                 // The whole title, in consecutive columns: single glyphs
                 // collide with the crew legend written on the same rows
@@ -133,7 +132,7 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
             continue; // this nav had no room for row k; nothing to click
         };
         // `rel_row` is measured from the card's OUTER top edge: +1 border.
-        let hit = crate::hit::sidebar_pane_index(drawn.row + 1, l.panes_top);
+        let hit = crate::hit::sidebar_pane_index(drawn.row + 1, top);
         assert_eq!(
             hit,
             Some(k),
@@ -151,7 +150,7 @@ fn an_empty_cpu_history_draws_a_dotted_baseline() {
     let _g = crate::app::theme_test_guard();
     let s = StatsPane::new();
     assert!(s.cpu_hist.is_empty(), "a fresh pane has no history");
-    let paint = s.chart_paint(28, 60, 2.0, None, 0);
+    let paint = s.system_paint(28, 60, 2.0);
     let row0 = f32::from(clock::CLOCK_H + CHART_OFF);
     let base: Vec<_> = paint
         .iter()

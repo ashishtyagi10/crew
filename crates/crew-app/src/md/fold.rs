@@ -3,8 +3,9 @@
 //! folding (including hoisting fenced code found inside a list item out to a
 //! real sibling `Block::CodeBlock`, since a list item's flat `MdSpan`s have
 //! nowhere to hold one).
-use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
+use pulldown_cmark::{Event, Tag, TagEnd};
 
+use super::codefold::collect_code_block;
 use super::inline::{apply_inline_event, collect_inline, fold_nested_list, InlineState};
 use super::{autolink, Block, ListItem, MAX_NEST_DEPTH};
 use crate::md::{MdSpan, MdStyle};
@@ -101,29 +102,6 @@ pub(super) fn collect_html_block<'a>(events: &mut impl Iterator<Item = Event<'a>
     Block::Paragraph(spans)
 }
 
-pub(super) fn collect_code_block<'a>(
-    events: &mut impl Iterator<Item = Event<'a>>,
-    kind: CodeBlockKind,
-) -> Block {
-    let lang = match kind {
-        CodeBlockKind::Fenced(l) => l.into_string(),
-        CodeBlockKind::Indented => String::new(),
-    };
-    let mut buf = String::new();
-    loop {
-        match events.next() {
-            Some(Event::Text(t)) => buf.push_str(&t),
-            Some(Event::End(TagEnd::CodeBlock)) | None => break,
-            _ => {}
-        }
-    }
-    let mut lines: Vec<String> = buf.split('\n').map(String::from).collect();
-    if lines.last().is_some_and(|l| l.is_empty()) {
-        lines.pop();
-    }
-    Block::CodeBlock { lang, lines }
-}
-
 /// Collects one list's items. Returns the flattened items (nested sub-lists
 /// folded in by depth, as before) plus any fenced code blocks found inside
 /// an item — hoisted out here because `ListItem::spans` is flat `MdSpan`s
@@ -186,7 +164,7 @@ fn collect_item<'a>(
                 fold_nested_list(events, &mut spans, keep_soft_breaks)
             }
             Some(Event::Start(Tag::CodeBlock(kind))) => {
-                hoisted.push(collect_code_block(events, kind))
+                hoisted.push(unsourced(collect_code_block(events, kind)))
             }
             Some(Event::Start(Tag::Paragraph)) => {
                 if !spans.is_empty() {
@@ -198,4 +176,18 @@ fn collect_item<'a>(
         }
     }
     (autolink::autolink(spans), nested, hoisted)
+}
+
+/// A hoisted fence is drawn after the whole list, out of the source's order — and the caret's
+/// search (`viewpane::caretfind`) and the reveal both rely on rows rising through the file. So
+/// it claims no bytes: the caret steps over it, as it did over every fence before they had any.
+fn unsourced(b: Block) -> Block {
+    match b {
+        Block::CodeBlock { lang, lines, .. } => Block::CodeBlock {
+            starts: vec![None; lines.len()],
+            lang,
+            lines,
+        },
+        b => b,
+    }
 }

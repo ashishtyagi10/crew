@@ -8,7 +8,7 @@ use crate::md::{MdSpan, MdStyle};
 /// bullets wouldn't fit anyway.
 const MIN_WRAP_COLS: usize = 4;
 
-pub(super) fn plain_span(text: String) -> MdSpan {
+pub(in crate::md) fn plain_span(text: String) -> MdSpan {
     MdSpan {
         text,
         style: MdStyle::default(),
@@ -169,7 +169,7 @@ pub(super) fn spans_for_range(
 
 /// Word-wraps one run of styled spans (no hard breaks inside) to `cols`,
 /// returning the spans for each output line.
-pub(super) fn wrap_group(spans: &[MdSpan], cols: usize) -> Vec<Vec<MdSpan>> {
+pub(in crate::md) fn wrap_group(spans: &[MdSpan], cols: usize) -> Vec<Vec<MdSpan>> {
     if cols < MIN_WRAP_COLS {
         return vec![truncate_spans(spans.to_vec(), cols)];
     }

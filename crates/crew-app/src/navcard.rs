@@ -46,12 +46,6 @@ impl CrewApp {
         }
         let (nav, g) = (self.nav_px(scale), self.gutter());
         let sb = chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
-        let pane_rows = self.nav_list();
-        let sidebar = &self.sidebar;
-        let log = &self.log;
-        let log_back = self.log_back;
-        let glance = self.glance();
-        let weather = crate::navweather::now().map(|w| crate::navweather::line(&w));
         // The chevron leads whatever the legend says, in every state: it is
         // the one control that has to be findable without reading the words
         // beside it. Its two columns come out of the legend's budget.
@@ -69,25 +63,8 @@ impl CrewApp {
             ),
         };
         let legend = crate::navrail::legend(false, &legend);
-        // The card carries two layers: the cells, and the sub-cell paint its
-        // charts are drawn on. `ch / cw` goes with them so a chart's circles
-        // stay round and its proportions survive a font change.
-        let aspect = ch / cw;
-        crate::panelcard::push_card_art(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
-            (
-                sidebar.cells(
-                    cols,
-                    rows,
-                    &pane_rows,
-                    log,
-                    log_back,
-                    glance.as_ref(),
-                    weather.as_deref(),
-                ),
-                sidebar.chart_paint(cols, rows, aspect, glance.as_ref(), pane_rows.len()),
-            )
-        });
-        crate::navreliefscene::panel(scenes, cw, ch, g.y);
+        self.push_sections(scenes, sb, (cw, ch), (&legend, legend_fg));
+        crate::navreliefscene::panel(scenes, cw, ch, g.y, crate::navopen::BAR_TAKES);
     }
 
     /// The docked nav's rect and its row division for the frame on screen —
@@ -107,10 +84,9 @@ impl CrewApp {
         let (nav, g) = (self.nav_px(scale), self.gutter());
         let sb = chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
-        let l = self
-            .sidebar
-            .layout(rows, self.nav_tail(), self.nav_lines().len());
-        Some((sb, ch, l))
+        let l = self.nav_layout(self.nav_section(), rows);
+        // The panel's rect: a click on the activity bar is never a panel row.
+        Some((crate::navopen::panel_rect(sb, cw), ch, l))
     }
 
     /// Whether the nav's top slot carries a card — a LOUD update's progress,

@@ -38,6 +38,8 @@ pub(crate) enum ViewInput {
     ToggleSplit,
     /// `w` — take this document out of the grid and give it a window.
     PopOut,
+    /// `i` — edit a markdown document right here ([`super::editkeys`]).
+    Insert,
     /// `/` — start (or restart) a search in typing mode.
     Slash,
     /// `n` outside typing — jump to the next hit.
@@ -66,6 +68,8 @@ pub(crate) enum ViewAction {
     /// `w` — reopen this document in a window of its own ([`crate::docwin`]).
     PopOut(PathBuf),
     Reload,
+    /// `i` started editing: the host says how to stop.
+    Editing,
 }
 
 pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
@@ -100,6 +104,7 @@ pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
             "v" => ViewInput::ToggleSplit,
             // `w` — take this document out of the grid and give it a window.
             "w" => ViewInput::PopOut,
+            "i" => ViewInput::Insert,
             _ => s
                 .chars()
                 .next()
@@ -107,20 +112,6 @@ pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
                 .unwrap_or(ViewInput::Ignore),
         },
         _ => ViewInput::Ignore,
-    }
-}
-
-/// Scroll to the next (`down`) or previous landmark, putting it on the top
-/// row. Nothing happens at either end, or in a document with no structure —
-/// which is most of them, and is why this is silent rather than an error.
-fn jump_mark(p: &mut ViewPane, cols: u16, rows: u16, down: bool) {
-    let to = {
-        let cache = p.lines_for(cols);
-        super::outline::step(&cache.marks, p.scroll, down).map(|m| m.row)
-    };
-    if let Some(row) = to {
-        p.scroll = row;
-        p.clamp_scroll(cols, rows);
     }
 }
 
@@ -154,6 +145,10 @@ pub(crate) fn apply(
         ViewInput::OpenExternal => return Some(ViewAction::OpenExternal(p.path.clone())),
         ViewInput::PopOut => return Some(ViewAction::PopOut(p.path.clone())),
         ViewInput::Reload => return Some(ViewAction::Reload),
+        ViewInput::Insert => {
+            p.edit_here(cols, rows);
+            return p.caret.map(|_| ViewAction::Editing);
+        }
         ViewInput::ToggleRaw => {
             p.raw = !p.raw;
             p.cache.replace(None);
@@ -177,8 +172,8 @@ pub(crate) fn apply(
             search.typing = true;
             p.search = Some(search);
         }
-        ViewInput::NextMark => jump_mark(p, cols, rows, true),
-        ViewInput::PrevMark => jump_mark(p, cols, rows, false),
+        ViewInput::NextMark => super::outline::jump(p, cols, rows, true),
+        ViewInput::PrevMark => super::outline::jump(p, cols, rows, false),
         ViewInput::NextHit => search_apply::jump(p, cols, rows, Search::next),
         ViewInput::PrevHit => search_apply::jump(p, cols, rows, Search::prev),
         ViewInput::Enter | ViewInput::Char(_) | ViewInput::Backspace | ViewInput::Ignore => {}

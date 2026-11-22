@@ -52,8 +52,8 @@ fn nav() -> Vec<CellView> {
 /// A tab card's edges open no section.
 #[test]
 fn a_groove_above_every_section_but_the_first() {
-    assert_eq!(heads(&nav()), [0, 3, 5, 8]);
-    assert_eq!(grooves(&nav()), [2.5, 5.0, 7.5]);
+    assert_eq!(heads(&nav(), 0), [0, 3, 5, 8]);
+    assert_eq!(grooves(&nav(), 0), [2.5, 5.0, 7.5]);
 }
 
 /// The section strokes go and the words stay; a tab card's own strokes
@@ -61,7 +61,7 @@ fn a_groove_above_every_section_but_the_first() {
 #[test]
 fn the_section_rules_are_blanked_and_the_words_kept() {
     let mut v = nav();
-    unruled(&mut v);
+    unruled(&mut v, 0);
     assert_eq!(text(&v, 0), "   TIME");
     assert_eq!(text(&v, 8), "   PANES");
     assert_eq!(text(&v, 13), " \u{2502} 2 a\u{2500}b   \u{2502}");
@@ -73,7 +73,7 @@ fn the_section_rules_are_blanked_and_the_words_kept() {
 fn a_groove_is_a_dark_line_over_a_light_one() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(crew_theme::ThemeId::Porcelain);
-    let p = groove_paint(&[2.5], 13, 16.0);
+    let p = groove_paint(&[2.5], 0, 13, 16.0);
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     assert_eq!(p.len(), 2);
     let (dark, lite) = (&p[0], &p[1]);
@@ -97,4 +97,32 @@ fn neighbouring_tab_wells_keep_a_rib_between_them() {
         .collect();
     assert!((r[1].y - (r[0].y + r[0].h) - gap).abs() < 1e-3, "{r:?}");
     assert_eq!(r[0].y, 27.0 + 9.0 * ch);
+}
+
+/// Beside the activity bar the panel starts `x0` columns in: its sections are found there, the
+/// bar's own rule (a vertical stroke, and its icons) is no section, and only the panel's
+/// rules are blanked.
+#[test]
+fn beside_the_bar_the_sections_are_found_where_the_panel_starts() {
+    let x0 = 6u16;
+    let mut v: Vec<CellView> = nav()
+        .into_iter()
+        .map(|c| CellView {
+            col: c.col + x0,
+            ..c
+        })
+        .collect();
+    // The bar: a horizontal rule at ITS column 1 on every row must not read as a heading.
+    for r in 0..12 {
+        row(&mut v, r, " \u{2500}   \u{2502}");
+    }
+    assert_eq!(heads(&nav(), 0), heads(&v, x0));
+    unruled(&mut v, x0);
+    let bar_rule = v.iter().filter(|c| c.col == 1 && c.c == '\u{2500}').count();
+    assert_eq!(bar_rule, 12, "the bar's cells are not the panel's to blank");
+    let p = groove_paint(&[2.5], x0, 20, 16.0);
+    assert!(
+        p.iter().all(|p| p.x >= f32::from(x0)),
+        "grooves start past the bar"
+    );
 }

@@ -46,7 +46,7 @@ impl CrewApp {
             && !self.config.nav_collapsed
             && self
                 .cursor_logical_x()
-                .is_some_and(|x| on_edge(x, self.config.nav_width))
+                .is_some_and(|x| on_edge(x, self.config.nav_width + self.nav_bar_w()))
     }
 
     /// A left press on the edge takes hold of it. Returns `true` when it did,
@@ -65,7 +65,8 @@ impl CrewApp {
         let Some(x) = self.cursor_logical_x() else {
             return false;
         };
-        let w = width_at(x);
+        // `nav_width` is the panel's: the bar beside it is not the user's to drag.
+        let w = width_at(x - self.nav_bar_w());
         if (w - self.config.nav_width).abs() < 0.5 {
             return false;
         }

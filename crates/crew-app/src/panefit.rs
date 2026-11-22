@@ -22,6 +22,10 @@ pub fn relayout_one(pane: &mut Pane, rect: Rect, cell_w: f32, cell_h: f32) {
             t.pty.resize(new_grid);
         }
         pane.grid = new_grid;
+        // A document being edited re-wrapped: only the caret's byte survives (`docwin::refit`).
+        if let PaneContent::View(v) = &mut pane.content {
+            v.relayout_caret(cols, rows);
+        }
     }
 }
 

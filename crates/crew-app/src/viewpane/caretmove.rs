@@ -76,6 +76,12 @@ impl ViewPane {
     }
 
     /// Move the caret and stamp the byte it is now on.
+    ///
+    /// The byte is read off the layout the caret moved in, and that layout may not survive the
+    /// move: stepping into another block reveals ITS markers and renders the one left behind
+    /// ([`crate::md::reveal`]), so every row from there down can shift. The caret is found again
+    /// by its byte in the layout the move produced, and the view scrolled by however far its row
+    /// moved — the line being edited stays where the eye already is.
     fn set_caret(&mut self, to: Option<super::caret::Caret>, cols: u16) {
         let at = to.and_then(|c| {
             let cache = self.lines_for(cols);
@@ -83,6 +89,24 @@ impl ViewPane {
         });
         self.caret = to;
         self.caret_at = at;
+        let (Some(c), Some(at)) = (to, at) else {
+            return;
+        };
+        let found = {
+            let cache = self.lines_for(cols);
+            super::caretfind::find(&cache.lines, at)
+        };
+        let Some(f) = found.filter(|f| (f.row, f.col) != (c.row, c.col)) else {
+            return;
+        };
+        // A sideways step aims where it landed; a vertical one keeps aiming where it started.
+        let want = match c.want == c.col {
+            true => f.col,
+            false => c.want,
+        };
+        self.caret = Some(super::caret::Caret { want, ..f });
+        let shift = f.row as isize - c.row as isize;
+        self.scroll = (self.scroll as isize + shift).max(0) as usize;
     }
 
     /// Find the caret again after the document was laid out at a new width.

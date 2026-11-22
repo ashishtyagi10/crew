@@ -28,29 +28,29 @@ pub(crate) struct ViewCache {
     /// Rows `]` / `[` step between, in this rendering (see
     /// [`super::outline`]). Empty for a rung with no structure to step.
     pub marks: Vec<super::outline::Mark>,
-    /// Pictures this rendering reserved room for (`![alt](src)`), in rendered
-    /// rows — filled by the markdown rung, empty everywhere else. Part of the
-    /// cache because the rows are a property of THIS wrap at THIS width.
+    /// Pictures this rendering reserved room for (`![alt](src)`), in rendered rows — filled by the
+    /// markdown rung, empty elsewhere. Cached: the rows are a property of THIS wrap at THIS width.
     pub pictures: Vec<crate::chatmd::Picture>,
-    /// Columns the blame gutter claimed in this rendering. Part of the cache
-    /// key in spirit: turning blame on or off changes the width the text was
-    /// wrapped at, so the cache must be rebuilt, not merely re-decorated.
+    /// Columns the blame gutter claimed in this rendering. Part of the cache key in spirit:
+    /// turning blame on or off changes the width the text was wrapped at, so the cache must be
+    /// rebuilt, not merely re-decorated.
     pub blame_w: usize,
     /// Columns the diagnostics margin claimed — a cache key like `blame_w`.
     pub lsp_w: usize,
-    /// Whether this rendering is the side-by-side review. Part of the cache
-    /// key for the same reason `blame_w` is: the two rungs wrap at different
-    /// widths, so one cannot be turned into the other.
+    /// Whether this rendering is the side-by-side review. Part of the cache key for the same
+    /// reason `blame_w` is: the two rungs wrap at different widths, so one cannot become the other.
     pub split: bool,
-    /// Whether the invisibles were revealed in this rendering. Part of the
-    /// cache key: the toggle changes the TEXT (a revealed tab wears an arrow
-    /// in its first column), so the rendering has to be rebuilt, not
-    /// recoloured.
+    /// Whether the invisibles were revealed in this rendering. Part of the cache key: the toggle
+    /// changes the TEXT (a revealed tab wears an arrow in its first column), so the rendering
+    /// has to be rebuilt, not recoloured.
     pub invisibles: bool,
-    /// The theme the ink in `lines` was taken from — a cache key because the
-    /// lines carry BAKED colours, and a `/theme` (or dusk, or the OS) used to
-    /// leave every open viewer in the old palette until a resize.
+    /// The theme the ink in `lines` was taken from — a cache key because the lines carry BAKED
+    /// colours, and a `/theme` (or dusk, or the OS) used to leave every open viewer in the old
+    /// palette until a resize.
     pub theme: crew_theme::ThemeId,
+    /// The block the caret reveals ([`crate::md::reveal`]), a key; and the byte it was answered for.
+    pub reveal: Option<crate::md::reveal::Reveal>,
+    pub reveal_for: Option<u32>,
 }
 
 pub(crate) struct ViewPane {
@@ -61,10 +61,8 @@ pub(crate) struct ViewPane {
     /// `s`: show the text unrendered. The escape hatch for when the render is
     /// the thing being debugged.
     pub raw: bool,
-    /// The cursor in the render, when this document is being EDITED rather
-    /// than read (see [`super::caret`]). `None` in a viewer pane: a pane is a
-    /// window onto a file, and the arrow keys there scroll it. A document
-    /// window turns it on, which is what makes the window an editor.
+    /// The cursor in the render, when this document is being EDITED rather than read (see
+    /// [`super::caret`]). A document window starts with one; a viewer pane gets one on `i`.
     pub caret: Option<super::caret::Caret>,
     /// The BYTE the caret is on — its durable identity. The rendered position
     /// above is derived from this and the current layout, and a re-wrap
@@ -72,8 +70,9 @@ pub(crate) struct ViewPane {
     /// again. Keeping the row would put the cursor on a different word every
     /// time the window changed width.
     pub caret_at: Option<u32>,
-    /// Edited since it was read or last saved.
+    /// Edited since it was read or last saved; `warned` once a close or re-read was refused.
     pub dirty: bool,
+    pub warned: bool,
     /// What has been typed, so it can be taken back ([`super::undo`]).
     pub history: super::undo::History,
     /// The other end of a selection, as a source byte — the caret is one end
@@ -129,6 +128,7 @@ impl ViewPane {
             caret: None,
             caret_at: None,
             dirty: false,
+            warned: false,
             history: Default::default(),
             anchor: None,
             split: false,

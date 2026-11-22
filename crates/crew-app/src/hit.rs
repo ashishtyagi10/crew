@@ -70,7 +70,7 @@ impl CrewApp {
             return self.pane_at_rail();
         }
         let (rel_row, l) = self.sidebar_row()?;
-        let k = sidebar_pane_index(rel_row, l.panes_top)?;
+        let k = sidebar_pane_index(rel_row, l.panes_top?)?;
         self.nav_pane_at(k)
     }
 

@@ -31,6 +31,10 @@ pub(crate) const VIEW_BINDINGS: &[(&str, &str)] = &[
         "w",
         "Take the document out of the grid, into a window of its own",
     ),
+    (
+        "i",
+        "Markdown: edit it right here \u{2014} the editor's keys below; Esc to stop",
+    ),
     ("Cmd+Click", "Follow a rendered markdown link"),
     ("Esc", "Close the viewer (a live search first)"),
 ];
@@ -121,8 +125,9 @@ pub(crate) const SETTINGS_BINDINGS: &[(&str, &str)] = &[
 ];
 
 /// Keys a **document window** answers to — the markdown editor `w` (or
-/// `/doc`) opens in a window of its own. The viewer's keys still apply there
-/// (Esc, the search, the scroll); these are the ones the caret adds.
+/// `/doc`) opens in a window of its own, and a viewer pane after `i`. The
+/// viewer's keys still apply there (Esc, the search, the scroll); these are
+/// the ones the caret adds. The caret's block shows its markdown.
 ///
 /// The whole map lived in `docwin/keys.rs` and the manual, and in no in-app
 /// list: the one pane kind added after `/keys` learned to hold every pane to
@@ -147,7 +152,7 @@ pub(crate) const DOC_BINDINGS: &[(&str, &str)] = &[
     ),
     (
         "Cmd+K",
-        "Edit the link's URL under the caret, or make one out of the selection",
+        "Window: edit the link's URL under the caret, or make one of the selection",
     ),
     ("Tab", "Next table cell \u{b7} two spaces anywhere else"),
     ("Cmd+C / Cmd+X / Cmd+V", "Copy / cut / paste, as markdown"),

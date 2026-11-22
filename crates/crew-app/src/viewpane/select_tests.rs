@@ -168,7 +168,7 @@ fn a_selection_with_spaces_around_it_is_trimmed_before_wrapping() {
     assert_eq!(p.selected_text().as_deref(), Some(" this word "));
     assert!(p.wrap_selection("**", 60, 20));
     assert_eq!(text_of(&p), "make **this word** bold\n");
-    // …and the render agrees it is emphasis rather than four asterisks.
+    p.caret = None; // …and to a READER it is emphasis, not four asterisks (the caret reveals).
     let drawn: String = p
         .lines_for(60)
         .lines

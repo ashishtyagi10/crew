@@ -152,7 +152,11 @@ impl ViewPane {
         let Some(src) = self.source() else { return };
         let at = (at as usize).min(src.len());
         let line = src[..at].rfind('\n').map_or(0, |i| i + 1);
-        let insert = match continuation(&src[line..at]) {
+        let insert = match super::enterline::continuation(&src[line..at]) {
+            _ if super::enterline::in_code(src, at, line) => {
+                let indent = src[line..at].len() - src[line..at].trim_start().len();
+                format!("\n{}", &src[line..line + indent])
+            }
             Some(prefix) => format!("\n{prefix}"),
             None => "\n\n".to_string(),
         };
@@ -193,42 +197,6 @@ impl ViewPane {
         self.history.breaks();
         Ok(())
     }
-}
-
-/// The markdown a new line has to start with to continue the block the caret
-/// is in, or `None` for prose (which needs a blank line instead).
-///
-/// Read off the SOURCE line the caret is on — the one place the markers are
-/// still visible, which is exactly why the buffer is the source.
-fn continuation(line: &str) -> Option<String> {
-    let indent: String = line
-        .chars()
-        .take_while(|c| *c == ' ' || *c == '\t')
-        .collect();
-    let rest = &line[indent.len()..];
-    // A quote inside a list, a list inside a quote: take the markers in the
-    // order they were written.
-    if let Some(after) = rest.strip_prefix("> ") {
-        let inner = continuation(after).unwrap_or_default();
-        return Some(format!("{indent}> {inner}"));
-    }
-    for m in ["- ", "* ", "+ "] {
-        if rest.starts_with(m) {
-            return Some(format!("{indent}{m}"));
-        }
-    }
-    // `1. ` / `12) ` — the next item is numbered one higher, because a list
-    // whose every item says `1.` renders correctly and reads as a mistake in
-    // the file.
-    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
-    if !digits.is_empty() {
-        let after = &rest[digits.len()..];
-        if let Some(sep) = [". ", ") "].iter().find(|s| after.starts_with(**s)) {
-            let n: u32 = digits.parse().unwrap_or(1);
-            return Some(format!("{indent}{}{sep}", n + 1));
-        }
-    }
-    None
 }
 
 #[cfg(test)]

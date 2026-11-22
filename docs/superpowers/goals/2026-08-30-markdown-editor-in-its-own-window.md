@@ -201,3 +201,35 @@ Deliberately **not** done, and the honest cost of the smaller shape:
   ~55 MB to ~9 MB. The glyph atlas and the pipelines are still per-window.
 * The `crew ask` socket and the federation relay are held by the launch
   canvas, so `crew ask` addresses its panes only.
+
+---
+
+### Live preview: the caret's block shows its markdown (2026-11-21)
+
+The editor above never showed a marker, so it could only stand *between* them:
+a heading's `#` could not be deleted, a `-` could not become a `1.`, a URL had
+to go through Cmd+K. Now the block holding the caret is drawn as its source
+lines, the way Obsidian's live preview does, and every other block stays
+rendered. Moving out of the block renders it again.
+
+* **Which lines** (`md::reveal::block_at`): the innermost leaf block holding
+  the caret's byte, widened to whole source lines so `# `, `- `, `> ` and the
+  indent come with it. A tight list item is its own leaf, cut where a nested
+  list starts. It is read off the parser, never off the layout.
+* **How they are drawn** (`md::revealrows`): the block's rendered rows are
+  replaced by its source lines. A byte keeps the style the render gave it,
+  so bold stays bold and a heading stays an outline landmark. A byte the
+  render never drew is a marker, in marker ink. A fence keeps its code field,
+  and its fence lines become the field's top and bottom rows.
+* **The invariant still holds**, extended. With each block revealed in turn,
+  every claimed byte holds its character, and every byte of the revealed lines
+  is claimed, except the newlines and the spaces a wrap consumes.
+* **Code blocks carry bytes now** (`md::codefold`), so the caret can step
+  into a fence. Before this it skipped over them. Enter inside code inserts
+  one newline plus the line's indent.
+* **Tabs and CRLF** (`viewpane::srcmap`): a cell's byte was a byte of the
+  tab-expanded, `\r`-stripped text, so in a CRLF file every keystroke landed
+  one byte early for each line above it. Cells are mapped back to the file now.
+
+Still unreachable, because nothing in their render carries a byte: a rule
+(`---`), a picture on a line of its own, and a reference-link definition.

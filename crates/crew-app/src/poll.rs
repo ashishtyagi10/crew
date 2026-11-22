@@ -847,7 +847,9 @@ impl CrewApp {
             let Some(born) = v.editor_born else {
                 continue;
             };
-            if live.contains(&born) {
+            if live.contains(&born) || v.dirty
+            /* edits in the pane outrank the disk */
+            {
                 continue;
             }
             v.editor_born = None;

@@ -20,6 +20,10 @@ impl CrewApp {
 
     /// Close pane at `idx`.  Returns `true` if the app should exit.
     pub fn close_pane(&mut self, idx: usize) -> bool {
+        // Unsaved edits in a viewer pane: the first close says so and keeps it.
+        if self.refuse_dirty(idx, "close it again to discard them") {
+            return false;
+        }
         // Closing the pane that had the screen lands on the grid you left.
         let had_screen = self.zoomed_pane() == Some(idx);
         if idx < self.panes.len() {

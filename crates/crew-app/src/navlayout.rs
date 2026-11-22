@@ -12,6 +12,7 @@
 //! with a LOG showing five lines onto sixty-four buffered ones. The LOG now
 //! grows into whatever is left, so the space goes to the only section that has
 //! more to say than it has room for.
+#[cfg(test)]
 use crate::clock;
 
 /// Rows the SYSTEM section occupies: the rule, the three readings (arc gauges
@@ -74,8 +75,8 @@ pub struct NavLayout {
     pub waiting_top: u16,
     /// Rows the WAITING card shows — 0 when it was dropped for room.
     pub waiting_lines: usize,
-    /// Content row the PANES header sits on.
-    pub panes_top: u16,
+    /// Content row the PANES header sits on — `None` when the section open shows no pane list.
+    pub panes_top: Option<u16>,
 }
 
 impl NavLayout {
@@ -90,6 +91,7 @@ impl NavLayout {
 }
 
 /// Rows above the LOG: everything fixed, plus GIT when the cwd is a repo.
+#[cfg(test)]
 pub fn fixed_rows(has_git: bool) -> u16 {
     clock::CLOCK_H
         + SYS_BLOCK
@@ -110,14 +112,24 @@ pub fn layout(rows: u16, has_git: bool, log_len: usize, panes: usize) -> NavLayo
     layout_with(rows, has_git, Tail::Log(log_len), panes)
 }
 
-/// [`layout`] for either filling of the slot. In glance mode the WEATHER
+/// [`layout`] for either filling of the slot, under the fixed stack.
+#[cfg(test)]
+pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLayout {
+    let (mut out, end) = layout_from(fixed_rows(has_git), rows, tail, panes);
+    out.panes_top = Some(end);
+    out
+}
+
+/// The slot laid out from content row `top` down, leaving room for `panes` rows of pane list
+/// below it. Returns the division and the row the slot ends on.
+///
+/// For either filling of the slot. In glance mode the WEATHER
 /// card stands first but is the first to go: it is placed only when SERVING
 /// and a one-row WAITING still fit under it. SERVING takes its fixed block
 /// next (dropped whole when even that would push a pane row off), then the
 /// WAITING card grows into the slack up to its row count and
 /// [`crate::navwaiting::WAIT_MAX`].
-pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLayout {
-    let top = fixed_rows(has_git);
+pub fn layout_from(top: u16, rows: u16, tail: Tail, panes: usize) -> (NavLayout, u16) {
     // Header + one row per pane. An empty crew costs nothing.
     let panes_block = if panes == 0 {
         0
@@ -137,7 +149,8 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
                 .saturating_sub(2); // the LOG's own rule and trailing gap
             let log_lines = log_len.min(LOG_MAX).min(slack as usize);
             out.log_lines = if log_lines < LOG_MIN { 0 } else { log_lines };
-            out.panes_top = top + out.log_block();
+            let end = top + out.log_block();
+            (out, end)
         }
         Tail::Glance {
             waiting,
@@ -173,10 +186,10 @@ pub fn layout_with(rows: u16, has_git: bool, tail: Tail, panes: usize) -> NavLay
             } else {
                 out.waiting_lines as u16 + 2
             };
-            out.panes_top = out.waiting_top + block;
+            let end = out.waiting_top + block;
+            (out, end)
         }
     }
-    out
 }
 
 #[cfg(test)]

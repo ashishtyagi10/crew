@@ -54,6 +54,9 @@ pub(crate) struct Prepared {
     /// One `Vec<bool>` per line, one entry per character of `text`'s version
     /// of that line.
     pub marks: Vec<Vec<bool>>,
+    /// Where `text` stopped being the file's own bytes, so a byte of it can be taken back to
+    /// the file ([`super::srcmap`]) — the markdown editor's caret is one.
+    pub map: super::srcmap::SrcMap,
 }
 
 /// Expand every tab to the next [`TAB_STOP`] and, when `reveal`, mark the
@@ -65,22 +68,39 @@ pub(crate) struct Prepared {
 pub(crate) fn prepare(text: &str, reveal: bool) -> Prepared {
     let mut out = String::with_capacity(text.len());
     let mut marks = Vec::new();
+    let mut map = super::srcmap::SrcMap::default();
+    let mut orig = 0usize;
     for (i, line) in text.split('\n').enumerate() {
         if i > 0 {
             out.push('\n');
+            orig += 1;
         }
-        let (rendered, line_marks) = prepare_line(line, reveal);
+        let (rendered, line_marks) = prepare_line(line, reveal, (orig, out.len()), &mut map.subs);
         out.push_str(&rendered);
         marks.push(line_marks);
+        orig += line.len();
     }
-    Prepared { text: out, marks }
+    Prepared {
+        text: out,
+        marks,
+        map,
+    }
 }
 
 /// One line's expansion. Trailing whitespace is measured on the SOURCE line,
 /// before expansion, so a run of tabs at the end of a line is marked as the
 /// trailing whitespace it is rather than as ordinary indentation.
-fn prepare_line(line: &str, reveal: bool) -> (String, Vec<bool>) {
+///
+/// `base` is where the line starts in the file and in the output; every character written as
+/// something other than itself is recorded in `subs`.
+fn prepare_line(
+    line: &str,
+    reveal: bool,
+    base: (usize, usize),
+    subs: &mut Vec<super::srcmap::Sub>,
+) -> (String, Vec<bool>) {
     let chars: Vec<char> = line.chars().collect();
+    let mut byte = base.0;
     // Where the line's own text ends: everything past here is trailing.
     let tail = chars
         .iter()
@@ -91,6 +111,7 @@ fn prepare_line(line: &str, reveal: bool) -> (String, Vec<bool>) {
     let mut col = 0usize;
     for (i, &c) in chars.iter().enumerate() {
         let trailing = i >= tail;
+        let before = out.len();
         match c {
             '\t' => {
                 let width = TAB_STOP - (col % TAB_STOP);
@@ -122,6 +143,17 @@ fn prepare_line(line: &str, reveal: bool) -> (String, Vec<bool>) {
                 col += crate::chatwidth::char_w(c);
             }
         }
+        // A character written as itself is the same bytes; anything else is a substitution.
+        let wrote = &out[before..];
+        if wrote.len() != c.len_utf8() || !wrote.starts_with(c) {
+            subs.push(super::srcmap::Sub {
+                prep: (base.1 + before) as u32,
+                prep_len: wrote.len() as u32,
+                orig: byte as u32,
+                orig_len: c.len_utf8() as u32,
+            });
+        }
+        byte += c.len_utf8();
     }
     (out, marks)
 }

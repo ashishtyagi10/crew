@@ -309,8 +309,8 @@ fn a_click_places_the_caret_where_it_landed() {
     let cols = 60;
     p.click_caret(0, 4, cols, 20);
     let on_heading = p.caret_at.expect("placed");
-    assert_eq!(&DOC[on_heading as usize..on_heading as usize + 1], "l");
-    // Past the end of the row: the end of it, not nothing.
+    assert_eq!(&DOC[on_heading as usize..on_heading as usize + 1], "i"); // `# Title` is shown
+                                                                         // Past the end of the row: the end of it, not nothing.
     p.click_caret(0, 200, cols, 20);
     let at_end = p.caret_at.expect("placed");
     assert!(at_end > on_heading);

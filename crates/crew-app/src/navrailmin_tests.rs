@@ -1,5 +1,8 @@
 //! A pane off the grid says so on the rail too.
 use super::*;
+use crate::navrailbar::rail_cells;
+use crate::panelist::PaneRow;
+use crew_render::CellView;
 
 fn pane(index: usize, minimized: bool) -> PaneRow {
     PaneRow {

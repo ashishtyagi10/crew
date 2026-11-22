@@ -4,8 +4,9 @@ use winit::event::{MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 
-use super::keys::{edit_key, Edit};
+use super::keys::edit_key;
 use crate::app::CrewApp;
+use crate::viewpane::EditDone;
 use crate::viewpane::ViewAction;
 
 impl CrewApp {
@@ -72,6 +73,7 @@ impl CrewApp {
         let mut copy: Option<String> = None;
         let mut refused = false;
         let mut paste = false;
+        let mut claimed = false;
         let mut edit: Option<std::path::PathBuf> = None;
         let mut external: Option<std::path::PathBuf> = None;
         let mods = self.docs[i].mods;
@@ -133,108 +135,37 @@ impl CrewApp {
                     // the cursor rather than scrolling, and a letter is a
                     // letter rather than a viewer command.
                     if d.view.caret.is_some() {
-                        match edit_key(&k, mods, rows) {
-                            Some(Edit::Move(dir)) => {
-                                d.view.clear_selection();
-                                d.view.move_caret(dir, cols, rows);
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Select(dir)) => {
-                                d.view.anchor_here();
-                                d.view.move_caret(dir, cols, rows);
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::SelectAll) => {
-                                d.view.select_all(cols, rows);
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Wrap(marker)) => {
-                                refused = !d.view.wrap_selection(marker, cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                            }
-                            Some(Edit::Copy) => {
-                                copy = d.view.selected_text();
-                            }
-                            Some(Edit::Cut) => {
-                                copy = d.view.selected_text();
-                                d.view.delete_selection(cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                            }
-                            Some(Edit::Paste) => {
-                                paste = true;
+                        if let Some(e) = edit_key(&k, mods, rows) {
+                            if e.changes_text() {
                                 d.warned = false;
                             }
-                            // Typing again after a refused close puts the
-                            // guard back: the next Esc asks once more rather
-                            // than throwing away what was typed since.
-                            Some(Edit::Type(text)) => {
-                                d.view.insert(&text, cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                                return;
+                            match d.view.apply_edit(e, cols, rows) {
+                                EditDone::Save => save = true,
+                                EditDone::Reload => reread = true,
+                                EditDone::Copy(text) => copy = Some(text),
+                                EditDone::Paste => paste = true,
+                                EditDone::Refused => refused = true,
+                                EditDone::Link => d.open_link_field(cols, rows),
+                                EditDone::Drawn => {}
                             }
-                            Some(Edit::Backspace) => {
-                                d.view.backspace(cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Delete) => {
-                                d.view.delete(cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Undo) => {
-                                d.view.undo(cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Redo) => {
-                                d.view.redo(cols, rows);
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Newline) => {
-                                d.view.newline(cols, rows);
-                                d.warned = false;
-                                d.window.request_redraw();
-                                return;
-                            }
-                            // NOT an early return: the write happens below,
-                            // where the pane is no longer borrowed and the
-                            // status line can be set.
-                            Some(Edit::Save) => save = true,
-                            Some(Edit::Reload) => reread = true,
-                            Some(Edit::Tab) => {
-                                if !d.view.tab_cell(cols, rows) {
-                                    d.view.insert("  ", cols, rows);
-                                    d.warned = false;
-                                }
-                                d.window.request_redraw();
-                                return;
-                            }
-                            Some(Edit::Link) => {
-                                d.open_link_field(cols, rows);
-                                d.window.request_redraw();
-                                return;
-                            }
-                            None => {}
+                            // Claimed: an editing key never also reaches the viewer's own
+                            // letters (`s` would toggle the source, `r` re-read).
+                            d.window.request_redraw();
+                            claimed = true;
                         }
                     }
-                    match d.view.on_key(&k, cols, rows, false) {
+                    let action = match claimed {
+                        true => None,
+                        false => d.view.on_key(&k, cols, rows, false),
+                    };
+                    match action {
                         Some(ViewAction::Close) => close = true,
                         Some(ViewAction::Edit(p)) => edit = Some(p),
                         Some(ViewAction::OpenExternal(p)) => external = Some(p),
                         // Already in a window; `w` there is a no-op rather
                         // than a second copy of the same document.
-                        Some(ViewAction::Reload) | Some(ViewAction::PopOut(_)) | None => {}
+                        Some(ViewAction::Reload | ViewAction::PopOut(_) | ViewAction::Editing)
+                        | None => {}
                     }
                     d.window.request_redraw();
                 }

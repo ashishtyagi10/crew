@@ -160,23 +160,10 @@ impl DocWindow {
         // bytes, it opens with a cursor already in it. That IS the difference
         // between a viewer and an editor, and it is why a document window
         // shows a caret and a viewer pane does not.
-        if self.editable() {
+        if self.view.editable() {
             self.view.start_editing(self.grid.cols);
         }
         true
-    }
-
-    /// Whether this window holds something the caret belongs in. Markdown
-    /// only, for now: the rung whose render carries the provenance a cursor
-    /// is made of (see `crate::md::source`).
-    pub(crate) fn editable(&self) -> bool {
-        matches!(
-            &self.view.state,
-            crate::viewpane::LoadState::Ready {
-                format: crate::viewpane::detect::Format::Markdown,
-                ..
-            }
-        ) && !self.view.raw
     }
 }
 

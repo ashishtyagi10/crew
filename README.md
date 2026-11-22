@@ -185,12 +185,20 @@ While a pane is scrolled back, its right border is a live scroll gutter — pres
 or drag it to move through the buffer. **Cmd+wheel** resizes the font, and a
 wheel over the nav's LOG scrolls back through its buffered lines.
 
+The **left nav is sectioned like VS Code's**: an activity bar of icons —
+**Panes** (tabs and the pane list), **System** (clock, dials, load, host, net,
+git), **Activity** (the glance cards over the LOG), **Explorer** (the focused
+pane's directory as a tree: click a folder to open it, a file to view it) and a settings gear — and the open section beside it. Click an icon to
+switch; click the open one to put the panel away. `/nav <section>` opens one by
+name. The Panes icon carries the loudest mark any pane has; the Activity icon
+counts what waits on you.
+
 The **left nav starts collapsed**: a seven-column rail with one row per pane —
 focus caret, number, and the mark that says what the pane is doing — and, along
 the bottom, the readings that survive five columns: the clock, the sky, the
 three system meters, the net rates, and what git has to say about the tree. The
-**chevron** on its top border opens the full dashboard (clock, dials, load,
-host, net, git, the LOG or the glance cards) and puts it away again: `›` on the
+**chevron** on its top border opens the section panel beside the activity bar
+and puts it away again: `›` on the
 rail, `‹` in front of the legend when it is open. **Cmd+G** is the other
 question — whether there is a column at all.
 
@@ -408,8 +416,8 @@ know and fourteen fewer rows between you and `/find`. The old spellings
 (`/theme dark`, `/gamma medium`, …) still run exactly as before — muscle
 memory is a feature — they are simply no longer things you have to learn.
 
-The left column is one verb too: `/nav glance`, `/nav log`, `/nav weather
-<place>`; the command block list is `/out list`; and `/doc <file>` owns the
+The left column is one verb too: `/nav panes|system|activity|explorer`,
+`/nav glance`, `/nav log`, `/nav weather <place>`; the command block list is `/out list`; and `/doc <file>` owns the
 document window (`/md` still opens one).
 
 **The `all` variants are arguments, not names.** `/clear` clears this pane,
@@ -594,6 +602,9 @@ cards, links):
   of panes, its own focus and zoom, its own input bar. Closing a window closes
   that window; the last one quits. A session remembers which window each pane
   was in.
+- **Live preview, in a window or a pane.** The block the caret is in shows its
+  markdown (`#`, `**`, `[text](url)`, fences) so it can be edited; everything
+  else stays rendered. `i` edits a markdown viewer pane right in the grid.
 - **A markdown document in a window is an editor.** It opens rendered with a
   cursor in it; the arrows move through the *render*, typing goes in where you
   are looking, Enter continues the block you are in, and **Cmd+S** writes the

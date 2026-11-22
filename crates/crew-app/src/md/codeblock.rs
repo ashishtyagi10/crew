@@ -65,7 +65,12 @@ fn fit(chars: &[char], room: usize) -> usize {
 /// The cursor lives across rows because a token may straddle a wrap: the two
 /// halves become two spans carrying the same token, which is what keeps a long
 /// string one colour all the way down.
-fn code_spans(runs: &[(String, Token)], cursor: &mut usize, width: usize) -> Vec<MdSpan> {
+fn code_spans(
+    runs: &[(String, Token)],
+    cursor: &mut usize,
+    width: usize,
+    at_src: Option<(u32, &[usize])>,
+) -> Vec<MdSpan> {
     let (start, end) = (*cursor, *cursor + width);
     *cursor = end;
     let mut out: Vec<MdSpan> = Vec::new();
@@ -89,7 +94,9 @@ fn code_spans(runs: &[(String, Token)], cursor: &mut usize, width: usize) -> Vec
                 ..MdStyle::default()
             },
             link: None,
-            src: None,
+            // A tokenizer run is a slice of the line, so its first character's byte is the
+            // line's start plus where that character sits in it.
+            src: at_src.and_then(|(s, bytes)| Some(s + *bytes.get(from)? as u32)),
         });
     }
     if out.is_empty() {
@@ -99,7 +106,12 @@ fn code_spans(runs: &[(String, Token)], cursor: &mut usize, width: usize) -> Vec
 }
 
 /// The rows of one fenced block at `cols` columns.
-pub(super) fn lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<MdLine> {
+pub(super) fn lines(
+    lang: String,
+    src_lines: Vec<String>,
+    starts: &[Option<u32>],
+    cols: usize,
+) -> Vec<MdLine> {
     // An untagged fence whose body reads as a diff is treated as one — the
     // same sniff family as `viewpane::detect::by_content` — so ```diff and a
     // bare paste of `git diff` output colour alike.
@@ -120,8 +132,8 @@ pub(super) fn lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
         spans: vec![plain_span(header_text)],
         kind: LineKind::CodeHeader,
     }];
-    for line in src_lines {
-        out.extend(rows(&line, &lang, cw));
+    for (i, line) in src_lines.iter().enumerate() {
+        out.extend(rows(line, starts.get(i).copied().flatten(), &lang, cw));
     }
     // Closed by a blank row of the field rather than a corner — see the
     // header above.
@@ -134,8 +146,11 @@ pub(super) fn lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
 
 /// One source line as one or more rows: the first flush, the rest behind a
 /// `↪` and that much narrower.
-fn rows(line: &str, lang: &str, cw: usize) -> Vec<MdLine> {
+fn rows(line: &str, start: Option<u32>, lang: &str, cw: usize) -> Vec<MdLine> {
     let chars: Vec<char> = line.chars().collect();
+    // Each character's byte in the line, so a row cut by characters still knows its bytes.
+    let bytes: Vec<usize> = line.char_indices().map(|(b, _)| b).collect();
+    let at = start.map(|s| (s, bytes.as_slice()));
     if chars.is_empty() {
         return vec![MdLine {
             spans: vec![plain_span(String::new())],
@@ -157,7 +172,7 @@ fn rows(line: &str, lang: &str, cw: usize) -> Vec<MdLine> {
         let take = fit(&chars[cursor..], room);
         let take = crate::chatwidth::soft_end(&chars[cursor..], 0, take);
         let mut spans = mark.then(cont_span).into_iter().collect::<Vec<_>>();
-        spans.extend(code_spans(&runs, &mut cursor, take));
+        spans.extend(code_spans(&runs, &mut cursor, take, at));
         out.push(MdLine {
             spans,
             kind: LineKind::Code,
