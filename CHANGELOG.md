@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.21
+
+**Scrolling glides, and new panes and tabs slide into place.**
+
+Scrolling:
+- A mouse-wheel notch, Shift+PageUp/PageDown and Shift+Home/End no longer jump. The scroll travels there smoothly, so your eye can follow it and keep its place. Several notches in a row become one smooth motion.
+- A terminal scrolls pixel by pixel, not a whole row at a time: it is drawn between rows while it moves, with the next line sliding in under the bottom edge of the card. The trackpad gets this in terminals too.
+- Other panes (viewer, chat, to-do, inbox) glide a whole row at a time, and the trackpad scrolls them straight away as before.
+- If you type, or a program sends the terminal back to its bottom, while it is scrolling, the glide stops so you stay where you now are.
+- Motion `off` keeps the old jump. A pane that is not scrolling costs nothing extra.
+
+Panes and tabs:
+- A new pane slides out of the pane that opened it: Cmd+D's new card starts a little way back toward the pane you split and slides into its place at its final size, so the split reads as one pane becoming two. Panes that open together, such as a restored session, still just assemble.
+- Switching tabs now shows which way you went: a tab further down the side panel rises in from below, and one further up drops in from above.
+- Motions that start after the app has been idle now begin from the start. Before, the first scroll or slide after a pause could land more than half way through before you saw it.
+
 ## 0.30.20
 
 **Metal turns molten: swells and falling drops ripple the plates.**
