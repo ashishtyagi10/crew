@@ -33,6 +33,7 @@ pub(crate) const ADDRESS: &str = "voice:local";
 
 /// Longest single utterance. A button somebody forgot to press again must not become an
 /// unbounded recording and a very expensive transcription.
+#[cfg_attr(not(any(target_os = "macos", target_os = "windows")), allow(dead_code))]
 pub(crate) const MAX_UTTERANCE_MS: u64 = 60_000;
 
 /// Where the samples come from.

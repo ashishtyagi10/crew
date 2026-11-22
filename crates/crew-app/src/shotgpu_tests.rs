@@ -99,7 +99,9 @@ pub fn shot_pics(
 /// "did this widget put ink on the page at all".
 pub fn ink(px: &[u8]) -> usize {
     let bg = crew_theme::theme().page_bg;
-    px.chunks_exact(4)
+    px.as_chunks::<4>()
+        .0
+        .iter()
         .filter(|p| {
             (p[0] as i32 - bg.0 as i32).abs()
                 + (p[1] as i32 - bg.1 as i32).abs()
@@ -113,7 +115,9 @@ pub fn ink(px: &[u8]) -> usize {
 /// get drawn at all" (a hovered toast's stroke, a legend that lit).
 pub fn accent_px(px: &[u8]) -> usize {
     let a = crate::palette::accent();
-    px.chunks_exact(4)
+    px.as_chunks::<4>()
+        .0
+        .iter()
         .filter(|p| {
             (p[0] as i32 - a.0 as i32).abs()
                 + (p[1] as i32 - a.1 as i32).abs()

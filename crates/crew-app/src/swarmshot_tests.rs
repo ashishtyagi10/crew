@@ -206,7 +206,7 @@ fn render(pane: &ChatPane) -> Option<(Vec<u8>, u16, u16, f32)> {
         let src = row * ROW_PADDED as usize;
         px.extend_from_slice(&padded[src..src + ROW_UNPADDED as usize]);
     }
-    for c in px.chunks_exact_mut(4) {
+    for c in px.as_chunks_mut::<4>().0 {
         c.swap(0, 2); // BGRA -> RGBA
     }
     Some((px, cols, rows, cell_h))
