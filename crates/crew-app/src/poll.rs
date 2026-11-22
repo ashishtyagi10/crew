@@ -544,7 +544,9 @@ impl CrewApp {
             any_changed = true;
         }
         // Clear a status message once it has aged out, repainting the border.
-        if self.expire_status() {
+        // Likewise a toast past its time: pruned here, not only by a drawn
+        // frame, so taking it away is owed one repaint and never a stream.
+        if self.expire_status() | self.toasts.expire(crate::anim::now_ms()) {
             any_changed = true;
         }
         // Animate the welcome screen while there are no panes — but

@@ -53,7 +53,14 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
             if !name.to_lowercase().starts_with(&lower) {
                 return None;
             }
-            Some((e.path().is_dir(), name))
+            let is_dir = e.path().is_dir();
+            // `/dump` WRITES its file: an existing one in the list is one
+            // Enter away from being overwritten by a name you were typing.
+            // It lists the folders to write into, and nothing to write over.
+            if *cmd == "/dump" && !is_dir {
+                return None;
+            }
+            Some((is_dir, name))
         })
         .take(MAX_ROWS)
         .collect();
@@ -95,7 +102,11 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
 /// inside the tree: one that starts at `/`, `~` or `.` names a place, not a
 /// file to look for.
 fn tree_rows(cmd: &str, arg: &str, base: &Path, shown: &[MenuItem]) -> Vec<MenuItem> {
-    if arg.is_empty() || arg.starts_with(['/', '~', '.']) || !base.is_dir() {
+    // Only the commands that OPEN a file: `/dump` writes one and `/batch`
+    // runs one, and Enter takes the highlighted row — a fuzzy match there
+    // would write over, or run, a file you never named.
+    let opens = ["/view", "/md", "/doc"].contains(&cmd);
+    if !opens || arg.is_empty() || arg.starts_with(['/', '~', '.']) || !base.is_dir() {
         return Vec::new();
     }
     let Some(found) = crate::pathtree::rows(base, arg, crate::anim::now_ms()) else {
@@ -118,3 +129,7 @@ fn tree_rows(cmd: &str, arg: &str, base: &Path, shown: &[MenuItem]) -> Vec<MenuI
 #[cfg(test)]
 #[path = "pathmenu_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "pathmenutree_tests.rs"]
+mod tree_tests;

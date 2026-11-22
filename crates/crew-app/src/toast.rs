@@ -151,6 +151,13 @@ impl Toasts {
         self.items.retain(|t| t.age(now) < TTL_MS);
     }
 
+    /// [`Self::prune`], saying whether a card went — the repaint it is owed.
+    pub(crate) fn expire(&mut self, now: u64) -> bool {
+        let n = self.items.len();
+        self.prune(now);
+        self.items.len() != n
+    }
+
     /// Hold or release the stack for this frame: `point` is the cursor in
     /// physical px, or `None` when the pointer is outside the window.
     ///

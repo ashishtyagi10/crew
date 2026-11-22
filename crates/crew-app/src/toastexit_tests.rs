@@ -4,19 +4,25 @@ use crate::motion::MotionLevel::{Full, Off, Subtle};
 const RESTING: u64 = TTL_MS / 2;
 const LEAVING: u64 = TTL_MS - EXIT_MS / 2;
 
-/// Motion off: a resting card, a card in what would be its exit window and a
-/// card sliding in ask for nothing; a card past its time asks for the one
-/// frame that removes it.
+/// Motion off: no card asks for frames — not resting, not in what would be
+/// its exit window, not past its time (that frame is the poll's prune's).
 #[test]
-fn motion_off_asks_only_for_the_removal_frame() {
-    assert!(!wants_frame(RESTING, false, Off));
-    assert!(!wants_frame(LEAVING, false, Off), "no dissolve to draw");
-    assert!(!wants_frame(10, true, Off));
-    assert!(
-        wants_frame(TTL_MS, false, Off),
-        "the frame that takes it away"
-    );
-    assert!(wants_frame(TTL_MS + 500, false, Off));
+fn motion_off_asks_for_no_frames() {
+    for age in [10, RESTING, LEAVING, TTL_MS, TTL_MS + 500] {
+        assert!(!wants_frame(age, age == 10, Off), "{age}");
+    }
+}
+
+/// The poll's prune takes a card past its time away and says so once — the
+/// one repaint — then has nothing more to say.
+#[test]
+fn expire_owes_one_repaint_then_nothing() {
+    let mut t = crate::toast::Toasts::default();
+    t.push("done".into(), "done", false, 1_000);
+    assert!(!t.expire(1_000 + RESTING));
+    assert!(t.expire(1_000 + TTL_MS), "the card goes: one repaint");
+    assert!(!t.expire(1_000 + TTL_MS + 16), "and then quiet");
+    assert_eq!(t.len(), 0);
 }
 
 /// With motion: in and out are drawn, the rest is not; a card past its time

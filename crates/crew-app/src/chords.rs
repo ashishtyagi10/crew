@@ -131,7 +131,12 @@ impl CrewApp {
             }
             // Cmd+P: go to file (VS Code, Zed, Cursor) — the `/view` picker,
             // which fuzzy-matches every file under the pane's folder.
-            "p" => self.input.prefill("/view "),
+            // The walk starts on the chord, so it has landed by the first
+            // letter typed rather than one keystroke after it.
+            "p" => {
+                self.input.prefill("/view ");
+                crate::pathtree::files(&self.input.cwd, crate::anim::now_ms());
+            }
             // Cmd+E: label everything on the focused pane worth reaching —
             // URLs, file references, hashes — and reach it with one letter.
             "e" => self.open_hints(),
