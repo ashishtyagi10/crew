@@ -44,11 +44,11 @@ fn proof_shot() {
         p.messages.truncate(1);
         for v in verdicts {
             p.messages.push(smith(RECEIPT));
-            assert!(p.into_receipt("agent smith", v));
+            assert!(p.file_in_receipt("agent smith", v));
         }
         // The last turn stopped short of its plan (`chatchecklist::left_note`).
         let left = "\u{25cb} plan 2/5 \u{b7} left: Run the tests, +2 more";
-        assert!(p.into_receipt("agent smith", left));
+        assert!(p.file_in_receipt("agent smith", left));
         for w in [470, 700] {
             let shot = format!("{name}-{w}");
             if shot_at(&shot, w, 760, 13.0, "crew", |cols, rows, aspect| {
@@ -85,7 +85,7 @@ fn receipt_head_shot() {
         let mut p = live_pane();
         p.messages.truncate(1);
         p.messages.push(smith(RECEIPT));
-        assert!(p.into_receipt("agent smith", "\u{2713} checked: `cargo test` passed"));
+        assert!(p.file_in_receipt("agent smith", "\u{2713} checked: `cargo test` passed"));
         p.messages.push(smith(many));
         for w in [470, 700] {
             let shot = format!("{name}-{w}");

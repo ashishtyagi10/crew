@@ -20,7 +20,7 @@ fn the_selected_row_is_washed_whole_and_its_ink_reads_on_it() {
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
         let t = crew_theme::theme();
-        let wash = crew_theme::readable::selection_bg(&t);
+        let wash = crew_theme::readable::selection_bg(t);
         let chip = (200, 10, 10);
         let mut cells = vec![
             cell(0, 1, '\u{203a}', t.page_bg, false),
@@ -55,7 +55,7 @@ fn the_selected_row_is_washed_whole_and_its_ink_reads_on_it() {
 #[test]
 fn the_wash_meets_both_strokes() {
     let _g = crate::app::theme_test_guard();
-    let wash = crew_theme::readable::selection_bg(&crew_theme::theme());
+    let wash = crew_theme::readable::selection_bg(crew_theme::theme());
     for text in ["/d", "/theme ", "/model "] {
         let items = crate::suggest::menu_items(text);
         for cols in [crate::cmdmenu::popup_size(&items, 120).0, 60] {

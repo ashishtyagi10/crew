@@ -50,7 +50,10 @@ fn one_new_call_in_the_round_or_a_checklist_alone_is_progress() {
         tool: "todo".into(),
         args: "{}".into(),
     };
-    assert!(!p.round(&[tick.clone()], &[ok("list")]), "nothing counted");
+    assert!(
+        !p.round(std::slice::from_ref(&tick), &[ok("list")]),
+        "nothing counted"
+    );
     assert!(p.round(&[tick, read("a.rs")], &[ok("list"), ok("A")]));
 }
 

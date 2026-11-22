@@ -95,7 +95,7 @@ pub(crate) fn mark_fold(
 impl ChatPane {
     /// File `text` into the receipt it follows; `false` when it is not a
     /// note of that turn, and the caller posts it as a card of its own.
-    pub(crate) fn into_receipt(&mut self, sender: &str, text: &str) -> bool {
+    pub(crate) fn file_in_receipt(&mut self, sender: &str, text: &str) -> bool {
         if sender != "agent smith" || text.starts_with("task #") {
             return false;
         }

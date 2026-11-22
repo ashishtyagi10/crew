@@ -103,7 +103,7 @@ fn vzone(id: &str, zones: &[Vec<Prop>], t: NaiveDateTime) -> Option<Duration> {
             }),
             None => (start <= t).then_some(start),
         };
-        if let Some(on) = onset.filter(|on| best.map_or(true, |(b, _)| *on > b)) {
+        if let Some(on) = onset.filter(|on| best.is_none_or(|(b, _)| *on > b)) {
             best = Some((on, to));
         }
     }

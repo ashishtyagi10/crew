@@ -39,10 +39,12 @@ fn a_fresh_list_fills_itself_to_warm_then_waits_for_j() {
     answer.send(page(50..60, true)).unwrap();
     p.poll();
     assert_eq!(p.rows.len(), 60);
-    assert!(
-        60 < WARM,
-        "a further page never asks by itself, short or not"
-    );
+    const {
+        assert!(
+            60 < WARM,
+            "a further page never asks by itself, short or not"
+        )
+    };
     assert!(asks.try_recv().is_err());
     p.sel = 60 - AHEAD - 1;
     p.press(&Key::Named(NamedKey::ArrowDown), 80, 24);

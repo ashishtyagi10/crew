@@ -34,7 +34,7 @@ fn piece(w: &[&str]) -> Option<&'static str> {
         .copied()
         .skip_while(|t| t.contains('=') || matches!(*t, "env" | "time" | "nohup" | "command"))
         .collect();
-    let has = |f: &str| w.iter().any(|t| *t == f);
+    let has = |f: &str| w.contains(&f);
     match w.first().copied()? {
         "sudo" | "doas" => Some("runs as root"),
         "rm" if recursive_force(&w) && w.iter().skip(1).any(|t| outside(t)) => {
@@ -91,7 +91,7 @@ fn recursive_force(w: &[&str]) -> bool {
         .filter(|t| t.starts_with('-') && !t.starts_with("--"))
         .map(|t| &t[1..])
         .collect();
-    let long = |f: &str| w.iter().any(|t| *t == f);
+    let long = |f: &str| w.contains(&f);
     (flags.contains('r') || long("--recursive")) && (flags.contains('f') || long("--force"))
 }
 

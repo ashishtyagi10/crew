@@ -180,9 +180,9 @@ pub(crate) fn routed(
     // The router's `CORRECTS:` line when it read the message; the openings
     // when it did not (off, failed, off-grammar, or plan-first's forced shape).
     let read = matches!(routing, decision::Routing::Chosen(_)) && !forced;
-    let clause = read.then(|| d.hints.corrects.as_deref());
+    let clause = read.then_some(d.hints.corrects.as_deref());
     super::correction::note(&session.recall, clause, task);
-    let lasting = read.then(|| d.hints.remember.as_deref());
+    let lasting = read.then_some(d.hints.remember.as_deref());
     if let Some(kept) = super::standing::note(lasting, task) {
         emit(super::relay::msg("agent smith", kept))?;
     }
@@ -271,7 +271,7 @@ pub(crate) fn parse_shape(reply: &str) -> Option<Shape> {
     if !bare(head).eq_ignore_ascii_case("shape") {
         return None;
     }
-    let tail = tail.trim_start_matches(|c: char| matches!(c, '*' | '_' | '`'));
+    let tail = tail.trim_start_matches(['*', '_', '`']);
     let token = tail
         .split_whitespace()
         .next()?

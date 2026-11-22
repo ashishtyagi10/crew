@@ -33,7 +33,7 @@ fn plain(text: &str, fg: Fg) -> Vec<FCell> {
 /// ``run `cargo test` `` for the transcript, which renders it, but these
 /// cells would draw the ticks. An odd tick is punctuation and stays.
 pub(crate) fn unticked(text: &str) -> String {
-    if text.matches('`').count() % 2 != 0 {
+    if !text.matches('`').count().is_multiple_of(2) {
         return text.to_string();
     }
     let mut open = false;

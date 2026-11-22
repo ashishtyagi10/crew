@@ -147,7 +147,7 @@ impl InboxPane {
     /// (let go, or sent) lets them go too: nothing is saved behind your back.
     /// Smith's settled answer (`None`: its pane closed), to what the inbox
     /// was waiting for.
-    pub(crate) fn from_smith(&mut self, answers: Option<Vec<String>>) {
+    pub(crate) fn take_smith(&mut self, answers: Option<Vec<String>>) {
         let texts = answers.unwrap_or_default();
         // Asked on one mail, answered with another open (Esc, then `t` on
         // the next): let go, never written onto that one's card or box.

@@ -72,7 +72,7 @@ fn the_cursor_row_wears_the_selection_wash_edge_to_edge() {
     p.family_sel = 1;
     let mut buf = Buffer::empty(Rect::new(0, 0, 30, 8));
     dropdown(&mut buf, &p, Rect::new(0, 0, 30, 1), &[]);
-    let (r, g, b) = crew_theme::readable::selection_bg(&crew_theme::theme());
+    let (r, g, b) = crew_theme::readable::selection_bg(crew_theme::theme());
     let wash = ratatui::style::Color::Rgb(r, g, b);
     let washed = |y: u16| (0..30).filter(|&x| buf[(x, y)].bg == wash).count();
     let y = (1..8)

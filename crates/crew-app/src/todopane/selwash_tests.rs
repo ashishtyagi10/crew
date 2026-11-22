@@ -22,7 +22,7 @@ fn the_selected_item_is_washed_as_one_block() {
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
         let t = crew_theme::theme();
-        let wash = crew_theme::readable::selection_bg(&t);
+        let wash = crew_theme::readable::selection_bg(t);
         let mut p = test_pane(vec![
             item(1, "shoot the whole chat pane", Some("crew")),
             item(2, "renumber the unified diff from the file", Some("viewer")),

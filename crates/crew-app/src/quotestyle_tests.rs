@@ -34,12 +34,7 @@ fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
 fn straight_quoted(line: &str) -> bool {
     let esc: Vec<&str> = line.split("\\\"").collect();
     let placeholder = |s: &&str| s.contains('{') && s.contains('}') && !s.contains(' ');
-    if esc.len() >= 3
-        && esc[1..esc.len() - 1]
-            .iter()
-            .step_by(2)
-            .any(|s| placeholder(&s))
-    {
+    if esc.len() >= 3 && esc[1..esc.len() - 1].iter().step_by(2).any(placeholder) {
         return true;
     }
     let mut rest = line;

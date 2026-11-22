@@ -32,8 +32,8 @@ pub(crate) fn tokens(html: &str) -> Vec<Tok<'_>> {
             out.push(Tok::Text(&html[i..lt]));
         }
         let rest = &html[lt..];
-        i = if rest.starts_with("<!--") {
-            rest[4..].find("-->").map_or(html.len(), |e| lt + 4 + e + 3)
+        i = if let Some(body) = rest.strip_prefix("<!--") {
+            body.find("-->").map_or(html.len(), |e| lt + 4 + e + 3)
         } else if rest.starts_with("<!") || rest.starts_with("<?") {
             rest.find('>').map_or(html.len(), |e| lt + e + 1)
         } else if rest.starts_with("</") && b.get(lt + 2).is_some_and(u8::is_ascii_alphabetic) {

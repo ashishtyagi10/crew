@@ -38,8 +38,10 @@ fn inbox() -> Pane {
 
 /// `panes` open, `focused` focused, and the grid as the next frame sees it.
 fn app(panes: Vec<Pane>, focused: usize) -> CrewApp {
-    let mut app = CrewApp::default();
-    app.panes = panes;
+    let mut app = CrewApp {
+        panes,
+        ..Default::default()
+    };
     app.focus(focused);
     app
 }

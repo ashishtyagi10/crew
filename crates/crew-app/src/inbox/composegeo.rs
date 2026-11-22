@@ -82,11 +82,11 @@ pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16))
                 usize::from(col.saturating_sub(X)),
             );
             let n = text.chars().count();
-            let at = (0..=n).filter(|&i| {
+            let mut at = (0..=n).filter(|&i| {
                 let (r, k) = place(text, i, w);
                 r == line && k <= col
             });
-            c.body.at = at.last().unwrap_or(n);
+            c.body.at = at.next_back().unwrap_or(n);
         }
         On::To | On::Cc | On::Subject => {
             let value = super::composehead::value(c);

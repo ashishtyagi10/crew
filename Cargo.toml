@@ -17,13 +17,11 @@ authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-# TUI
+# Cell buffers (laid out, then drawn as GPU cells)
 ratatui = "0.29"
-crossterm = { version = "0.28", features = ["event-stream"] }
 
 # Async
 tokio = { version = "1", features = ["full"] }
-tokio-stream = "0.1"
 futures = "0.3"
 
 # Serialization
@@ -42,45 +40,19 @@ walkdir = "2"
 dirs = "5"
 trash = "5"
 
-# File watching
-notify = { version = "7", default-features = false, features = ["macos_fsevent"] }
-
 # Hashing
 sha2 = "0.10"
 base64 = "0.22"
 getrandom = "0.2"
 
-# Archives
-zip = { version = "2", default-features = false, features = ["deflate"] }
-tar = "0.4"
-flate2 = "1"
-
 # Error Handling
-thiserror = "2"
 anyhow = "1"
-
-# Logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# CLI
-clap = { version = "4", features = ["derive"] }
-
-# Clipboard
-arboard = "3"
 
 # Regex
 regex = "1"
 
 # Markdown
 pulldown-cmark = { version = "0.13", default-features = false }
-
-# Scripting
-mlua = { version = "0.10", features = ["lua54", "vendored"] }
-
-# Terminal multiplexer
-portable-pty = "0.8"
-vt100 = "0.15"
 
 # Crew dependencies
 winit = "=0.30.13"
@@ -94,10 +66,8 @@ alacritty_terminal = "=0.26.0"
 sysinfo = "0.33"
 
 # Utilities
-chrono = { version = "0.4", features = ["serde"] }
 unicode-width = "0.2"
 open = "5"
-semver = "1"
 
 # Auto-update
 self_update = { version = "0.42", default-features = false, features = ["archive-tar", "archive-zip", "compression-flate2", "rustls"] }

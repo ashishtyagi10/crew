@@ -71,7 +71,7 @@ impl WashPhase {
         self.last_ms = Some(now_ms);
         let (dt, target) = (dt as f32, 1.0 / pace as f32);
         self.rate = match self.rate {
-            r if r == 0.0 => target,
+            0.0 => target,
             r => {
                 let tau = if target > r { SPIN_UP_MS } else { SPIN_DOWN_MS };
                 r + (target - r) * (1.0 - (-dt / tau).exp())

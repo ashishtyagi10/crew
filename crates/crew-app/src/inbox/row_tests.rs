@@ -79,7 +79,7 @@ fn the_ladder_drops_the_snippet_then_the_count_then_senders_then_shortens_the_ti
         "the newest, no count: {at40:?}"
     );
     assert!(at40.ends_with("\u{2605} 3h"), "{at40:?}");
-    assert_eq!(Fit::at(30, false).compact, true, "the time shortens last");
+    assert!(Fit::at(30, false).compact, "the time shortens last");
     for cols in [40, 60, 80, 120] {
         let c = draw(&th, cols, false, false);
         assert!(
@@ -124,7 +124,7 @@ fn the_selected_row_is_washed_edge_to_edge_and_its_ink_reads_on_it() {
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
         let t = crew_theme::theme();
-        let wash = crew_theme::readable::selection_bg(&t);
+        let wash = crew_theme::readable::selection_bg(t);
         let c = draw(&th, 60, true, true);
         for row in [0, 1] {
             let cols: Vec<u16> = c.iter().filter(|c| c.row == row).map(|c| c.col).collect();
@@ -191,7 +191,7 @@ fn an_unread_thread_wears_a_colour_of_its_own() {
         let at = |ch: char| c.iter().find(|c| c.c == ch).unwrap().fg;
         let apart = crew_theme::oklch::distance(at('A'), crew_theme::theme().ink);
         assert!(at('A') == at('Q') && apart >= 0.08, "{id:?}: {apart:.3}");
-        let wash = crew_theme::readable::selection_bg(&crew_theme::theme());
+        let wash = crew_theme::readable::selection_bg(crew_theme::theme());
         let reads = |c: &CellView| crew_theme::contrast_ratio(c.fg, wash) >= floor - 0.05;
         let lit = draw(&thread(), 60, true, true);
         assert!(lit.iter().filter(|c| c.c != ' ').all(reads), "{id:?}");

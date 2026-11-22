@@ -34,7 +34,7 @@ pub(crate) fn lines(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
             lay,
             k,
             &format!("cancelled \u{b7} {title}"),
-            crew_theme::readable::danger(&t),
+            crew_theme::readable::danger(t),
             true,
         ),
         false => say(lay, k, title, k.ink, true),
@@ -54,7 +54,7 @@ pub(crate) fn lines(lay: &mut Lay, m: &Mail, r: &Reading, k: &Key) {
     }
     if let Some(url) = &inv.link {
         lay.lines
-            .push(bar(link(url, crew_theme::readable::link(&t)), k));
+            .push(bar(link(url, crew_theme::readable::link(t)), k));
     }
     match inv.reply_line() {
         Some(said) => say(lay, k, &said, k.accent, false),

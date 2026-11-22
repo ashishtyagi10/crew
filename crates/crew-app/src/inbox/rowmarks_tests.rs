@@ -23,7 +23,7 @@ fn a_row_says_draft_and_attached_until_the_room_runs_out_and_nothing_else() {
     let t = crew_theme::theme();
     assert_eq!(
         draft.fg,
-        crew_theme::readable::danger(&t),
+        crew_theme::readable::danger(t),
         "draft in Gmail's red"
     );
     assert!(

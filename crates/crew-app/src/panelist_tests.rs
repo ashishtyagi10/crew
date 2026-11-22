@@ -88,7 +88,8 @@ fn nothing_in_a_sidebar_row_is_drawn_half_over() {
         let mut line: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 2).collect();
         line.sort_by_key(|c| c.col);
         let text: String = line.iter().map(|c| c.c).collect();
-        for tok in ["99+"] {
+        {
+            let tok = "99+";
             let head: String = tok.chars().take(tok.chars().count() - 1).collect();
             assert!(
                 text.contains(tok) || !text.contains(&head),

@@ -30,8 +30,10 @@ fn focus(app: &mut CrewApp, i: usize) {
 /// Two panes in the first tab, then a second tab holding a third — what
 /// Cmd+T does, without forking a shell.
 fn two_tabs() -> (CrewApp, u32, u32) {
-    let mut app = CrewApp::default();
-    app.panes = vec![tile(), tile()];
+    let mut app = CrewApp {
+        panes: vec![tile(), tile()],
+        ..Default::default()
+    };
     focus(&mut app, 1);
     let first = app.tabs.active;
     let second = app.tabs.add();

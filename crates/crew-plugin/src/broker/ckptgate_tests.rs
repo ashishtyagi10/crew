@@ -31,8 +31,10 @@ fn a_pending_gate_holds_until_the_checkpoint_lands() {
 /// while the task's checkpoint is still being taken returns only after it.
 #[test]
 fn a_tool_call_waits_for_the_snapshot() {
-    let mut s = crate::broker::session::Session::default();
-    s.ckpt = CkptGate::pending();
+    let s = crate::broker::session::Session {
+        ckpt: CkptGate::pending(),
+        ..Default::default()
+    };
     let tools = s.tools_with_sys(true).expect("sys tools");
     let g = Arc::clone(&s.ckpt);
     std::thread::spawn(move || {

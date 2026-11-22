@@ -106,7 +106,7 @@ fn closing_on_github_ticks_the_todo() {
 fn a_rename_goes_both_ways_and_crew_wins_a_tie() {
     let it = filed(todo(1, "b", Some("crew")), "a", true);
     assert_eq!(
-        sync_of(&run(&[it.clone()], &[(1, "a", true)])),
+        sync_of(&run(std::slice::from_ref(&it), &[(1, "a", true)])),
         Some(("b".into(), true, true, false))
     );
     let gh = filed(todo(1, "a", Some("crew")), "a", true);

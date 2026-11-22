@@ -65,7 +65,7 @@ fn dim_is_the_same_step_on_a_light_page_and_a_dark_one() {
     let dark = dimmed((220, 218, 210), (26, 22, 20));
     let (l, d) = (ratio(light, (242, 240, 235)), ratio(dark, (26, 22, 20)));
     assert!(l >= 3.3, "light dim {light:?} reads at {l:.2}");
-    assert!(d >= 3.3 && d < 8.0, "dark dim {dark:?} reads at {d:.2}");
+    assert!((3.3..8.0).contains(&d), "dark dim {dark:?} reads at {d:.2}");
     assert!((l / d).max(d / l) < 1.6, "light {l:.2} vs dark {d:.2}");
 }
 

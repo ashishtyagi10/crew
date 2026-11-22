@@ -84,7 +84,7 @@ fn row(text: &str, fg: (u8, u8, u8), gutter: usize, text_cols: usize) -> CardLin
 /// `text` as `(char, in code)`, the backticks dropped. Unbalanced ticks are
 /// left as written: a lone one is punctuation, not a span.
 fn spans(text: &str) -> Vec<(char, bool)> {
-    let balanced = text.matches('`').count() % 2 == 0;
+    let balanced = text.matches('`').count().is_multiple_of(2);
     let mut code = false;
     let mut out = Vec::new();
     for c in text.chars() {

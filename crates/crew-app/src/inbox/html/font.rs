@@ -18,8 +18,7 @@ pub(crate) fn decl(style: &str, prop: &str) -> Option<String> {
     style
         .split(';')
         .filter_map(|d| d.split_once(':'))
-        .filter(|(k, _)| k.trim().eq_ignore_ascii_case(prop))
-        .last()
+        .rfind(|(k, _)| k.trim().eq_ignore_ascii_case(prop))
         .map(|(_, v)| {
             v.to_ascii_lowercase()
                 .replace("!important", "")

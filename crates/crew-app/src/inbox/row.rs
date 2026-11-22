@@ -51,7 +51,7 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
     let accent = ink(crate::palette::accent());
     let when = if th.unread { bright } else { muted };
     let lead = if th.unread {
-        ink(unread_ink(&t))
+        ink(unread_ink(t))
     } else {
         bright
     };
@@ -86,7 +86,7 @@ pub(crate) fn washed(out: &mut Vec<CellView>, th: &Thread, row: u16, wash: Optio
     let mut after = top.put(TEXT, stop, &who, lead, th.unread);
     for tl in &tails {
         let fg = match tl {
-            Tail::Draft => ink(crew_theme::readable::danger(&t)),
+            Tail::Draft => ink(crew_theme::readable::danger(t)),
             Tail::Count(_) => muted,
         };
         after = top.put(after + 1, stop, tl.text(), fg, false);

@@ -48,7 +48,7 @@ pub(crate) fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect, cards: 
     // picker's does (`menuwash`): with `›` and bold alone it looked like the
     // current family's bold `✓` row, the second bold row in a short list.
     let rgb = |(r, g, b): (u8, u8, u8)| ratatui::style::Color::Rgb(r, g, b);
-    let wash = crew_theme::readable::selection_bg(&crew_theme::theme());
+    let wash = crew_theme::readable::selection_bg(crew_theme::theme());
     let floor = crew_theme::contrast::text_floor();
     let ink = crew_theme::readable::against(crate::palette::accent(), wash, floor);
     let list = List::new(items)

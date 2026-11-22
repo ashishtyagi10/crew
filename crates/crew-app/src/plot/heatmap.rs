@@ -100,7 +100,7 @@ pub fn draw(
                 // An idle hour is a dot at the cell's centre: a quiet week
                 // is a calm dot grid, not a slab of empty tiles.
                 let d = DOT * bw.min(bh);
-                let (idle, alpha) = idle_ink(&crew_theme::theme());
+                let (idle, alpha) = idle_ink(crew_theme::theme());
                 c.rect(bx + (bw - d) / 2.0, by + (bh - d) / 2.0, d, d, idle, alpha);
                 continue;
             }
