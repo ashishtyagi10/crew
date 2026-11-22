@@ -195,12 +195,19 @@ impl CrewApp {
 
         // Cards on their way out, drawn over the settled grid so a collapsing
         // frame sits above whatever reflowed into its place.
+        // A departing tab's frames go UNDER the grid: the tab arriving in
+        // their place is the one being looked at.
         crate::ghost::prune(&mut self.ghosts, now);
+        let mut under = Vec::new();
         for g in &self.ghosts {
-            let r = g.rect_at(now);
-            let t = g.collapse_t(now);
-            crate::panelcard::push_ghost(&mut scenes, r, cw, ch, &g.title, t);
+            let (r, t) = (g.rect_at(now), g.collapse_t(now));
+            let to = match g.exit {
+                crate::ghost::Exit::Departed(_) => &mut under,
+                _ => &mut scenes,
+            };
+            crate::panelcard::push_ghost(to, r, cw, ch, &g.title, t);
         }
+        scenes.splice(0..0, under);
 
         self.push_sidebar(&mut scenes, sh, scale, cw, ch);
 

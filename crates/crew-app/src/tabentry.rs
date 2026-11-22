@@ -17,7 +17,7 @@ use crate::layout::Rect;
 use crate::tabs::Tabs;
 
 /// How far a card travels in, as a share of its own height.
-const TRAVEL: f32 = 0.08;
+pub(crate) const TRAVEL: f32 = 0.08;
 
 /// +1 when `to` is further down the nav than the tab on screen, -1 when it
 /// is further up, 0 when either is unknown (a tab that just went away).

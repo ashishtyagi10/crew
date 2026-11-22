@@ -67,3 +67,17 @@ fn motion_off_leaves_nothing_behind() {
     assert!(gs.is_empty(), "a dismissed pane must simply vanish at off");
     crate::motion::set_level(MotionLevel::Full);
 }
+
+/// A departing tab's card drifts the opposite way to the tab arriving: up when the new tab
+/// rises from below, down when it drops from above — a tab's height share, then gone.
+#[test]
+fn a_departing_card_drifts_away_from_the_arrival() {
+    let _g = crate::app::motion_test_guard();
+    let up = ghost(Exit::Departed(1), 0);
+    let down = ghost(Exit::Departed(-1), 0);
+    assert_eq!(up.rect_at(0).y, rect().y, "starts where it was");
+    let end = rect().h * crate::tabentry::TRAVEL;
+    assert!((up.rect_at(10_000).y - (rect().y - end)).abs() < 0.01);
+    assert!((down.rect_at(10_000).y - (rect().y + end)).abs() < 0.01);
+    assert_eq!(up.rect_at(150).x, rect().x, "only up and down");
+}

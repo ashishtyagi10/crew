@@ -142,6 +142,21 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   dot); shots `navbar_shot_tree_git` (TokyoNight, Porcelain) — before the
   poll fix no marks, after: `src •`, `explorerdraw.rs M`, `explorergit.rs U`.
 
+### R9 (ui) — the tab you leave folds away
+- Gap (motion loop R3's open item): the arriving tab came in from its side
+  of the list, the outgoing one vanished in the same frame.
+- Behaviour: `ghost::Exit::Departed(dir)` — each visible card of the tab
+  being left retracts (the close animation) while drifting the opposite way
+  to the arrival, `tabentry::TRAVEL` of its height. Drawn UNDER the grid
+  (ghosts were all on top), without its legend. Motion off: the ghost is
+  born settled and dropped, as every ghost is.
+- Shots `entry_shot` (paper-dark, glass-night, 0/60 ms) caught the old
+  card's legend letter showing through the still-assembling arrival's text
+  — departed ghosts now carry no legend.
+- Measured: tests for the drift (both ways, end position, x fixed) and for
+  the switch (two ghosts going down the list, none on a no-op switch, none
+  from an empty tab).
+
 ### Fix-ups after review (R2, R3)
 - **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
   `/dump readme.md` — an overwrite — already via the folder's prefix rows,
@@ -219,6 +234,12 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   and folders holding changes carry a dot, as in VS Code. It reads the git
   status the nav already asks for, so it costs nothing extra. (VS Code.)
 
+- **The tab you leave folds away** (R9): switching tabs brought the new
+  tab's cards in from its side of the list while the old tab's vanished in
+  the same frame. The old cards now fold away underneath, drifting the other
+  way, so a switch reads as one movement. Motion off still cuts. (macOS
+  Spaces, iOS push transitions.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
@@ -229,4 +250,5 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R5 | nav | aaf4da63 | Explorer from the keyboard | mouse-only → Cmd+Shift+E + arrows, 4 tests, 2 shots |
 | R6 | perf | 94b5471c | md caret crossings memoized | 7.12 → 2.96 ms per ↓ (release, 327 KB) |
 | R7 | ai | 3f435ee6 | account failure ends the chain | refused key: 3 requests → 1 |
-| R8 | nav | (this) | git marks in the Explorer | none → M/A/U/D/! + folder dots, 0 extra git calls |
+| R8 | nav | d797f2bb | git marks in the Explorer | none → M/A/U/D/! + folder dots, 0 extra git calls |
+| R9 | ui | (this) | tab you leave folds away | vanish → departing ghosts under the grid |

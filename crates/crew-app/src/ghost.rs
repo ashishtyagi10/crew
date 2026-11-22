@@ -27,6 +27,11 @@ pub(crate) enum Exit {
     /// Minimized: the frame retracts *and* travels left toward the nav, which
     /// is where the pane has actually gone.
     Minimized,
+    /// Its tab was switched away from: the frame retracts while it drifts the
+    /// opposite way to the arriving tab (`tabentry`) — up when the new tab
+    /// rises in from below (+1), down when it drops in from above (-1). Drawn
+    /// under the grid, so the arriving cards are never behind it.
+    Departed(i32),
 }
 
 /// One departing card.
@@ -66,6 +71,14 @@ impl Ghost {
     pub(crate) fn rect_at(&self, now: u64) -> Rect {
         match self.exit {
             Exit::Closed => self.rect,
+            Exit::Departed(dir) => {
+                let t = self.timeline.eased(now, crate::ease::out_cubic);
+                let away = crate::tabentry::TRAVEL * self.rect.h * t;
+                Rect {
+                    y: self.rect.y - dir.signum() as f32 * away,
+                    ..self.rect
+                }
+            }
             Exit::Minimized => {
                 let t = self.timeline.eased(now, crate::ease::out_cubic);
                 Rect {
