@@ -61,33 +61,58 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
     // are choosing, and a folder buried among its own files is a folder you
     // scroll past.
     found.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
-    Some(
-        found
-            .into_iter()
-            .map(|(is_dir, name)| {
-                let path = format!("{dir_part}{name}{}", if is_dir { "/" } else { "" });
-                // The typed leaf is the name's prefix: mark it, as the
-                // palette marks a command's.
-                let at = dir_part.chars().count();
-                MenuItem {
-                    path: true,
-                    hit: (at..at + leaf.chars().count()).collect(),
-                    fill: format!("{cmd} {path}"),
-                    label: path,
-                    desc: if is_dir {
-                        "folder".into()
-                    } else {
-                        String::new()
-                    },
-                    // A folder is a step, not an answer: filling it and
-                    // leaving the bar open lists what is inside on the very
-                    // next read.
-                    submit: !is_dir,
-                    ..Default::default()
-                }
-            })
-            .collect(),
-    )
+    let mut out: Vec<MenuItem> = found
+        .into_iter()
+        .map(|(is_dir, name)| {
+            let path = format!("{dir_part}{name}{}", if is_dir { "/" } else { "" });
+            // The typed leaf is the name's prefix: mark it, as the
+            // palette marks a command's.
+            let at = dir_part.chars().count();
+            MenuItem {
+                path: true,
+                hit: (at..at + leaf.chars().count()).collect(),
+                fill: format!("{cmd} {path}"),
+                label: path,
+                desc: if is_dir {
+                    "folder".into()
+                } else {
+                    String::new()
+                },
+                // A folder is a step, not an answer: filling it and
+                // leaving the bar open lists what is inside on the very
+                // next read.
+                submit: !is_dir,
+                ..Default::default()
+            }
+        })
+        .collect();
+    out.extend(tree_rows(cmd, arg, base, &out));
+    Some(out)
+}
+
+/// Files anywhere under `base` that fuzzy-match `arg` ([`crate::pathtree`]),
+/// below the folder's own rows and without repeating one. Only for a partial
+/// inside the tree: one that starts at `/`, `~` or `.` names a place, not a
+/// file to look for.
+fn tree_rows(cmd: &str, arg: &str, base: &Path, shown: &[MenuItem]) -> Vec<MenuItem> {
+    if arg.is_empty() || arg.starts_with(['/', '~', '.']) || !base.is_dir() {
+        return Vec::new();
+    }
+    let Some(found) = crate::pathtree::rows(base, arg, crate::anim::now_ms()) else {
+        return Vec::new();
+    };
+    found
+        .iter()
+        .filter(|(path, _)| !shown.iter().any(|r| &r.label == path))
+        .map(|(path, hit)| MenuItem {
+            path: true,
+            hit: hit.clone(),
+            fill: format!("{cmd} {path}"),
+            label: path.clone(),
+            submit: true,
+            ..Default::default()
+        })
+        .collect()
 }
 
 #[cfg(test)]
