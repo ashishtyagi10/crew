@@ -58,12 +58,12 @@ pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
 /// [`render`], with the block `r` drawn as the markdown it is written in — the editor's view
 /// of the block its caret is in (see [`reveal`]).
 pub(crate) fn render_revealed(text: &str, cols: usize, r: Option<reveal::Reveal>) -> Vec<MdLine> {
-    // The render without a reveal is the same for every block the caret crosses: kept per
-    // version of the text and width ([`memo`]), and the reveal spliced onto a copy.
-    let lines = (*memo::render(text, cols)).clone();
+    // The render without a reveal is the same for every block an editing caret crosses: kept
+    // per version of the text and width ([`memo`]), and the reveal spliced onto a copy.
     match r {
-        Some(r) => reveal::apply(lines, text, r, cols),
-        None => lines,
+        Some(r) => reveal::apply((*memo::render(text, cols)).clone(), text, r, cols),
+        // A reader has no caret to move: one render, no hash, no copy.
+        None => render(text, cols),
     }
 }
 

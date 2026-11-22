@@ -65,6 +65,20 @@ changelog line which tool the idea came from.
 
 ## What is current (refreshed 2026-10-20 — re-read the sources, this rots)
 
+**Refresh 2026-11-22** (vendor pages read by an agent; night-loop charter R4).
+Anthropic: `claude-fable-5-2` ($8/$40, released 2026-11-09) and limited-access
+`claude-mythos-5-2`; `claude-sonnet-4-5` retires 2026-11-30; Opus 4.8 fast mode
+removed 2026-11-30; API version 2026-10-21 removes `temperature`/`top_p`/`top_k`
+(crew pins `anthropic-version: 2023-06-01`). OpenAI: models page lists
+`gpt-6.2-astra`, `gpt-6.2-sol`, `gpt-6.1-terra`, `gpt-6-luna`; GPT-6 tool calls on
+Chat Completions still unconfirmed (guide says Responses API); `gpt-5` family shuts
+down 2026-12-11, `gpt-4.1`/`gpt-4o` 2027-01-14. Google: `gemini-4-argon` $2/$10 →
+$4/$20 from 2026-12-01; `gemini-4-carbon`/`-hydrogen`/`-neon` GA in November;
+`gemini-2.5-pro` routes to 3.8 Flash from 2026-12-01; Argon on the OpenAI-compat
+wire with tools unverified. Alibaba: `qwen4-max` ($1.5/$4.5) is new; the user's
+DashScope account answers `AccessDenied.Unpurchased` (403) to every model, so no
+DashScope live probe works until it is re-enabled. DeepSeek: nothing past V4.1.
+
 Refresh this section at the start of every AI loop: a web sweep of the tools'
 changelogs (code.claude.com/docs/en/changelog — the weekly what's-new digest
 lags by a month — learn.chatgpt.com/docs/changelog, cursor.com/changelog,

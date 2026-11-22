@@ -157,6 +157,32 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   the switch (two ghosts going down the list, none on a no-op switch, none
   from an empty tab).
 
+### Fix-ups after the second review (R3, R5, R6, R8, R9, R2)
+- **Toast hold (R3 fix regression):** a held card's age freezes only on a
+  drawn frame and a held stack asks for none, so the poll's `expire` timed
+  out a card under a resting pointer; the draw path pruned BEFORE holding
+  (pre-existing, same gap). `expire` skips a held stack; `push_toasts`
+  holds then prunes; a prune drops the stale `rects` (they index `items`).
+  Test `a_held_card_outlives_an_idle_gap`; mutation (no hold guard) fails it.
+- **Tree keys re-armed (R5):** `tree_has_keys` recomputed owner==focused,
+  so Cmd+I→Esc, Cmd+]→back, Cmd+G×2 or a click on the focused pane handed
+  the keys back to the tree. A lost hold is now dropped the first frame it
+  is lost, any click off a tree row drops it, and an editing viewer no
+  longer outranks it (`view_edit_key`). Test `a_lost_hold_does_not_come_back`;
+  mutation (no per-frame drop) fails it.
+- **Off a Mac (R2, R5):** plain Ctrl+P is Cmd+P unless `p` is in `TYPED` —
+  it now is, so a terminal keeps its previous-line key. Ctrl+Shift+E was
+  already hints' chord there, so Cmd+Shift+E is Mac-only; `/nav explorer`
+  now hands the tree the keys on every platform.
+- **R9:** ghosts only for cards drawn (the zoomed one alone; never off-grid).
+- **R6:** a reader (no reveal) renders directly — no hash, copy or pin.
+  Typing cost measured: 200 inserts on the manual 27.7 ms each with the memo
+  vs 26.6 without (+1.1 ms, the miss's hash and copy). The ~27 ms per
+  keystroke itself is the next perf row.
+- **R8:** `core.quotePath=false`, so a non-ASCII file name gets its mark.
+- `toast.rs` (debt 334) had grown to 340: lifetime methods moved to
+  `toastlife.rs` (child module) — 308 now.
+
 ### Fix-ups after review (R2, R3)
 - **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
   `/dump readme.md` — an overwrite — already via the folder's prefix rows,
@@ -227,7 +253,7 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   and says the key was refused. A failure that belongs to one model (a
   per-model quota, OpenRouter credits with a free model behind) still tries
   the next. (Claude Code's and Cline's fallback rules: only a retryable
-  failure falls back.)
+  failure falls back — attribution not read from their docs; unverified.)
 
 - **The Explorer shows what git sees** (R8): changed files are coloured
   with a letter at the end of their row — M, A, U, D, or ! for a conflict —
@@ -240,6 +266,12 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   way, so a switch reads as one movement. Motion off still cuts. (macOS
   Spaces, iOS push transitions.)
 
+- **Fixes to tonight's rounds**: a notification under a resting pointer
+  could still time out; the Explorer could take the keyboard back after you
+  had left it; on Windows and Linux Ctrl+P is a terminal's again, and
+  `/nav explorer` gives the tree the keys there; only cards on screen fold
+  away on a tab switch; non-ASCII file names get their git mark.
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
@@ -251,4 +283,5 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R6 | perf | 94b5471c | md caret crossings memoized | 7.12 → 2.96 ms per ↓ (release, 327 KB) |
 | R7 | ai | 3f435ee6 | account failure ends the chain | refused key: 3 requests → 1 |
 | R8 | nav | d797f2bb | git marks in the Explorer | none → M/A/U/D/! + folder dots, 0 extra git calls |
-| R9 | ui | (this) | tab you leave folds away | vanish → departing ghosts under the grid |
+| R9 | ui | b96b9266 | tab you leave folds away | vanish → departing ghosts under the grid |
+| F2 | fix | (this) | second-review fix-ups | toast hold, tree re-arm, Ctrl+P off-Mac, ghosts, reader path, quotePath |

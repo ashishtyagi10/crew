@@ -61,7 +61,15 @@ impl Files {
 
 /// [`crate::git::query`], with the per-file marks it used to drop.
 pub(crate) fn query(dir: &Path) -> Option<(GitInfo, Files)> {
-    let out = crate::git::run(dir, &["status", "--porcelain", "--branch"])?;
+    // Unquoted paths: git C-quotes a non-ASCII name (`"caf\303\251.md"`) by default.
+    let args = [
+        "-c",
+        "core.quotePath=false",
+        "status",
+        "--porcelain",
+        "--branch",
+    ];
+    let out = crate::git::run(dir, &args)?;
     let info = crate::git::parse_status(&out)?;
     let files = repo_root(dir).map_or_else(Files::default, |root| parse(&out, &root));
     Some((info, files))

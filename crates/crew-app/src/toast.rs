@@ -146,18 +146,6 @@ impl Toasts {
         self.items.last().map(|t| (t.legend, t.alert))
     }
 
-    /// Drop expired toasts.
-    pub(crate) fn prune(&mut self, now: u64) {
-        self.items.retain(|t| t.age(now) < TTL_MS);
-    }
-
-    /// [`Self::prune`], saying whether a card went — the repaint it is owed.
-    pub(crate) fn expire(&mut self, now: u64) -> bool {
-        let n = self.items.len();
-        self.prune(now);
-        self.items.len() != n
-    }
-
     /// Hold or release the stack for this frame: `point` is the cursor in
     /// physical px, or `None` when the pointer is outside the window.
     ///
@@ -210,20 +198,6 @@ impl Toasts {
         self.rects.remove(i);
         true
     }
-
-    /// Whether any card has a frame left to draw *right now*
-    /// ([`crate::toastexit::wants_frame`]). A resting toast asks for nothing —
-    /// poll re-checks each tick, so frames resume when the exit window opens.
-    pub(crate) fn any_live(&self, now: u64) -> bool {
-        // A held stack asks for nothing: every age is frozen, so there is no
-        // next frame to draw until the pointer moves — and a move repaints.
-        if self.held_since.is_some() {
-            return false;
-        }
-        let level = crate::motion::level();
-        (self.items.iter())
-            .any(|t| crate::toastexit::wants_frame(t.age(now), t.slide.live(now), level))
-    }
 }
 
 /// Push one overlay scene per live toast, stacked down the right of `content`
@@ -238,11 +212,11 @@ pub(crate) fn push_toasts(
     now: u64,
     cursor: Option<(f32, f32)>,
 ) {
-    toasts.prune(now);
-    // Hold before laying out, so a held card draws at the age it froze at.
-    // `hold` hit-tests LAST frame's rects: the stack has not moved since, and
-    // it is the geometry the pointer was actually resting on.
+    // Hold before pruning and laying out, so a held card is not timed out by
+    // the idle gap it spent under the pointer. `hold` hit-tests LAST frame's
+    // rects: the stack has not moved since, and it is where the pointer rests.
     toasts.hold(now, cursor);
+    toasts.prune(now);
     let hovered = cursor.and_then(|(x, y)| toasts.index_at(x, y));
     toasts.rects.clear();
     let gap = crate::app::gap();
@@ -325,6 +299,9 @@ impl crate::app::CrewApp {
         true
     }
 }
+
+#[path = "toastlife.rs"]
+mod life;
 
 #[cfg(test)]
 #[path = "toast_tests.rs"]

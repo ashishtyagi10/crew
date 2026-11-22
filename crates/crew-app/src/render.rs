@@ -34,6 +34,11 @@ impl CrewApp {
         // See `themepeek`; a no-op on every frame with nothing selected.
         // Built only while the bar has focus: unfocused, the rows were thrown
         // away — after a `read_dir` per frame for a path command's line.
+        // The tree's hold, once lost (the bar, another pane, the nav put away), is gone for
+        // good: coming back to the same pane must not hand it the keys again.
+        if self.sidebar.explorer.keys.is_some() && !self.tree_has_keys() {
+            self.sidebar.explorer.keys = None;
+        }
         let peek = match self.input.focused {
             true => crate::suggest::menu_items_in(&self.input.text, &self.input.cwd),
             false => Vec::new(),

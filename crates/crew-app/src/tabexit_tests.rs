@@ -28,3 +28,19 @@ fn switching_tabs_leaves_the_old_cards_departing() {
         "the second tab had no cards on screen"
     );
 }
+
+/// Only what was drawn departs: a zoomed card alone, never the grid behind it.
+#[test]
+fn only_drawn_cards_depart() {
+    let _g = crate::app::motion_test_guard();
+    let mut app = CrewApp {
+        panes: vec![tile(), tile()],
+        ..Default::default()
+    };
+    app.reconcile_grid();
+    app.focused = 0;
+    app.toggle_zoom();
+    let second = app.tabs.add();
+    app.activate_tab(second);
+    assert_eq!(app.ghosts.len(), 1, "the zoomed card only");
+}
