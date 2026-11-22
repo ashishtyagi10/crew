@@ -717,6 +717,7 @@ mod titlebar;
 mod toast;
 mod toastalert;
 mod toastcard;
+mod toastexit;
 #[cfg(test)]
 mod toastnarrowshot_tests;
 #[cfg(test)]

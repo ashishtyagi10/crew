@@ -204,20 +204,18 @@ impl Toasts {
         true
     }
 
-    /// Whether any card has a frame left to draw *right now*: sliding in, or
-    /// inside the exit window (which also covers the removal repaint at Motion
-    /// off). A resting toast asks for nothing — poll re-checks each tick, so
-    /// frames resume when the exit window opens.
+    /// Whether any card has a frame left to draw *right now*
+    /// ([`crate::toastexit::wants_frame`]). A resting toast asks for nothing —
+    /// poll re-checks each tick, so frames resume when the exit window opens.
     pub(crate) fn any_live(&self, now: u64) -> bool {
         // A held stack asks for nothing: every age is frozen, so there is no
         // next frame to draw until the pointer moves — and a move repaints.
         if self.held_since.is_some() {
             return false;
         }
-        self.items.iter().any(|t| {
-            let age = t.age(now);
-            age < TTL_MS && (t.slide.live(now) || age >= TTL_MS - EXIT_MS)
-        })
+        let level = crate::motion::level();
+        (self.items.iter())
+            .any(|t| crate::toastexit::wants_frame(t.age(now), t.slide.live(now), level))
     }
 }
 
@@ -252,19 +250,11 @@ pub(crate) fn push_toasts(
         }
         let (w, h) = (f32::from(cols) * cw, (lines.len() + 2) as f32 * ch);
         let age = t.age(now);
-        // Enter from beyond the right edge, exit the same way. The exit skips
-        // at Motion off (the slide Timeline is zero-length there too).
+        // Enter from beyond the right edge, exit the same way while the text
+        // dissolves; both hold still at Motion off (`toastexit`).
         let travel = w + 2.0 * gap;
         let enter = (1.0 - t.slide.eased(now, crate::ease::out_cubic)) * travel;
-        let exit = match crate::motion::level() {
-            crate::motion::MotionLevel::Off => 0.0,
-            _ => {
-                let e = (age.saturating_sub(TTL_MS - EXIT_MS)) as f32 / EXIT_MS as f32;
-                e.clamp(0.0, 1.0).powi(2) * travel
-            }
-        };
-        // Text dissolves into the card over the exit window.
-        let fade = ((age.saturating_sub(TTL_MS - EXIT_MS)) as f32 / EXIT_MS as f32).clamp(0.0, 1.0);
+        let (exit, fade) = crate::toastexit::leave(age, travel, crate::motion::level());
         let x = content.x + content.w - gap - cw - w + enter + exit; // a cell in, as from the top
                                                                      // The rect the frame drew, for the next frame's hit-test. Recorded
                                                                      // with the slide offsets included: a card halfway in is exactly where
