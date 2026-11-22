@@ -57,8 +57,8 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   something else repainted.
 - `toastexit.rs` (`leave`, `wants_frame`) takes the exit rules out of
   `toast.rs` (debt file: 334 → 323 lines).
-- Measured: frames asked for per toast at Motion off ≈20 (exit window at the
-  16 ms poll) → 1. Mutation (Off follows the motion rule) fails the test.
+- Measured: redraws per toast at Motion off ≈5 (the 340 ms exit window at the
+  16 ms poll, throttled by `BUSY_ANIM_DIV` 4) → 1. Mutation (Off follows the motion rule) fails the test.
 
 ### R4 (ai) — provider freshness
 - Vendor sweep (agent, primary pages read 2026-11-22): `gpt-5` shuts down
@@ -79,12 +79,31 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   fix. Unverified: fable-5-2 cache rate (10% assumed, errs high), its and
   qwen4-max's context windows (0 = unknown), Argon tools on the compat wire.
 
+### Fix-ups after review (R2, R3)
+- **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
+  `/dump readme.md` — an overwrite — already via the folder's prefix rows,
+  and the tree rows made it likelier (and `/batch` would RUN a fuzzy pick).
+  Tree rows now only for `/view`, `/md`, `/doc`; `/dump` lists folders
+  only. Cmd+P starts the walk on the chord (prewarm). Test
+  `writing_and_running_commands_offer_no_file_to_write_over`.
+- **R3:** "past its TTL" stayed true until a DRAWN frame pruned — unbounded
+  with an occluded window. The poll now prunes (`Toasts::expire`, one
+  repaint); at Motion off `wants_frame` is always false. Test
+  `expire_owes_one_repaint_then_nothing`.
+- CI: clippy 1.100 (CI's stable; local is 1.96) found 1 + 1 + 15 more lints
+  across crew-term, crew-render, crew-app (merges 6b1db5f7, 9d4791ca,
+  9b941e6f). crew-app can't be linted on 1.100 locally (objc2 0.4.1 breaks
+  on macOS; ring blocks a Linux-target check), so CI is its oracle.
+
 ## Pending release
 - **CI checks again** (R1): the CI workflow had failed on every push for
   weeks — clippy lints and 16 unused workspace dependencies — so it caught
   nothing. Clippy is clean and the unused dependencies are gone; a red CI run
   now means something. No change to the app.
 
+- **`/dump` no longer offers a file to overwrite** (R2 fix): its picker
+  listed existing files, and Enter took the highlighted one — so a new name
+  you were typing could become an existing file's. It lists folders only.
 - **Go to file** (R2): `/view`'s picker listed one folder by prefix, so a
   file you knew by name but not by folder was a walk. **Cmd+P** now opens it,
   and under the folder's rows it lists files from anywhere in the tree that
@@ -96,7 +115,7 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 
 - **Toasts are free at Motion off** (R3): with Motion off a notification
   card still dissolved its text over its last third of a second, asking for
-  about twenty frames, and then stopped asking one frame early — leaving an
+  about five redraws, and then stopped asking one frame early — leaving an
   empty card on screen until something else repainted. It now holds still
   and whole, and costs one frame: the one that takes it away. (loop-30's
   open list; the invariant every reduced-motion setting promises.)
@@ -116,4 +135,4 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R1 | perf | fe0bf52d | CI green | clippy 25 errors → 0, 16 unused deps → 0 |
 | R2 | nav | 7f237aa9 | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |
 | R3 | perf | bd923d7d | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
-| R4 | ai | (this) | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |
+| R4 | ai | 44b9ca9c | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |
