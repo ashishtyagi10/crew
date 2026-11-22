@@ -21,7 +21,12 @@ pub struct Pixels {
 impl Pixels {
     pub fn new(w: u32, h: u32, mut rgba: Vec<u8>) -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(1);
-        for px in rgba.chunks_exact_mut(4).filter(|p| p[3] < 255) {
+        for px in rgba
+            .as_chunks_mut::<4>()
+            .0
+            .iter_mut()
+            .filter(|p| p[3] < 255)
+        {
             let a = u16::from(px[3]);
             for c in &mut px[..3] {
                 *c = (u16::from(*c) * a / 255) as u8;
