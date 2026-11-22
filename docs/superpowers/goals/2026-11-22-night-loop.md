@@ -48,6 +48,18 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   `inbox/html/corpus/*`. Mutations caught: no tree rows, no de-dupe.
 - Rows: + `pathtree.rs`; Cmd+P in the chord table, help, README, CREW.md.
 
+### R3 (perf/ui) — toasts cost no frames at Motion off
+- Behaviour: at Motion off a toast holds still and whole to the end of its
+  life; the only frame it asks for is the one that removes it.
+- Bug found on the way: Motion off still dissolved the text over the last
+  340 ms (≈20 frames), then `any_live` stopped asking at TTL — BEFORE the
+  frame that pruned it, so an emptied card box stayed on screen until
+  something else repainted.
+- `toastexit.rs` (`leave`, `wants_frame`) takes the exit rules out of
+  `toast.rs` (debt file: 334 → 323 lines).
+- Measured: frames asked for per toast at Motion off ≈20 (exit window at the
+  16 ms poll) → 1. Mutation (Off follows the motion rule) fails the test.
+
 ## Pending release
 - **CI checks again** (R1): the CI workflow had failed on every push for
   weeks — clippy lints and 16 unused workspace dependencies — so it caught
@@ -63,8 +75,16 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   The bar also stopped building its picker every frame while unfocused.
   (From VS Code's, Zed's and Cursor's Cmd+P.)
 
+- **Toasts are free at Motion off** (R3): with Motion off a notification
+  card still dissolved its text over its last third of a second, asking for
+  about twenty frames, and then stopped asking one frame early — leaving an
+  empty card on screen until something else repainted. It now holds still
+  and whole, and costs one frame: the one that takes it away. (loop-30's
+  open list; the invariant every reduced-motion setting promises.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
 | R1 | perf | fe0bf52d | CI green | clippy 25 errors → 0, 16 unused deps → 0 |
-| R2 | nav | (this) | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |
+| R2 | nav | 7f237aa9 | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |
+| R3 | perf | (this) | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
