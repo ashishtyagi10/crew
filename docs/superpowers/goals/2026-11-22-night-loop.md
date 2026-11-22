@@ -106,8 +106,9 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   the list, `render_revealed` splices onto a copy. `md::render` is pure in
   (text, width) — checked: no theme/config reads.
 - Measured (release, `time_downs_through_the_manual`, 200 ↓): 7.12 ms →
-  2.96 ms each. Left: the rest is still whole-document per crossing (tab
-  prep, the picture pass, the byte remap, the copy) — the next row.
+  2.96 ms each. Correction (measured later): R6's split of the old 7.1 ms
+  was wrong — most of the 200 downs never cross a block; one full render of
+  the manual is ~27 ms (see Close).
 
 ### R7 (ai) — an account's failure ends the chain walk
 - Gap: the OpenAI-compatible chain (OpenAI, Gemini, DeepSeek, DashScope,
@@ -285,3 +286,23 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R8 | nav | d797f2bb | git marks in the Explorer | none → M/A/U/D/! + folder dots, 0 extra git calls |
 | R9 | ui | b96b9266 | tab you leave folds away | vanish → departing ghosts under the grid |
 | F2 | fix | (this) | second-review fix-ups | toast hold, tree re-arm, Ctrl+P off-Mac, ghosts, reader path, quotePath |
+
+## Close (2026-11-22, ~03:50)
+Nine rounds plus two review fix-up merges, all merged untagged; CI green
+from 9b941e6f on (Windows and Coverage green too). Released by the 8 PM job.
+
+Open, ranked:
+1. **perf — typing into a long markdown file:** one keystroke = one full
+   render, ~27 ms on the 327 KB manual (release; counter showed exactly one
+   `rung_lines` per insert). Needs block-incremental rendering (render per
+   top-level block, keyed by its source and width; list numbering and
+   footnotes cross blocks).
+2. **ai — no live probe possible:** the DashScope account answers
+   `AccessDenied.Unpurchased` to every model; R4/R7 are proven by replay and
+   a fake server only. qwen4-max as the DashScope head is unprobed.
+3. **nav — Explorer:** type-to-find in the tree; reveal the focused file;
+   Ctrl+N in a terminal off a Mac is still Cmd+N (same shape as Ctrl+P was).
+4. **ui:** cursor blink; OSC 52 read; IME and dead keys (carried over).
+5. **process:** nothing tonight was driven in the live GUI — osascript has
+   no assistive access in this session. crew-app can only be linted on
+   CI's clippy (1.100) by CI itself.
