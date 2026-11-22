@@ -31,13 +31,40 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 - Measured: clippy 25 errors → 0; manifest warnings 16 → 0; gate 41 suites,
   8052 passed.
 
+### R2 (nav) — Cmd+P, go to file
+- Behaviour: Cmd+P opens the bar at `/view `; under the folder's own rows
+  the picker lists up to 30 files from anywhere in the tree, ranked in four
+  tiers (name start, substring, letters in order inside the name, then
+  across the path — the last only when nothing better matched), then the
+  tighter span, then the shorter path.
+- The walk (`fileindex::scan_max`, 20,000 cap) runs on a worker, cached per
+  root for 30 s (`pathtree.rs`); ranked rows memoized per query, so a focused
+  bar does not re-rank every frame. Folded in: `render.rs` built the whole
+  picker (a `read_dir` for a path command) every frame even when the bar was
+  unfocused — now only while it has focus.
+- Measured: crew's tree 3,127 files, walk 18 ms (release, off-thread), rank
+  1.7 ms per new query. Shot `go_to_file_shot` (`/view exhit`): 2 rows, both
+  real; before the tier split, 12 of 14 rows were letters smeared across
+  `inbox/html/corpus/*`. Mutations caught: no tree rows, no de-dupe.
+- Rows: + `pathtree.rs`; Cmd+P in the chord table, help, README, CREW.md.
+
 ## Pending release
 - **CI checks again** (R1): the CI workflow had failed on every push for
   weeks — clippy lints and 16 unused workspace dependencies — so it caught
   nothing. Clippy is clean and the unused dependencies are gone; a red CI run
   now means something. No change to the app.
 
+- **Go to file** (R2): `/view`'s picker listed one folder by prefix, so a
+  file you knew by name but not by folder was a walk. **Cmd+P** now opens it,
+  and under the folder's rows it lists files from anywhere in the tree that
+  match — the name's start first, then anywhere in the path, then the
+  letters in order (`exhit` finds `explorerhit.rs`). The tree is walked off
+  the frame thread (crew's 3,127 files in 18 ms) and each query ranked once.
+  The bar also stopped building its picker every frame while unfocused.
+  (From VS Code's, Zed's and Cursor's Cmd+P.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
-| R1 | perf | (this) | CI green | clippy 25 errors → 0, 16 unused deps → 0 |
+| R1 | perf | fe0bf52d | CI green | clippy 25 errors → 0, 16 unused deps → 0 |
+| R2 | nav | (this) | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |

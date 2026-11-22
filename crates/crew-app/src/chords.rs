@@ -129,6 +129,9 @@ impl CrewApp {
                     self.input.prefill("/find ");
                 }
             }
+            // Cmd+P: go to file (VS Code, Zed, Cursor) — the `/view` picker,
+            // which fuzzy-matches every file under the pane's folder.
+            "p" => self.input.prefill("/view "),
             // Cmd+E: label everything on the focused pane worth reaching —
             // URLs, file references, hashes — and reach it with one letter.
             "e" => self.open_hints(),

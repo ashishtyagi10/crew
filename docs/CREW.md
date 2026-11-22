@@ -424,6 +424,7 @@ way that machine presses it.
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
+| Go to file — `/view`, its picker matching every file under the folder | **Cmd+P** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Save the settings form | **Cmd+S** |
@@ -1474,6 +1475,15 @@ longer aim at.
   tree and picks out of it. Hidden entries appear only once the partial says
   so (a leading `.`), the rule every shell's completion follows. Tab still
   ghosts the first match inline.
+
+  **Go to file** (**Cmd+P**, from VS Code, Zed and Cursor) opens the bar at
+  `/view `. Under the folder's own rows the picker lists up to 30 files from
+  **anywhere in the tree** that match what you typed — the file name's start
+  first, then anywhere in the path, then the letters in order (`exhit` finds
+  `src/explorerhit.rs`). The tree is walked on a worker, never on the frame
+  thread (2,000 files, 8 deep, `target`/`node_modules`/`.git` and hidden
+  entries skipped), and one walk answers for 30 seconds. A partial starting
+  at `/`, `~` or `.` names a place, so it lists only that place.
 
   This is one `read_dir` of one directory per keystroke, never a walk: it runs
   on the thread every pane is drawn from, and a stall there freezes the whole

@@ -32,9 +32,13 @@ impl CrewApp {
         // (Esc, a click landing elsewhere, a pane taking focus) puts the real
         // theme back without each of them having to know about previews.
         // See `themepeek`; a no-op on every frame with nothing selected.
-        let peek = crate::suggest::menu_items_in(&self.input.text, &self.input.cwd);
-        let shown = if self.input.focused { &peek[..] } else { &[] };
-        crate::themepeek::sync(shown, self.input.menu_sel);
+        // Built only while the bar has focus: unfocused, the rows were thrown
+        // away — after a `read_dir` per frame for a path command's line.
+        let peek = match self.input.focused {
+            true => crate::suggest::menu_items_in(&self.input.text, &self.input.cwd),
+            false => Vec::new(),
+        };
+        crate::themepeek::sync(&peek, self.input.menu_sel);
         // Focus bookkeeping (bracket travel + the CRT ignition sweep) lives
         // in `panecardglow::focus_fx`, diffed there once per frame.
         let now = crate::anim::now_ms();

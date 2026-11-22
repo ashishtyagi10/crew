@@ -13,6 +13,12 @@ const SKIP_DIRS: [&str; 3] = ["target", "node_modules", ".git"];
 /// List files under `root` as sorted, `/`-separated relative paths. Bounded
 /// (depth, count, skip list) — see the module doc; errors are skipped.
 pub(crate) fn scan(root: &Path) -> Vec<String> {
+    scan_max(root, MAX_FILES)
+}
+
+/// [`scan`] with its own cap — for a walk that runs on a worker, where the
+/// stall the cap guards against cannot happen (see [`crate::pathtree`]).
+pub(crate) fn scan_max(root: &Path, max: usize) -> Vec<String> {
     let walker = walkdir::WalkDir::new(root)
         .max_depth(MAX_DEPTH)
         .sort_by_file_name()
@@ -27,7 +33,7 @@ pub(crate) fn scan(root: &Path) -> Vec<String> {
         });
     let mut files = Vec::new();
     for entry in walker.flatten() {
-        if files.len() >= MAX_FILES {
+        if files.len() >= max {
             break;
         }
         if !entry.file_type().is_file() {

@@ -562,6 +562,7 @@ mod pathcomplete;
 mod pathexpand;
 mod pathhl;
 mod pathmenu;
+mod pathtree;
 #[cfg(test)]
 #[path = "pickshot_tests.rs"]
 mod pickshot_tests;

@@ -148,3 +148,28 @@ fn every_row_cut_to_fit_keeps_its_name() {
     assert!(shown(&root[0]).ends_with(".log"), "{}", shown(&root[0]));
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// Under the folder's rows, files from anywhere in the tree that match — once
+/// the background walk has landed — and none repeated from the folder's.
+#[test]
+fn tree_matches_follow_the_folder_rows() {
+    let base = fixture("tree");
+    std::fs::create_dir_all(base.join("alpha/deep")).unwrap();
+    std::fs::write(base.join("alpha/deep/readme_two.md"), b"x").unwrap();
+    let mut got = Vec::new();
+    for _ in 0..200 {
+        got = labels("/view read", &base);
+        if got.len() > 1 {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert_eq!(got, ["readme.md", "alpha/deep/readme_two.md"]);
+    let deep = rows("/view read", &base).unwrap().pop().unwrap();
+    assert!(deep.submit, "a file from the tree opens");
+    assert_eq!(deep.fill, "/view alpha/deep/readme_two.md");
+    // A partial that names a place lists only that place.
+    assert!(labels("/view ./read", &base)
+        .iter()
+        .all(|l| !l.contains("deep")));
+}

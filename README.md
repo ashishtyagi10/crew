@@ -288,6 +288,7 @@ way that machine presses it.
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle the nav | **Cmd+G** |
+| Go to file — `/view`, its picker matching every file under the folder | **Cmd+P** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | `/broadcast` (by name only — **Cmd+S** saves a focused settings form) |
