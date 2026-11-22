@@ -1,7 +1,7 @@
 use crate::app::CrewApp;
 use crate::pane::{Pane, PaneContent};
 
-fn tile() -> Pane {
+pub(super) fn tile() -> Pane {
     Pane {
         glide: crate::glide::Glide::default(),
         content: PaneContent::Todo(crate::todopane::TodoPane::new()),

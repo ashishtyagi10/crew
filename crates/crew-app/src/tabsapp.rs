@@ -41,6 +41,17 @@ impl CrewApp {
             return;
         }
         self.tabs.enter = crate::tabentry::direction(&self.tabs, to);
+        // The tab being left does not just vanish: its cards fold away the other way.
+        let (now, dir, from) = (crate::anim::now_ms(), self.tabs.enter, self.tabs.active);
+        for p in self
+            .panes
+            .iter()
+            .filter(|p| p.tab == from && !p.hidden && dir != 0)
+        {
+            let exit = crate::ghost::Exit::Departed(dir);
+            // No legend: under a card still assembling, its letters showed through the words.
+            (self.ghosts).push(crate::ghost::Ghost::new(p.rect, String::new(), exit, now));
+        }
         let cur = std::mem::take(&mut self.grid);
         if let Some(t) = self.tabs.get_mut(self.tabs.active) {
             t.grid = cur;
@@ -52,7 +63,6 @@ impl CrewApp {
             .unwrap_or_default();
         self.tabs.active = to;
         // The tab's cards assemble as they arrive, the way a new pane's do.
-        let now = crate::anim::now_ms();
         for p in self.panes.iter_mut().filter(|p| p.tab == to) {
             p.born_ms = now;
         }
@@ -169,3 +179,7 @@ mod own_tests;
 #[cfg(test)]
 #[path = "tabsapp_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tabexit_tests.rs"]
+mod exit_tests;
