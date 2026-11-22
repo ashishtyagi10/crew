@@ -7,7 +7,7 @@
 use std::future::Future;
 use std::pin::Pin;
 
-use super::fellback::{attempt_chain, Walk};
+use super::fellback::{account_wide, attempt_chain, Walk};
 use super::openai_http::{request_with_retry, request_with_retry_streaming};
 use super::thinking;
 use super::{
@@ -226,7 +226,8 @@ impl Provider for OpenRouterProvider {
             let messages = build_messages(&req);
             // Try each model in turn; a model that stays rate-limited or is
             // unavailable (retired free slug, upstream error) hands off to the
-            // next. Only a missing key short-circuits — no model can fix that.
+            // next. A failure of the ACCOUNT — a missing or refused key, an
+            // unpaid one — short-circuits: no model on the same key can fix it.
             let mut walk = Walk::default();
             for model in &chain {
                 let think = thinking::opt_in(&endpoint, false);
@@ -236,7 +237,7 @@ impl Provider for OpenRouterProvider {
                 );
                 match request_with_retry(&client, &endpoint, &key, &body).await {
                     Ok(c) => return walk.answered(model, c),
-                    Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
+                    Err(e) if account_wide(&e) => return Err(e),
                     Err(e) => walk.failed(model, e),
                 }
             }
@@ -297,11 +298,12 @@ impl Provider for OpenRouterProvider {
                         );
                         match request_with_retry(&client, &endpoint, &key, &body).await {
                             Ok(c) => return walk.answered(model, c),
+                            Err(e) if account_wide(&e) => return Err(e),
                             Err(e) => walk.failed(model, e),
                         }
                     }
                     Ok(c) => return walk.answered(model, c),
-                    Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
+                    Err(e) if account_wide(&e) => return Err(e),
                     Err(e) => {
                         if started.load(std::sync::atomic::Ordering::SeqCst) {
                             return Err(e);
@@ -322,3 +324,7 @@ mod tests;
 #[cfg(test)]
 #[path = "openrouterbill_tests.rs"]
 mod bill_tests;
+
+#[cfg(test)]
+#[path = "chainstop_tests.rs"]
+mod chainstop_tests;

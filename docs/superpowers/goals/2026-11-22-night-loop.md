@@ -109,6 +109,22 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   2.96 ms each. Left: the rest is still whole-document per crossing (tab
   prep, the picture pass, the byte remap, the copy) — the next row.
 
+### R7 (ai) — an account's failure ends the chain walk
+- Gap: the OpenAI-compatible chain (OpenAI, Gemini, DeepSeek, DashScope,
+  NVIDIA, OpenRouter) short-circuited only on a MISSING key. A refused key
+  or an unpaid account asked every rung in turn — each a full request —
+  and then reported the last one's error.
+- Now `fellback::account_wide` ends the walk for a refused key (the hint's
+  Key row, so the same words) and for OpenAI `insufficient_quota`, DeepSeek
+  "insufficient balance", DashScope `Arrearage`. Deliberately NOT: OpenRouter
+  "insufficient credits" (a `:free` rung answers it), a plain "quota"
+  (per model on DashScope and Gemini), `AccessDenied.Unpurchased` (per model).
+- Measured (fake server counting connections, 3-rung chain): refused key
+  3 requests → 1, with the key hint; a 402 still walks all 3. Mutation (stop
+  removed from `complete`) fails the refused-key test. Not probed live
+  (DashScope 403s every model; no other key on this machine was tried).
+- `hint.rs` had grown past 200 with R4's row: `hintmatch.rs` split out.
+
 ### Fix-ups after review (R2, R3)
 - **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
   `/dump readme.md` — an overwrite — already via the folder's prefix rows,
@@ -172,6 +188,15 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   document's blocks and its render are now kept until the text changes:
   ~3 ms. (Obsidian's and VS Code's incremental preview.)
 
+- **A refused key stops at once** (R7): with a wrong or revoked key, or an
+  unpaid OpenAI, DeepSeek or DashScope account, crew asked every model in
+  the provider's chain in turn before saying so — three requests, three
+  waits, for an answer none of them could give. It now stops at the first
+  and says the key was refused. A failure that belongs to one model (a
+  per-model quota, OpenRouter credits with a free model behind) still tries
+  the next. (Claude Code's and Cline's fallback rules: only a retryable
+  failure falls back.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
@@ -180,4 +205,5 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R3 | perf | bd923d7d | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
 | R4 | ai | 44b9ca9c | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |
 | R5 | nav | aaf4da63 | Explorer from the keyboard | mouse-only → Cmd+Shift+E + arrows, 4 tests, 2 shots |
-| R6 | perf | (this) | md caret crossings memoized | 7.12 → 2.96 ms per ↓ (release, 327 KB) |
+| R6 | perf | 94b5471c | md caret crossings memoized | 7.12 → 2.96 ms per ↓ (release, 327 KB) |
+| R7 | ai | (this) | account failure ends the chain | refused key: 3 requests → 1 |

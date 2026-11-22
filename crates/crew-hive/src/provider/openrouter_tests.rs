@@ -218,7 +218,10 @@ fn does_not_retry_hard_errors() {
 // `max_conns` connections; each gets `bytes` written back, then the socket
 // closes. `accepted` lets a test assert exactly how many connection attempts
 // were made — e.g. that a fallback model was never dialed.
-fn one_shot_server(bytes: Vec<u8>, max_conns: usize) -> (std::net::SocketAddr, Arc<AtomicUsize>) {
+pub(super) fn one_shot_server(
+    bytes: Vec<u8>,
+    max_conns: usize,
+) -> (std::net::SocketAddr, Arc<AtomicUsize>) {
     use tokio::io::AsyncWriteExt;
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();

@@ -60,6 +60,34 @@ impl Walk {
     }
 }
 
+/// Whether `e` belongs to the ACCOUNT rather than to the model: no other rung on the same key
+/// can answer it, so the walk stops instead of asking each in turn and reporting the last.
+///
+/// A missing or refused key always is. Of the money errors only those that name the account
+/// are: OpenAI's `insufficient_quota` (billing), DeepSeek's insufficient balance, DashScope's
+/// `Arrearage`. Not OpenRouter's "insufficient credits" — a `:free` rung still answers it —
+/// nor a plain "quota", which DashScope and Gemini keep per model.
+pub(super) fn account_wide(e: &ProviderError) -> bool {
+    let (msg, body) = match e {
+        ProviderError::MissingKey(_) => return true,
+        ProviderError::Api(body) => (extract_message(body).unwrap_or_default(), body.as_str()),
+        ProviderError::Status(s) => (s.clone(), ""),
+        _ => return false,
+    };
+    if super::hint::is_key(&msg, body) {
+        return true;
+    }
+    let hay = super::hint::hay(&msg, body);
+    [
+        "insufficient_quota",
+        "insufficient balance",
+        "insufficient_balance",
+        "arrearage",
+    ]
+    .iter()
+    .any(|f| hay.contains(f))
+}
+
 /// A failure in a few words: the provider's own sentence, without the JSON
 /// envelope it came in or the advice `api_message` adds for a person who can
 /// act on it — the chain already did — else the error as it reads.
