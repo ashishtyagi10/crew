@@ -97,3 +97,30 @@ fn errors_a_person_cannot_fix_here_get_no_hint() {
     let page = ProviderError::Status("HTTP 404 from models.github.ai: Not Found".into());
     assert!(!page.to_string().contains('\u{2014}'), "{page}");
 }
+
+/// DashScope's answer to an account that may not call the model, word for
+/// word as it came back on 2026-11-22 for qwen-flash, qwen-max and qwen4-max
+/// alike. It used to arrive as the bare sentence, naming no way out.
+#[test]
+fn a_dashscope_unpurchased_model_says_enable_it_or_pick_another() {
+    let body = r#"{"error":{"message":"Access to model denied. Please make sure you are eligible for using the model.","id":"e91f3e2f-2fa9-9663-b94e-3569a8f5cbc6","type":"AccessDenied.Unpurchased","code":"AccessDenied.Unpurchased"}}"#;
+    let m = api_message(body);
+    assert!(m.starts_with("api error: Access to model denied."), "{m}");
+    assert_eq!(
+        hint_of(&m),
+        "this account may not call that model (not activated, or its free quota is spent); \
+         enable it with the provider, or /model picks another"
+    );
+}
+
+/// OpenAI's "does not exist or you do not have access" is still the model
+/// row: the access row comes after it.
+#[test]
+fn openai_does_not_exist_or_no_access_stays_a_model_it_does_not_serve() {
+    let body = r#"{"error":{"message":"The model `gpt-9` does not exist or you do not have access to it.","type":"invalid_request_error","param":null,"code":"model_not_found"}}"#;
+    let m = api_message(body);
+    assert!(
+        hint_of(&m).starts_with("this host does not serve gpt-9"),
+        "{m}"
+    );
+}

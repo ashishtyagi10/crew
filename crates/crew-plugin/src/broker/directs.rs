@@ -48,7 +48,9 @@ pub static DIRECT: &[DirectProvider] = &[
         name: "openai",
         var: "OPENAI_API_KEY",
         endpoint: "https://api.openai.com/v1/chat/completions",
-        chain: &["gpt-5.5", "gpt-5", "gpt-4.1"],
+        // gpt-5 left the chain: OpenAI shuts it down 2026-12-11 (deprecations
+        // page, read 2026-11-22); gpt-4.1 follows on 2027-01-14.
+        chain: &["gpt-5.5", "gpt-4.1"],
         chain_env: "CREW_OPENAI_MODEL",
         base_url_env: "CREW_OPENAI_BASE_URL",
         vendor: crew_hive::catalog::Vendor::OpenAI,
@@ -62,12 +64,9 @@ pub static DIRECT: &[DirectProvider] = &[
         // Google limited Gemini 2.5 to projects that already used it
         // (changelog, 2026-09-18), so a new key's first call to the old head
         // failed. 3.8 Flash is GA; the 3.1 Pro preview only backs it up, and
-        // 2.5 Pro stays last for the keys that still reach it.
-        chain: &[
-            "gemini-3.8-flash",
-            "gemini-3.1-pro-preview",
-            "gemini-2.5-pro",
-        ],
+        // 2.5 Pro left the chain on 2026-11-22: from 2026-12-01 Google routes
+        // it to 3.8 Flash, the head already (deprecations page).
+        chain: &["gemini-3.8-flash", "gemini-3.1-pro-preview"],
         chain_env: "CREW_GEMINI_MODEL",
         base_url_env: "CREW_GEMINI_BASE_URL",
         vendor: crew_hive::catalog::Vendor::Google,

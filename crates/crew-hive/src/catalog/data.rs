@@ -32,6 +32,7 @@ pub(super) const MODELS: &[ModelInfo] = &[
     // Anthropic, newest first — rates verified against Anthropic's model
     // table, 2026-09; OpenRouter aliases read off its public `/models` list
     // (2026-09-29), `None` where it lists no such model.
+    m("Claude Fable 5.2", "claude-fable-5-2", None, Vendor::Anthropic, Some((8 * M, 40 * M)), false, 0),
     m("Claude Opus 5.5", "claude-opus-5-5", Some("anthropic/claude-opus-5.5"), Vendor::Anthropic, Some((4 * M, 20 * M)), false, 1_000_000),
     m("Claude Sonnet 5.5", "claude-sonnet-5-5", Some("anthropic/claude-sonnet-5.5"), Vendor::Anthropic, Some((2 * M, 10 * M)), false, 1_000_000),
     m("Claude Fable 5.1", "claude-fable-5-1", Some("anthropic/claude-fable-5.1"), Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
@@ -57,6 +58,7 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("GPT-4o Mini", "gpt-4o-mini", Some("openai/gpt-4o-mini"), Vendor::OpenAI, Some((150_000, 600_000)), false, 0),
     // Alibaba / DashScope — rates from `pricing::RATES`. OpenRouter lists
     // only the qwen3.8-max SNAPSHOT (`-0902`), not the alias, so no alias.
+    m("Qwen4 Max", "qwen4-max", None, Vendor::Alibaba, Some((1_500_000, 4_500_000)), false, 0),
     m("Qwen3.8 Max", "qwen3.8-max", None, Vendor::Alibaba, Some((2 * M, 6 * M)), false, 1_000_000),
     m("Qwen3.8 Flash", "qwen3.8-flash", Some("qwen/qwen3.8-flash"), Vendor::Alibaba, Some((150_000, 470_000)), false, 1_000_000),
     m("Qwen3.7 Max", "qwen3.7-max", Some("qwen/qwen3.7-max"), Vendor::Alibaba, Some((2_500_000, 7_500_000)), false, 1_000_000),
@@ -75,7 +77,7 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("Llama 3.3 70B", "meta-llama/llama-3.3-70b-instruct", Some("meta-llama/llama-3.3-70b-instruct"), Vendor::Meta, None, false, 131_072),
     // Google — rates from `pricing::RATES`; 2.5 Flash's left to enrichment.
     // 2.5 is limited to projects that already used it (2026-09-18).
-    m("Gemini 4 Argon", "gemini-4-argon", None, Vendor::Google, Some((2 * M, 10 * M)), false, 1_048_576),
+    m("Gemini 4 Argon", "gemini-4-argon", None, Vendor::Google, Some((4 * M, 20 * M)), false, 1_048_576),
     m("Gemini 3.8 Flash", "gemini-3.8-flash", Some("google/gemini-3.8-flash"), Vendor::Google, Some((750_000, 3_750_000)), false, 1_048_576),
     m("Gemini 3.1 Pro Preview", "gemini-3.1-pro-preview", Some("google/gemini-3.1-pro-preview"), Vendor::Google, Some((2 * M, 12 * M)), false, 1_048_576),
     m("Gemini 2.5 Pro", "gemini-2.5-pro", Some("google/gemini-2.5-pro"), Vendor::Google, Some((1_250_000, 10 * M)), false, 1_048_576),

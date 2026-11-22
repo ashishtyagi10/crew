@@ -60,6 +60,25 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 - Measured: frames asked for per toast at Motion off ≈20 (exit window at the
   16 ms poll) → 1. Mutation (Off follows the motion rule) fails the test.
 
+### R4 (ai) — provider freshness
+- Vendor sweep (agent, primary pages read 2026-11-22): `gpt-5` shuts down
+  2026-12-11; `gemini-2.5-pro` routes to 3.8 Flash from 2026-12-01; Gemini 4
+  Argon goes $2/$10 → $4/$20 on 2026-12-01; new `claude-fable-5-2` ($8/$40)
+  and `qwen4-max` ($1.5/$4.5). Anthropic unaffected by the API-version
+  `temperature` removal (crew pins `2023-06-01`).
+- Live probe NOT run: the DashScope account answers `AccessDenied.Unpurchased`
+  (403) for qwen-flash, qwen-max and qwen4-max alike — so qwen4-max is
+  catalogued and priced, not made the default.
+- Changes: chains drop `gpt-5` and `gemini-2.5-pro` (CREW.md table too);
+  catalog + pricing rows for fable-5-2, qwen4-max, Argon's December rate;
+  a new hint row: that 403 (and OpenAI's "does not have access to model")
+  now ends "this account may not call that model (not activated, or its free
+  quota is spent); enable it with the provider, or /model picks another".
+  Test `no_chain_names_a_retiring_model` guards every chain.
+- Measured: the captured body, before → after: bare sentence → sentence +
+  fix. Unverified: fable-5-2 cache rate (10% assumed, errs high), its and
+  qwen4-max's context windows (0 = unknown), Argon tools on the compat wire.
+
 ## Pending release
 - **CI checks again** (R1): the CI workflow had failed on every push for
   weeks — clippy lints and 16 unused workspace dependencies — so it caught
@@ -82,9 +101,19 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   and whole, and costs one frame: the one that takes it away. (loop-30's
   open list; the invariant every reduced-motion setting promises.)
 
+- **Provider chains refreshed; "access denied" says what to do** (R4): the
+  OpenAI chain still fell back to `gpt-5`, which OpenAI shuts down on 11
+  December, and the Gemini chain to `gemini-2.5-pro`, which Google reroutes
+  from 1 December; both are gone. Claude Fable 5.2 and Qwen4 Max can be
+  picked in `/model`, with their prices, and Gemini 4 Argon is costed at its
+  December rate. A DashScope account that may not call a model
+  (`AccessDenied.Unpurchased`) got the bare sentence; it now says to enable
+  the model with the provider or pick another with `/model`.
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
 | R1 | perf | fe0bf52d | CI green | clippy 25 errors → 0, 16 unused deps → 0 |
 | R2 | nav | 7f237aa9 | Cmd+P go to file | 1 folder by prefix → whole tree fuzzy, 2/2 real rows for `exhit` |
-| R3 | perf | (this) | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
+| R3 | perf | bd923d7d | toasts free at Motion off | ≈20 frames + stuck empty card → 1 frame |
+| R4 | ai | (this) | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |

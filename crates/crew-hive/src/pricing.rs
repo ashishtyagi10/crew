@@ -35,6 +35,11 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     ("claude-haiku-5-5", 100_000, 500_000, 10_000),
     ("claude-haiku-5.5", 100_000, 500_000, 10_000),
     ("claude-fable", 10_000_000, 50_000_000, 1_000_000),
+    // Fable 5.2 (2026-11-09, $8/$40 on Anthropic's pricing page, read
+    // 2026-11-22). Its cache-read rate was not read: 10% of input, the
+    // higher of the family's two, so the estimate errs high.
+    ("claude-fable-5-2", 8_000_000, 40_000_000, 800_000),
+    ("claude-fable-5.2", 8_000_000, 40_000_000, 800_000),
     ("claude-fable-5-1", 10_000_000, 50_000_000, 250_000),
     ("claude-fable-5.1", 10_000_000, 50_000_000, 250_000),
     // Qwen / DashScope, International (Singapore) deployment — Alibaba Cloud
@@ -59,6 +64,8 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     // siblings), 2026-09-29: one tier to 1M, and the implicit-cache read the
     // page lists — below the 20% above for both 3.8 models.
     ("qwen3.8-max", 2_000_000, 6_000_000, 250_000),
+    // Model Studio's models + pricing pages, Singapore, read 2026-11-22.
+    ("qwen4-max", 1_500_000, 4_500_000, 75_000),
     ("qwen3.8-flash", 150_000, 470_000, 16_000),
     ("qwen3.7-max", 2_500_000, 7_500_000, 500_000),
     // Any other qwen3-coder slug, at the plus rate; its cache rate unknown.
@@ -80,7 +87,10 @@ const RATES: &[(&str, u64, u64, u64)] = &[
     // ≤200K tier. 3.8 Flash is at its introductory rate, which Google says
     // lasts to 2026-12-31 and then doubles ($1.50 / $7.50).
     // Gemini 4 Argon's launch price, to 2026-11-30 ($4/$20 after).
-    ("gemini-4-argon", 2_000_000, 10_000_000, 100_000),
+    // Introductory $2/$10 ends 2026-11-30 (AI Studio pricing, read
+    // 2026-11-22); this is the rate from 2026-12-01, so a run in the last
+    // week of the intro is estimated high rather than a month of runs low.
+    ("gemini-4-argon", 4_000_000, 20_000_000, 200_000),
     ("gemini-3.8-flash", 750_000, 3_750_000, 75_000),
     ("gemini-3.1-pro", 2_000_000, 12_000_000, 200_000),
     ("gemini-2.5-pro", 1_250_000, 10_000_000, 125_000),

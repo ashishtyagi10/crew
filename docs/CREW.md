@@ -3788,8 +3788,8 @@ endpoint, the key and the default model chain differ:
 
 | `CREW_PROVIDER` | Key | Default chain | Override the chain | Override the endpoint |
 |---|---|---|---|---|
-| `openai` | `OPENAI_API_KEY` | `gpt-5.5` → `gpt-5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
-| `gemini` | `GEMINI_API_KEY` | `gemini-3.8-flash` → `gemini-3.1-pro-preview` → `gemini-2.5-pro` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
+| `openai` | `OPENAI_API_KEY` | `gpt-5.5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
+| `gemini` | `GEMINI_API_KEY` | `gemini-3.8-flash` → `gemini-3.1-pro-preview` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
 | `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-flash` → `deepseek-v4-pro` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
 | `nvidia` | `NVIDIA_API_KEY` | `nvidia/nemotron-3.5-lightning-30b-a3b` → `nvidia/nemotron-3-super-120b-a12b` → `nvidia/nemotron-3-ultra-550b-a55b` | `CREW_NVIDIA_MODEL` | `CREW_NVIDIA_BASE_URL` |
 
