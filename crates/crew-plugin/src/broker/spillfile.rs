@@ -57,7 +57,7 @@ fn prune(dir: &Path) {
         .flatten()
         .filter_map(|e| Some((order(&e.file_name().to_string_lossy())?, e.path())))
         .collect();
-    spills.sort_by(|a, b| b.0.cmp(&a.0));
+    spills.sort_by_key(|s| std::cmp::Reverse(s.0));
     for (_, path) in spills.into_iter().skip(KEEP) {
         let _ = std::fs::remove_file(path);
     }

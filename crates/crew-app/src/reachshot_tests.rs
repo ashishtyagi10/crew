@@ -36,9 +36,9 @@ fn reach_shot() {
         p.messages.truncate(1);
         p.messages.push(smith(ONE));
         let stale = "! 2 callers of add() not updated: src/app.rs:4 \u{b7} src/cli.rs:2";
-        assert!(p.into_receipt("agent smith", stale));
+        assert!(p.file_in_receipt("agent smith", stale));
         p.messages.push(smith(TWO));
-        assert!(p.into_receipt("agent smith", "\u{2713} checked: `cargo test` passed"));
+        assert!(p.file_in_receipt("agent smith", "\u{2713} checked: `cargo test` passed"));
         for w in [470, 700] {
             let shot = format!("{name}-{w}");
             if shot_at(&shot, w, 560, 13.0, "crew", |cols, rows, aspect| {

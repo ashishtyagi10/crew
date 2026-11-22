@@ -69,7 +69,7 @@ impl crate::chat::ChatPane {
             _ => None,
         };
         // A later note of a turn that changed files joins its receipt.
-        if self.into_receipt(&sender, &text) {
+        if self.file_in_receipt(&sender, &text) {
             return;
         }
         self.push_capped(Message {

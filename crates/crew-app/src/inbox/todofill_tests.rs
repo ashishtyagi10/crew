@@ -102,7 +102,7 @@ fn tab_asks_smith_once_and_its_answer_fills_what_you_left() {
         "once"
     );
     let json = r#"{"title":"Send Ann the numbers","project":"rdactd","assignee":"","due":"2026-10-23 17:00","why":"by Friday"}"#;
-    p.from_smith(Some(vec![answer(json)]));
+    p.take_smith(Some(vec![answer(json)]));
     let c = p.todo.as_ref().expect("the card");
     assert_eq!(c.text(Line::Title), "Send Ann the numbers");
     assert_eq!(c.text(Line::Project), "mine", "you changed it: yours");
@@ -121,7 +121,7 @@ fn tab_asks_smith_once_and_its_answer_fills_what_you_left() {
         wants: Wants::Todo,
         thread: "t1".into(),
     });
-    p.from_smith(Some(vec![answer(json)]));
+    p.take_smith(Some(vec![answer(json)]));
     assert!(p.note.contains("after the card closed"), "{}", p.note);
 }
 
@@ -152,7 +152,7 @@ fn smiths_answer_lands_only_on_the_mail_it_was_about() {
         thread: "t1".into(),
     });
     let json = r#"{"title":"Send Ann the numbers","project":"","assignee":"","due":"","why":""}"#;
-    p.from_smith(Some(vec![answer(json)]));
+    p.take_smith(Some(vec![answer(json)]));
     assert_eq!(title(&p), before, "t1's answer never on t2's card");
     assert!(
         p.waiting.is_none() && p.note.contains("another mail"),

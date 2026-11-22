@@ -172,7 +172,7 @@ fn tab_in_a_new_mail_asks_smith_and_its_draft_replaces_the_notes() {
         wants: crate::inbox::handoff::Wants::Draft,
         thread: ask.thread,
     });
-    p.from_smith(Some(vec![
+    p.take_smith(Some(vec![
         "<<<DRAFT\nHi Ed, can we do Friday?\nDRAFT>>>".into()
     ]));
     let c = p.compose.as_ref().unwrap();

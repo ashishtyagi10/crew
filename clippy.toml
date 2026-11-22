@@ -1,0 +1,3 @@
+# Test fixtures and per-frame scratch buffers here are tuples read at one
+# call site; naming each one a `type` would add indirection, not clarity.
+type-complexity-threshold = 500

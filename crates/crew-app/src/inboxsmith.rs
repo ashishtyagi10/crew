@@ -98,7 +98,7 @@ impl CrewApp {
             return false; // the turn has not begun
         }
         if let PaneContent::Inbox(p) = &mut self.panes[inbox].content {
-            p.from_smith(answers);
+            p.take_smith(answers);
         }
         true
     }

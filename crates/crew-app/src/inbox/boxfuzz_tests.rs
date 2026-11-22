@@ -83,7 +83,7 @@ fn the_pane_survives_any_keys_at_any_size() {
                             ..Default::default()
                         },
                     ];
-                    let rows = if r % 3 == 0 {
+                    let rows = if r.is_multiple_of(3) {
                         vec![]
                     } else if r % 3 == 1 {
                         rows[1..].to_vec()
@@ -94,7 +94,7 @@ fn the_pane_survives_any_keys_at_any_size() {
                         query: String::new(),
                         rows,
                         next: None,
-                        more: r % 2 == 0,
+                        more: r.is_multiple_of(2),
                         whole: true,
                     });
                 }
@@ -117,7 +117,7 @@ fn the_pane_survives_any_keys_at_any_size() {
                     2 => crate::inbox::worker::Got::Forwarded("a@b.co".into()),
                     _ => crate::inbox::worker::Got::Unread((r >> 16) % 50),
                 }),
-                13 if r % 50 == 0 => {
+                13 if r.is_multiple_of(50) => {
                     p.take(crate::inbox::worker::Got::Ended("invalid_grant".into()))
                 }
                 1 => {

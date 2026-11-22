@@ -65,11 +65,11 @@ pub(crate) struct Hints {
     typed: String,
 }
 
-/// The one live hint mode, held outside the app for the same reason the
-/// pointer's hover is: everything that draws it or answers a key for it is
-/// somewhere else, and threading it through every scene signature would
-/// touch a dozen files to carry a mode that is off almost always. Where it
-/// lives (one per process; one per test thread) is [`crate::hintslot`]'s.
+// The one live hint mode, held outside the app for the same reason the
+// pointer's hover is: everything that draws it or answers a key for it is
+// somewhere else, and threading it through every scene signature would
+// touch a dozen files to carry a mode that is off almost always. Where it
+// lives (one per process; one per test thread) is `crate::hintslot`'s.
 
 /// Label `pane`'s rows, if there is anything on them to label, plus the
 /// targets the pane knows of that its text does not show (a mail's link

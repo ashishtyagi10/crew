@@ -28,7 +28,7 @@ impl ChatPane {
             let nofix = crate::chatnofix::note(&self.messages, self.watch.proof.edited());
             let proof = self.watch.proof.settle();
             for said in nofix.map(String::from).into_iter().chain(proof).chain(left) {
-                if !self.into_receipt("agent smith", &said) {
+                if !self.file_in_receipt("agent smith", &said) {
                     self.push_note(said);
                 }
             }

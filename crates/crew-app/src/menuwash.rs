@@ -15,7 +15,7 @@ use crew_render::CellView;
 /// in are filled, so the bar is whole.
 pub(crate) fn wash_row(cells: &mut Vec<CellView>, row: u16, w: u16) {
     let t = crew_theme::theme();
-    let wash = crew_theme::readable::selection_bg(&t);
+    let wash = crew_theme::readable::selection_bg(t);
     let floor = crew_theme::contrast::text_floor();
     let mut drawn = vec![false; usize::from(w)];
     for c in cells.iter_mut().filter(|c| c.row == row && c.col < w) {

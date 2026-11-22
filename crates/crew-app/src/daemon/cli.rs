@@ -289,7 +289,7 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
                         st.version,
                         st.pid,
                         super::reply::human_uptime(st.uptime_s),
-                        crate::wording::count(st.sessions as usize, "session")
+                        crate::wording::count(st.sessions, "session")
                     );
                     0
                 }

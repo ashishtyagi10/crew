@@ -126,7 +126,7 @@ fn a_short_values_slice_leaves_the_rest_at_zero() {
     assert!(alpha_at(&c, x0, y0) > 0.9, "the readings are hot");
     assert_eq!(
         color_at(&c, x3, y3),
-        Some(super::idle_ink(&crew_theme::theme()).0),
+        Some(super::idle_ink(crew_theme::theme()).0),
         "the rest are idle dots"
     );
 }
@@ -156,7 +156,7 @@ fn an_idle_row_is_dots_you_can_see() {
     v[3] = 50; // one busy hour on the first day; the second day is idle
     let c = grid(&v, rows, cols);
     let (x, y) = centre(&c, rows, cols, 1, 2);
-    let (ink, alpha) = super::idle_ink(&crew_theme::theme());
+    let (ink, alpha) = super::idle_ink(crew_theme::theme());
     assert!(
         (alpha_at(&c, x, y) - alpha).abs() < 0.01,
         "idle dot at {}",
@@ -180,8 +180,8 @@ fn an_idle_dot_reads_over_the_glass_on_any_desktop() {
     for id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(id);
         let t = crew_theme::theme();
-        let (ink, alpha) = super::idle_ink(&t);
-        for g in crew_theme::glasslegend::pane_grounds(&t) {
+        let (ink, alpha) = super::idle_ink(t);
+        for g in crew_theme::glasslegend::pane_grounds(t) {
             let got = crew_theme::contrast_ratio(over(ink, g, alpha), g);
             assert!((1.8..=3.2).contains(&got), "{}: {got:.2}", id.as_str());
             glass += 1;

@@ -40,7 +40,7 @@ impl CrewApp {
             .unwrap_or(FALLBACK_SIZE);
         self.panes.push(Pane {
             glide: crate::glide::Glide::default(),
-            content: PaneContent::Inbox(Box::new(crate::inbox::InboxPane::new())),
+            content: PaneContent::Inbox(Box::default()),
             grid,
             rect: PLACEHOLDER_RECT,
             label: None,

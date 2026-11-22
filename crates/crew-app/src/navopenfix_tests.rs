@@ -98,5 +98,5 @@ pub(crate) fn drawn_icon(a: &mut CrewApp, hit: BarHit) -> Option<(f32, f32)> {
         }
         _ => crate::navicons::centre(hit, shown)?,
     };
-    inked_at(cx, cy).then(|| (s.x + cx * CELL.0, s.y + cy * CELL.1))
+    inked_at(cx, cy).then_some((s.x + cx * CELL.0, s.y + cy * CELL.1))
 }

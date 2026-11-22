@@ -105,7 +105,7 @@ pub(crate) fn whole_files(patch: &str, cap: usize) -> String {
         } else {
             format!("diff --git {f}")
         };
-        if left.is_empty() && out.len() + f.len() + 1 <= cap {
+        if left.is_empty() && out.len() + f.len() < cap {
             out.push_str(&f);
             out.push('\n');
         } else if out.is_empty() {

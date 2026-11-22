@@ -32,7 +32,7 @@ fn only_the_selected_row_wears_a_wash() {
     let cells = menu_card("commands", &matches, 0, 40, menu_rows(matches.len()));
     // The page, bar a matched glyph in the search wash and the row under `›`.
     let t = crew_theme::theme();
-    let wash = crew_theme::readable::selection_bg(&t);
+    let wash = crew_theme::readable::selection_bg(t);
     let row = cells.iter().find(|c| c.c == '\u{203a}').map(|c| c.row);
     let page = |c: &&CellView| c.bg == t.page_bg || (c.bg == t.find_hl_bg && c.c != ' ');
     let washed = |c: &&CellView| c.bg == wash && Some(c.row) == row;

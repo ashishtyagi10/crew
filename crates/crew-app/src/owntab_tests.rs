@@ -23,9 +23,11 @@ fn tile() -> Pane {
 
 /// One pane, on screen, in the first tab.
 fn one_pane() -> (CrewApp, u32) {
-    let mut app = CrewApp::default();
-    app.panes = vec![tile()];
-    app.focused = 0;
+    let mut app = CrewApp {
+        panes: vec![tile()],
+        focused: 0,
+        ..Default::default()
+    };
     app.input.focused = false;
     app.reconcile_grid();
     let first = app.tabs.active;

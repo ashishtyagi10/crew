@@ -106,7 +106,8 @@ fn fold_prefers_the_result_then_the_deltas_and_never_doubles_text() {
     assert_eq!(f.reply(), "hello from stream");
 
     let mut no_result = Fold::default();
-    for l in [TEXT] {
+    {
+        let l = TEXT;
         no_result.push(parse_line(l).as_ref(), l);
     }
     assert_eq!(no_result.reply(), "ello from stream");

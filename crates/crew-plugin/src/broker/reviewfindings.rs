@@ -122,7 +122,7 @@ pub(crate) fn tidy(reply: &str, lookup: &dyn Fn(&str) -> Cited) -> Tidied {
     let found = counts.iter().sum::<usize>() > 0;
     let mut text: Vec<String> = kept
         .into_iter()
-        .filter(|l| !(found && is_stray_no_findings(l)) && !is_verdict(l))
+        .filter(|l| !(is_verdict(l) || found && is_stray_no_findings(l)))
         .collect();
     while text.last().is_some_and(|l| l.trim().is_empty()) {
         text.pop();
