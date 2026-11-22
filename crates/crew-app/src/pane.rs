@@ -149,11 +149,7 @@ impl Pane {
             PaneContent::Settings(_) => "settings".into(),
             PaneContent::Far(_) => "far".into(),
             PaneContent::Swarm(_) => "swarm".into(),
-            PaneContent::View(v) => v
-                .path
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| v.path.to_string_lossy().into_owned()),
+            PaneContent::View(v) => v.title(),
             PaneContent::Todo(_) => "todo".into(),
             PaneContent::Usage(_) => "usage".into(),
             PaneContent::Dash(_) => "dash".into(),

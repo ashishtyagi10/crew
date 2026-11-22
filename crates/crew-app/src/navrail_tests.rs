@@ -1,4 +1,7 @@
 use super::*;
+use crate::navrailbar::rail_cells;
+use crate::panelist::PaneRow;
+use crew_render::CellView;
 
 fn pane(index: usize) -> PaneRow {
     PaneRow {

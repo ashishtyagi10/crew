@@ -54,6 +54,20 @@ pub(crate) fn step(marks: &[Mark], from: usize, down: bool) -> Option<&Mark> {
     }
 }
 
+/// Scroll to the next (`down`) or previous landmark, putting it on the top
+/// row. Nothing happens at either end, or in a document with no structure —
+/// which is most of them, and is why this is silent rather than an error.
+pub(super) fn jump(p: &mut super::ViewPane, cols: u16, rows: u16, down: bool) {
+    let to = {
+        let cache = p.lines_for(cols);
+        step(&cache.marks, p.scroll, down).map(|m| m.row)
+    };
+    if let Some(row) = to {
+        p.scroll = row;
+        p.clamp_scroll(cols, rows);
+    }
+}
+
 #[cfg(test)]
 #[path = "outline_tests.rs"]
 mod tests;

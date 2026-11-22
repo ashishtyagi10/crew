@@ -12,7 +12,11 @@ mod fold;
 #[path = "inline.rs"]
 mod inline;
 
-use fold::{collect_code_block, collect_html_block, collect_list_items, collect_table};
+#[path = "codefold.rs"]
+mod codefold;
+
+use codefold::collect_code_block;
+use fold::{collect_html_block, collect_list_items, collect_table};
 use inline::collect_inline;
 
 /// Nesting cap for `BlockQuote`/`List`: past this depth, further nesting is
@@ -43,6 +47,9 @@ pub(super) enum Block {
     CodeBlock {
         lang: String,
         lines: Vec<String>,
+        /// Where each line starts in the source, when it is a verbatim copy of it — what lets
+        /// a caret stand inside a fence.
+        starts: Vec<Option<u32>>,
     },
     List(Vec<ListItem>),
     BlockQuote(Vec<Block>),

@@ -4,9 +4,13 @@
 use crate::app::CrewApp;
 use crate::navmode::NavCard;
 
+/// What `/nav` takes.
+const USAGE: &str = "[panes|system|activity|explorer|glance|log|weather <place>]";
+
 impl CrewApp {
-    /// `/nav [glance|log]`, and `/nav weather <place>` — the whole left
-    /// column under one verb (`crate::verbs`). `/weather` still answers.
+    /// `/nav <section>` opens a section of the nav (panes, system, activity, explorer);
+    /// `/nav [glance|log]` says what Activity shows over its LOG; `/nav weather <place>`. The
+    /// whole left column under one verb (`crate::verbs`). `/weather` still answers.
     pub(crate) fn nav_command(&mut self, arg: &str) {
         let arg = arg.trim();
         if let Some(rest) = arg.strip_prefix("weather") {
@@ -14,18 +18,31 @@ impl CrewApp {
         }
         if arg.is_empty() {
             self.set_status(format!(
-                "nav card: {} (/nav [glance|log|weather <place>])",
+                "nav: {} \u{b7} activity: {} ({USAGE})",
+                self.nav_section().as_str(),
                 self.config.nav_card().as_str()
             ));
             return;
         }
+        if let Some(s) = crate::navsection::NavSection::parse(arg) {
+            // A command OPENS what it names; only the bar's own icon puts the panel away.
+            self.config.nav_section = s.as_str().to_string();
+            self.config.nav_collapsed = false;
+            self.config.save();
+            self.set_status(format!("nav: {}", s.as_str()));
+            self.redraw();
+            return;
+        }
         let Some(card) = NavCard::parse(arg) else {
-            self.set_status("usage: /nav [glance|log|weather <place>]");
+            self.set_status(format!("usage: /nav {USAGE}"));
             return;
         };
         self.config.nav_card = card.as_str().to_string();
         self.config.save();
-        self.set_status(format!("nav card: {}", card.as_str()));
+        self.set_status(format!(
+            "activity: {} (/nav activity shows it)",
+            card.as_str()
+        ));
         self.redraw();
     }
 

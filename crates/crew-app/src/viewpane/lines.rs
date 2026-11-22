@@ -9,7 +9,6 @@ use crate::viewpane::load::{Loaded, MAX_VIEW_BYTES};
 use crate::viewpane::metacard::{fmt_size, opaque_card};
 use crate::viewpane::outline::Mark;
 use crate::viewpane::rendercap::{cap_render_lines, MAX_RENDER_LINES};
-use crate::viewpane::LoadState;
 
 pub(super) fn banner(msg: &str, cols: usize) -> CardLine {
     let t = crew_theme::theme();
@@ -24,27 +23,11 @@ fn mb(bytes: u64) -> u64 {
     bytes / (1024 * 1024)
 }
 
-/// Lines for the pane's current state at `cols` columns. `raw` shows text
-/// unrendered (the `s` toggle); it changes the `Markdown` and `Csv` rungs —
-/// the two whose default rendering shows something OTHER than the bytes
-/// themselves — and leaves every other rung alone, since those already show
-/// the bytes as they are.
-pub(crate) fn for_state(
-    state: &LoadState,
-    raw: bool,
-    cols: usize,
-    invisibles: bool,
-    split: bool,
-) -> (Vec<CardLine>, Vec<Mark>, Vec<crate::chatmd::Picture>) {
-    let t = crew_theme::theme();
-    match state {
-        LoadState::Loading { .. } => (vec![banner("loading…", cols)], Vec::new(), Vec::new()),
-        LoadState::Failed(msg) => (vec![row(msg, t.ink, false)], Vec::new(), Vec::new()),
-        LoadState::Ready { format, loaded } => {
-            ready_lines(*format, loaded, raw, cols, invisibles, split)
-        }
-    }
-}
+#[cfg(test)]
+pub(crate) use super::linestate::for_state;
+pub(crate) use super::linestate::for_state_revealed;
+#[cfg(test)]
+use crate::viewpane::LoadState;
 
 /// Landmarks moved down past the banners drawn above the body.
 fn shifted(marks: Vec<Mark>, above: usize) -> Vec<Mark> {
@@ -57,13 +40,13 @@ fn shifted(marks: Vec<Mark>, above: usize) -> Vec<Mark> {
         .collect()
 }
 
-fn ready_lines(
+pub(super) fn ready_lines(
     format: Format,
     loaded: &Loaded,
     raw: bool,
     cols: usize,
-    invisibles: bool,
-    split: bool,
+    (invisibles, split): (bool, bool),
+    reveal: Option<crate::md::reveal::Reveal>,
 ) -> (Vec<CardLine>, Vec<Mark>, Vec<crate::chatmd::Picture>) {
     let t = crew_theme::theme();
     let mut out = Vec::new();
@@ -151,7 +134,7 @@ fn ready_lines(
             lines
         }
         Format::Markdown if !raw => {
-            let (lines, found, pics) = super::mdrung::lines(text, cols);
+            let (lines, found, pics) = super::mdrung::rung(text, &prepared.map, cols, reveal);
             marks = shifted(found, out.len());
             // A banner above the render (a truncation notice) shifts every
             // row under it, pictures included.

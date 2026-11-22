@@ -11,6 +11,8 @@ pub(crate) mod heading;
 mod layout;
 mod parse;
 pub(crate) mod picture;
+pub(crate) mod reveal;
+mod revealrows;
 mod source;
 #[cfg(test)]
 #[path = "source_tests.rs"]
@@ -50,6 +52,16 @@ impl From<pulldown_cmark::Alignment> for ColAlign {
 /// for a future file/document viewer, where source text is often hard-wrapped.
 pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
     layout::lines(parse::parse(text), cols)
+}
+
+/// [`render`], with the block `r` drawn as the markdown it is written in — the editor's view
+/// of the block its caret is in (see [`reveal`]).
+pub(crate) fn render_revealed(text: &str, cols: usize, r: Option<reveal::Reveal>) -> Vec<MdLine> {
+    let lines = render(text, cols);
+    match r {
+        Some(r) => reveal::apply(lines, text, r, cols),
+        None => lines,
+    }
 }
 
 /// Same as `render`, but for chat message bodies: a single line break stays

@@ -9,12 +9,11 @@
 //! same colours), with a `─N─` divider per tab once there is more than one.
 //!
 //! The chevron leads the card's legend (`› ` collapsed, `‹ crew v…` open).
-use crew_render::{CellView, PaneScene};
+use crew_render::PaneScene;
 
 use crate::app::CrewApp;
 use crate::chrome;
 use crate::layout::Rect;
-use crate::panelist::PaneRow;
 
 /// Columns the rail's card occupies, its two borders included. Five inside:
 /// caret, two digits of pane number, a column of air, and the mark.
@@ -74,41 +73,6 @@ pub(crate) fn pane_at_row(rel_row: u16, rows: u16, panes: usize) -> Option<usize
     (i < rows && usize::from(i) < panes).then_some(usize::from(i))
 }
 
-/// One row per pane: caret, number, mark. `spin` is the busy frame the full
-/// list uses, so a pane that is working turns the same way in both.
-pub(crate) fn rail_cells(panes: &[PaneRow], cols: u16, rows: u16, spin: char) -> Vec<CellView> {
-    let t = crew_theme::theme();
-    let mut out = Vec::new();
-    for (row, p) in panes.iter().take(usize::from(rows)).enumerate() {
-        let row = row as u16;
-        let head = format!("{}{}", if p.focused { '\u{25b8}' } else { ' ' }, p.index);
-        let head_fg = match p.focused || p.hovered {
-            true => crate::accentink::accent_ink(),
-            false => t.text_muted,
-        };
-        // Two columns of air held back for the mark: the number is what gets
-        // cut if a crew ever runs to four digits, never the thing that says
-        // the pane needs you.
-        let budget = cols.saturating_sub(2);
-        crate::navtext::put_at(&mut out, &head, 0, row, budget, head_fg);
-        // The mark keeps the full list's priority and colours: a raised
-        // attention wins, then work in progress, then lines not yet read —
-        // then the full list's `+` for a pane off the grid, which the rail
-        // did not carry, so a minimized pane was a bare number here.
-        let mark = match (p.attention, p.busy, p.activity || p.unread > 0) {
-            (Some((glyph, on)), _, _) => on.then_some((glyph, t.bell)),
-            (None, true, _) => Some((spin, crate::accentink::accent_ink())),
-            (None, false, true) => Some(('\u{25cf}', t.activity)),
-            _ => p.minimized.then_some(('+', crate::accentink::accent_ink())),
-        };
-        if let Some((glyph, fg)) = mark {
-            let at = cols.saturating_sub(1);
-            crate::navtext::put_at(&mut out, &glyph.to_string(), at, row, cols, fg);
-        }
-    }
-    out
-}
-
 impl CrewApp {
     /// The pane whose rail row is under the cursor.
     pub(crate) fn pane_at_rail(&self) -> Option<usize> {
@@ -129,7 +93,11 @@ impl CrewApp {
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
         let dy = crate::panellevel::level_dy(sb, &self.panes, cw, ch);
         let rel = ((self.cursor.1 - sb.y - dy) / ch).floor() as u16;
-        self.rail_line(rel, rows)
+        // The list starts under the activity bar's icons and their rule (`navrailbar`); the
+        // gear holds the last row.
+        let list = crate::navrailbar::LIST_TOP;
+        let rows = crate::navrailbar::visible_rows(rows, dy);
+        self.rail_line(rel.checked_sub(list)?, crate::navrailbar::list_rows(rows))
     }
 
     /// Whether the cursor is on the nav card's chevron — the one control that
@@ -166,7 +134,7 @@ impl CrewApp {
         ch: f32,
     ) {
         let sb = chrome::stats_card_rect(sh, self.nav_px(scale), self.gutter(), ch, false);
-        let rows = self.nav_list();
+        let list = self.nav_list();
         let spin = crate::update::spinner_frame(crate::anim::now_ms());
         let legend = legend(true, "");
         let foot = crate::navrailfoot::Foot {
@@ -180,13 +148,22 @@ impl CrewApp {
         let aspect = ch / cw;
         let label = (legend.as_str(), crew_theme::theme().legend_off);
         let dy = crate::panellevel::level_dy(sb, &self.panes, cw, ch);
+        let body = crate::navrailbar::RailBody {
+            list: &list,
+            foot: &foot,
+            hover: self.bar_at_cursor(),
+            badges: self.nav_badges(&self.pane_rows()),
+            spin,
+        };
         crate::panellevel::push_card_art_level(scenes, sb, (cw, ch), label, dy, |cols, irows| {
-            let mut cells = rows.rail_cells(cols, irows, spin);
-            let used = rows.rail_len().min(usize::from(irows)) as u16;
-            let (foot, paint) = crate::navrailfoot::foot(&foot, cols, irows, used, aspect);
-            cells.extend(foot);
-            (cells, paint)
+            crate::navrailbar::body(
+                &body,
+                cols,
+                crate::navrailbar::visible_rows(irows, dy),
+                aspect,
+            )
         });
+        crate::navreliefscene::rail(scenes, cw, ch);
     }
 }
 

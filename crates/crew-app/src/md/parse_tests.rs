@@ -22,18 +22,6 @@ fn heading_levels_carry_through() {
 }
 
 #[test]
-fn fenced_code_keeps_verbatim_lines_and_lang() {
-    let blocks = parse("```rust\nfn x() {}\n  indented\n```");
-    assert_eq!(
-        blocks[0],
-        Block::CodeBlock {
-            lang: "rust".into(),
-            lines: vec!["fn x() {}".into(), "  indented".into()],
-        }
-    );
-}
-
-#[test]
 fn markdown_link_and_bare_url_become_link_spans() {
     let blocks = parse("see [docs](https://ex.am/d) and https://ex.am/raw now");
     let Block::Paragraph(spans) = &blocks[0] else {
@@ -90,6 +78,8 @@ fn list_item_with_fenced_code_hoists_a_code_block() {
         Some(&Block::CodeBlock {
             lang: "bash".into(),
             lines: vec!["cmd --flag".into()],
+            // Drawn after the list, out of order: it claims no bytes (`fold::unsourced`).
+            starts: vec![None],
         }),
         "fenced code should hoist out as a sibling block: {blocks:?}"
     );

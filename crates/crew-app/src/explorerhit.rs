@@ -1,0 +1,143 @@
+//! The Explorer section in the app: its root, and what a click, the wheel or the pointer means
+//! over it. The rows are [`crate::explorerdraw`]'s — row 0 the rule, item `k` of the scrolled
+//! list on row `k + 1` — read through the panel rect every nav hit path uses.
+use std::path::PathBuf;
+
+use crate::app::CrewApp;
+use crate::navsection::NavSection;
+
+impl CrewApp {
+    /// The tree's root: the focused pane's directory, where the shell being typed in stands —
+    /// crew's own when that pane has none.
+    pub(crate) fn explorer_root(&self) -> PathBuf {
+        let kept = &self.sidebar.explorer.root;
+        let here = (self.panes.get(self.focused))
+            .and_then(|p| p.dir.clone())
+            .filter(|d| d.is_dir());
+        if let Some(d) = &here {
+            kept.replace(Some(d.clone()));
+        }
+        // A pane with no directory of its own — a viewer the tree just opened — keeps the
+        // root the tree already had.
+        here.or_else(|| kept.borrow().clone().filter(|d| d.is_dir()))
+            .or_else(|| Some(self.cwd.clone()).filter(|d| d.is_dir()))
+            // Before anything has set a directory: where the process stands.
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_default()
+    }
+
+    /// The panel's content row under the cursor and its rows, when the open section is the
+    /// Explorer.
+    fn explorer_row(&self) -> Option<(u16, u16)> {
+        if self.config.nav_collapsed || self.nav_section() != NavSection::Explorer {
+            return None;
+        }
+        let (sb, ch, _) = self.nav_hit_geometry()?;
+        if !crate::chrome::point_in(sb, self.cursor.0, self.cursor.1) {
+            return None;
+        }
+        // Measured from the card's outer top edge: its border is row 0 of that.
+        let rel = ((self.cursor.1 - sb.y) / ch).floor() as i32 - 1;
+        let (_, rows) = self
+            .frame_geometry()
+            .map(|(cw, ch, ..)| crate::layout::card_inner_cells(sb.w, sb.h, cw, ch))?;
+        Some((u16::try_from(rel).ok()?, rows))
+    }
+
+    /// The tree item under the cursor, as an index into [`crate::explorer::Explorer::items`].
+    pub(crate) fn explorer_item_at_cursor(&self) -> Option<usize> {
+        let (row, _) = self.explorer_row()?;
+        let len = self.sidebar.explorer.items(&self.explorer_root()).len();
+        let k = usize::from(row.checked_sub(crate::explorerdraw::TOP)?) + scrolled(self, len);
+        (k < len).then_some(k)
+    }
+
+    /// A press on the tree: a folder opens or closes, a file opens in the viewer. `true` when
+    /// it was the tree's.
+    pub(crate) fn explorer_press(&mut self) -> bool {
+        let Some(k) = self.explorer_item_at_cursor() else {
+            return false;
+        };
+        let items = self.sidebar.explorer.items(&self.explorer_root());
+        let Some(item) = items.get(k) else {
+            return false;
+        };
+        match (item.dir, item.more) {
+            // The "n more" line: nothing to open.
+            (_, Some(_)) => return true,
+            (true, None) => self.sidebar.explorer.toggle(item),
+            (false, None) => {
+                let path = item.path.clone();
+                self.sidebar.explorer.picked = Some(path.clone());
+                self.explorer_open(path);
+            }
+        }
+        self.redraw();
+        true
+    }
+
+    /// Open `path` in the tree's preview viewer: the one it opened last, given this file
+    /// instead — unless that pane is gone or holds unsaved edits, when a new viewer opens beside
+    /// the panes on screen (not in a tab of its own: a tab per click buries the grid).
+    fn explorer_open(&mut self, path: PathBuf) {
+        let preview = self.sidebar.explorer.preview;
+        let reuse = self.panes.iter().position(|p| {
+            Some(p.born_ms) == preview
+                && matches!(&p.content, crate::pane::PaneContent::View(v) if !v.dirty)
+        });
+        if let Some(i) = reuse {
+            if let crate::pane::PaneContent::View(v) = &mut self.panes[i].content {
+                *v = crate::viewpane::ViewPane::open(path);
+            }
+            self.focused = i;
+            self.input.focused = false;
+            self.reconcile_grid();
+            return;
+        }
+        let before = self.panes.len();
+        self.open_view_here(&path.to_string_lossy());
+        if self.panes.len() > before {
+            self.sidebar.explorer.preview = self.panes.last().map(|p| p.born_ms);
+        }
+    }
+
+    /// A wheel over the tree scrolls it. `true` when the wheel was the tree's.
+    pub(crate) fn explorer_scroll(&mut self, lines: i32) -> bool {
+        let Some((_, rows)) = self.explorer_row() else {
+            return false;
+        };
+        let len = self.sidebar.explorer.items(&self.explorer_root()).len();
+        let shown = usize::from(rows.saturating_sub(crate::explorerdraw::TOP));
+        self.sidebar.explorer.scroll_by(lines, len, shown);
+        true
+    }
+
+    /// The tree's cells for a panel `cols` × `rows`.
+    pub(crate) fn explorer_cells(&self, cols: u16, rows: u16) -> Vec<crew_render::CellView> {
+        let e = &self.sidebar.explorer;
+        let items = e.items(&self.explorer_root());
+        let hover = self.explorer_item_at_cursor();
+        let scroll = scrolled(self, items.len());
+        crate::explorerdraw::cells(&items, scroll, hover, e.picked.as_deref(), (cols, rows))
+    }
+}
+
+/// The scroll the tree is drawn at — and so the one a click reads back: a root with fewer rows
+/// than the last one was scrolled for shows from as far down as it goes.
+fn scrolled(app: &CrewApp, len: usize) -> usize {
+    app.sidebar.explorer.scroll.min(len.saturating_sub(1))
+}
+
+/// The tree row last drawn under the pointer (`usize::MAX`: none) — so a move from one row to
+/// the next repaints, as the nav's other rows do (`panehover`).
+static HOVER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(usize::MAX);
+
+/// Publish this move's tree hover. `true` when it changed.
+pub(crate) fn publish_hover(k: Option<usize>) -> bool {
+    let v = k.unwrap_or(usize::MAX);
+    HOVER.swap(v, std::sync::atomic::Ordering::Relaxed) != v
+}
+
+#[cfg(test)]
+#[path = "explorerhit_tests.rs"]
+mod tests;

@@ -110,6 +110,7 @@ fn round_trip() {
         gradient: "lively".to_string(),
         density: "roomy".to_string(),
         nav_card: "glance".into(),
+        nav_section: "activity".into(),
         weather_place: String::new(),
         approval_default: Some("yolo".to_string()),
         leading: "loose".to_string(),

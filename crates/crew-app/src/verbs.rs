@@ -54,11 +54,21 @@ pub(crate) const VERBS: &[Verb] = &[
     Verb {
         name: "/nav",
         subjects: &[
+            ("panes", "open the PANES section: tabs and the pane list"),
             (
-                "glance",
-                "the glance cards: serving, waiting on you, weather",
+                "system",
+                "open the SYSTEM section: clock, dials, load, net, git",
             ),
-            ("log", "the live activity log"),
+            (
+                "activity",
+                "open the ACTIVITY section: the cards and the LOG",
+            ),
+            (
+                "explorer",
+                "open the EXPLORER section (a file tree, coming)",
+            ),
+            ("glance", "Activity shows the glance cards over its LOG"),
+            ("log", "Activity shows the LOG alone"),
             (
                 "weather",
                 "where the WEATHER card reports for (/nav weather <place>)",

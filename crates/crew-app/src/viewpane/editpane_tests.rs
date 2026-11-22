@@ -119,11 +119,18 @@ fn a_pane_that_is_not_editing_ignores_the_caret_keys() {
 /// is exactly what five Down presses would have done, and the view follows.
 #[test]
 fn a_page_down_is_that_many_downs_and_stays_in_view() {
+    // That many downs IN THE LAYOUT IT STARTED FROM: a page is one step, and each Down taken
+    // by hand re-lays the document as the caret reveals one block and leaves another.
     let mut by_hand = doc();
     by_hand.start_editing(60);
-    for _ in 0..5 {
-        by_hand.move_caret(Step::Down, 60, 6);
-    }
+    let start = by_hand.caret.unwrap();
+    let landed = {
+        let cache = by_hand.lines_for(60);
+        (0..5).fold(start, |c, _| {
+            super::caret::step(&cache.lines, c, Step::Down)
+        })
+    };
+    let want = super::caret::offset_at(&by_hand.lines_for(60).lines, landed);
     let mut p = doc();
     p.start_editing(60);
     p.move_caret(
@@ -135,7 +142,7 @@ fn a_page_down_is_that_many_downs_and_stays_in_view() {
         6,
     );
     let c = p.caret.expect("still there");
-    assert_eq!(Some(c), by_hand.caret);
+    assert_eq!(p.caret_at, want);
     assert!(
         c.row > 0 && c.row >= p.scroll && c.row < p.scroll + 6,
         "row {} from {}",

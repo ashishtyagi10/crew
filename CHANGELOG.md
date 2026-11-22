@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.22
+
+**Side panel gets icons and a file tree; markdown edits in place.**
+
+Side panel:
+- The left panel is now laid out like VS Code's: a bar of icons down its left side, and beside it the section you have open. **Panes** holds the tabs and the pane list; **System** the clock, dials, load, host, net and git; **Activity** the glance cards over the LOG; **Explorer** a file tree; and a gear at the foot opens the settings.
+- Click an icon to open its section; click the open section's icon to put the panel away. On the collapsed rail, any icon opens the panel on that section. `/nav panes`, `/nav system`, `/nav activity` and `/nav explorer` open one by name; `/nav log` shows the LOG alone.
+- The icons are drawn as outline shapes the width of the bar (a split window, a gauge, a pulse, two pages, a gear), so they look the same with any font.
+- Since the pane list no longer shows from other sections, the Panes icon wears the loudest mark any pane has, and the Activity icon counts what waits on you.
+- Collapsed, the rail is the bar: the icons, a rule, the pane numbers, its readings, and the gear on the last row.
+- The panel keeps the width you drag it to; the bar stands beside it. On themes with a raised panel, the bar's edge is a groove, like the ones between sections.
+
+Explorer:
+- The working directory of the focused pane as a tree, folders first, then files, by name. `.git` and `.DS_Store` are left out.
+- Click a folder to open or close it. Open folders stay open as you move between panes and back. The wheel scrolls the tree.
+- Click a file to open it in one preview viewer beside your panes. The next file you click replaces it, unless it has unsaved edits. Focusing that viewer keeps the tree where it was.
+- A file an agent writes appears on its own within a couple of seconds. Folders are re-read in the background, so the window does not stall on a big one. A folder with more than 2000 entries says how many it is not showing.
+
+Markdown:
+- In the document editor, the block holding the caret shows its markdown (its `#`, `**`, `- `, `> `, link URL or code fence), and every other block stays rendered. So you can delete a heading's `#`, turn a `-` into a `1.`, or type into a link's URL where it stands.
+- The caret can step into a fenced code block now, and Enter there adds one new line that keeps the line's indent.
+- Press `i` in a markdown viewer pane to edit it right there, with the same editor, starting at the top of what you were reading. While editing, letters type, Cmd+Z undoes and Cmd+S saves; Cmd+arrows still move between panes. Esc goes back to reading and keeps your edits.
+- Unsaved edits in a pane are never dropped. Its title wears a dot. Closing it, or pressing `r` or Cmd+R, asks first. `e`, `w`, `/close all` and `/close others` refuse and name the pane. A reload after an outside change waits.
+- Fixed: in files with Windows line endings or tabs, typing landed in the wrong place. It now goes where the caret is.
+- Fixed: a revealed code block's lines were pushed eight columns in, mid-word.
+
 ## 0.30.21
 
 **Scrolling glides, and new panes and tabs slide into place.**

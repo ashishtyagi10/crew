@@ -69,7 +69,7 @@ fn rail_shot(name: &str, panes: &[PaneRow]) -> Option<Vec<u8>> {
             &crate::navrail::legend(true, ""),
             crew_theme::theme().legend_off,
             |cols, rows| {
-                let mut cells = crate::navrail::rail_cells(panes, cols, rows, '\u{280b}');
+                let mut cells = crate::navrailbar::rail_cells(panes, cols, rows, '\u{280b}');
                 let used = panes.len().min(usize::from(rows)) as u16;
                 let (foot, paint) = crate::navrailfoot::foot(&foot, cols, rows, used, ch / cw);
                 cells.extend(foot);

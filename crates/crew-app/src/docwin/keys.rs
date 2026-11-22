@@ -99,8 +99,7 @@ pub(crate) fn edit_for(
             "c" => Some(Edit::Copy),
             "x" => Some(Edit::Cut),
             "v" => Some(Edit::Paste),
-            // The markers never appear on screen, so this is the way one gets
-            // into the file at all.
+            // The quick way: the markers show only in the caret's own block.
             "b" => Some(Edit::Wrap("**")),
             "i" => Some(Edit::Wrap("*")),
             "k" => Some(Edit::Link),

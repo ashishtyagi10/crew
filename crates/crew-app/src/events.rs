@@ -154,6 +154,7 @@ impl CrewApp {
                 // …and a program that asked for the mouse gets the click
                 // (`mouseroute`; Shift keeps crew's own selection).
                 if self.settings_click_at_cursor()
+                    || self.view_edit_click()
                     || self.disk_click_at_cursor()
                     || self.report_press(MouseButton::Left)
                 {

@@ -9,7 +9,11 @@ fn the_pane_list_is_served_before_the_log() {
     let rows = fixed + 1 + 4;
     let l = layout(rows, true, 40, 4);
     assert_eq!(l.log_lines, 0, "no room for a LOG at all");
-    assert_eq!(l.panes_top, fixed, "and the list starts right where it can");
+    assert_eq!(
+        l.panes_top,
+        Some(fixed),
+        "and the list starts right where it can"
+    );
 }
 
 /// The whole reason this module exists: a tall window used to leave a third of
@@ -43,7 +47,7 @@ fn a_log_below_the_minimum_is_dropped_entirely() {
     let l = layout(fixed_rows(false) + 30, false, 1, 1);
     assert_eq!(l.log_lines, 0);
     assert_eq!(l.log_block(), 0);
-    assert_eq!(l.panes_top, l.log_top, "no rows reserved for it");
+    assert_eq!(l.panes_top, Some(l.log_top), "no rows reserved for it");
 }
 
 /// Every section below the LOG moves with it — the invariant the four
@@ -55,7 +59,7 @@ fn panes_top_is_always_log_top_plus_the_log_block() {
             for len in [0usize, 1, 5, 64] {
                 for panes in [0usize, 1, 9] {
                     let l = layout(rows, git, len, panes);
-                    assert_eq!(l.panes_top, l.log_top + l.log_block(), "{rows} {len}");
+                    assert_eq!(l.panes_top, Some(l.log_top + l.log_block()), "{rows} {len}");
                     assert!(l.log_lines <= len, "never more lines than entries");
                 }
             }
@@ -104,7 +108,7 @@ fn the_weather_card_stands_first_and_goes_first() {
     let without = glance(top + 40, 2, false, 2);
     assert_eq!(without.weather_rows, 0);
     assert_eq!(without.serving_top, top, "no reading, no rows");
-    assert_eq!(without.panes_top + w, tall.panes_top);
+    assert_eq!(without.panes_top.map(|t| t + w), tall.panes_top);
     // Room for SERVING + a one-row WAITING + 3 panes, and one row short of
     // the WEATHER block on top of that.
     let tight = glance(top + 5 + 3 + 4 + w - 1, 1, true, 3);

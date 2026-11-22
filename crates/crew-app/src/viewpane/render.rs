@@ -3,7 +3,6 @@ use std::cell::Ref;
 
 use crew_render::CellView;
 
-use crate::viewpane::lines;
 use crate::viewpane::searchline::search_line;
 use crate::viewpane::sticky;
 use crate::viewpane::{lspdeco, lspgutter};
@@ -23,6 +22,7 @@ impl ViewPane {
         // …and so is the diagnostics margin, for the same reason.
         let lsp_w = self.lsp.diags().map_or(0, |_| lspgutter::WIDTH);
         let theme = crew_theme::current_id();
+        let reveal = self.wanted_reveal();
         let stale = self.cache.borrow().as_ref().is_none_or(|c| {
             c.cols != cols
                 || c.raw != self.raw
@@ -31,12 +31,12 @@ impl ViewPane {
                 || c.theme != theme
                 || c.invisibles != crate::invisibles::on()
                 || c.split != self.split
+                || c.reveal != reveal
         });
         if stale {
             let text_cols = (cols as usize).saturating_sub(blame_w + lsp_w);
             let invisibles = crate::invisibles::on();
-            let (mut lines, mut marks, pictures) =
-                lines::for_state(&self.state, self.raw, text_cols, invisibles, self.split);
+            let (mut lines, mut marks, pictures) = self.rung_lines(text_cols, invisibles, reveal);
             // What the server said, on a row of its own under the line it is
             // about — before the margins prepend their columns, so the note
             // rows are given the same blank margin as every other row.
@@ -68,6 +68,8 @@ impl ViewPane {
                 invisibles,
                 split: self.split,
                 theme,
+                reveal,
+                reveal_for: self.caret_at,
             }));
         }
         Ref::map(self.cache.borrow(), |c| c.as_ref().expect("just filled"))

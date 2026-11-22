@@ -83,6 +83,9 @@ impl CrewApp {
             return;
         }
         let keep = self.focused.min(self.panes.len() - 1);
+        if self.refuse_bulk_close(Some(keep)) {
+            return;
+        }
         self.panes.swap(0, keep);
         // `/only` closes many panes in one keystroke and does not go through
         // `close_pane`, so it records its own casualties — oldest first, so
@@ -104,6 +107,9 @@ impl CrewApp {
             self.set_status("no panes to close");
             return;
         }
+        if self.refuse_bulk_close(None) {
+            return;
+        }
         let n = self.panes.len();
         // A closed pane takes its scrollback, its running command and its
         // agent with it, and `/closeall` is one fuzzy keystroke from `/clear`.
@@ -117,8 +123,8 @@ impl CrewApp {
             return;
         }
         // Reuse close_pane so the grid LRU and empty-state modes stay consistent.
-        while !self.panes.is_empty() {
-            self.close_pane(self.panes.len() - 1);
+        for i in (0..self.panes.len()).rev() {
+            self.close_pane(i);
         }
         self.set_status(format!("closed {}", crate::wording::count(n, "pane")));
         self.redraw();

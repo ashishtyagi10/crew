@@ -488,6 +488,44 @@ border buttons, the nav rows and the `+N` tile, an open hand over a card's
 legend row (the handle it is carried by) that closes while one is in hand, and
 a column-resize arrow on the left nav's edge.
 
+**Sections, and the activity bar.** The nav is laid out like VS Code's left
+edge: a bar of icons down its left side, and beside it the section the bar has
+open. **Panes** holds the tabs and the pane list; **System** the clock, dials,
+load, host, net and git; **Activity** the glance cards with the LOG under them
+(`/nav log` shows the LOG alone); **Explorer** is the working directory as a
+tree — the focused pane's directory, or crew's own when that pane has none:
+folders first, then files, `.git` and `.DS_Store` left out. Click a folder to
+open or close it (an open folder stays open by path, so walking between panes
+and back finds the tree as you left it); click a file to open it in a viewer
+pane, where `i` edits a markdown one. The wheel scrolls the tree. A folder is
+re-read when its listing is more than two seconds old, so a file an agent just
+wrote appears on its own; past 2000 entries a folder says how many it is not
+showing. The **gear** at the bar's foot opens the settings.
+Click an icon to open its section; click the open section's icon to put the
+panel away, as VS Code does; any icon on a put-away nav opens it on that
+section. `/nav panes`, `/nav system`, `/nav activity` and `/nav explorer` open
+one by name. The bar carries what its sections cannot show while they are
+closed: the Panes icon wears the loudest mark any pane has (an attention, a
+spinner, an unread dot), the Activity icon how many things wait on you. The icons are
+drawn, not typed — outline shapes in VS Code's manner, the width of the bar —
+so they look the same with any font. The open section is one setting for the app, so every window shows it.
+
+    ╭─ ‹ crew v0.30 ─────────────╮
+    │    │─ PANES 3 ─────────────│
+    │▎▦  │ ▸1 zsh                │
+    │    │  2 far                │
+    │ ◷  │  3 notes.md ●         │
+    │    │                       │
+    │ ↯ 2│                       │
+    │    │                       │
+    │ ❐  │                       │
+    │    │                       │
+    │ ⚙  │                       │
+    │    │                       │
+    ╰────┴───────────────────────╯
+
+The panel keeps the width you drag it to; the bar stands beside it.
+
 **The rail, and the chevron.** The nav starts COLLAPSED: seven columns holding
 one row per pane — the focus caret, the pane's number, and the same mark its
 full row would carry (a raised attention, then a spinner while it works, then
@@ -504,6 +542,9 @@ it; the choice persists. **Cmd+G** (or `/sidebar`) is still the other question
 A collapsed nav has no width to argue about, so its edge is not a handle and
 the UPDATE and RESTART cards wait for it to be opened — neither has anywhere to
 put a sentence at seven columns.
+
+Collapsed, the rail is the activity bar: the section icons on top, a rule, the
+pane numbers under it, and the gear on its last row.
 
 **What the rail says besides the panes.** A pane list is three rows, so a rail
 that held only one stood forty rows tall and said nothing on most of them. The
@@ -810,7 +851,7 @@ The docked command bar supports:
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>` (`/find all <text>`), `/name <text>`, `/clear`
-  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav` (`/nav weather <place>`), `/copy`, `/dump`,
+  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav` (`/nav panes|system|activity|explorer`, `/nav weather <place>`), `/copy`, `/dump`,
   `/font`, `/theme`, `/notify`, `/restart`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
@@ -1292,6 +1333,13 @@ longer aim at.
   window rather than stacking a second copy of it.
   It is a second *surface*, not a second app: one process, one broker, one
   theme, one font.
+- **`i` in a markdown viewer pane edits it right there**, in the grid — the
+  same editor as the window below, keys and all, with the caret starting at the
+  top of what you were reading. `Esc` goes back to reading and keeps the edits;
+  closing the pane, `r`, `e` or `w` with unsaved edits asks once (or refuses)
+  rather than dropping them. While a pane is being edited its keys are the
+  editor's — a letter is a letter, Cmd+Z undoes, Cmd+S saves — and Cmd+arrows
+  still walk the grid.
 - **A markdown document in a window is an EDITOR.** It opens rendered, with a
   cursor already in it — that is the difference between reading a file and
   writing one, and it is what "preview mode" means here: the state you arrive
@@ -1300,8 +1348,14 @@ longer aim at.
   and the character goes in where you are looking; Backspace deletes the one
   behind it; Enter ends the block and starts another **of the same kind** (a
   new paragraph after prose, another item in a list, the next number in a
-  numbered one, the same indent in a nested one, the bar in a quote). No `#`,
-  no `**`, no `](` ever appears on screen. **Cmd+S** writes it; the frame's
+  numbered one, the same indent in a nested one, the bar in a quote).
+  **The block the caret is in shows its markdown** — live preview, as in
+  Obsidian: its `#`, `**`, `- `, `> `, `[text](url)` and code fences appear in
+  marker ink, its words keep their weight, and every other block stays
+  rendered. Step out of it and it renders again. So a heading's `#` can be
+  deleted, a `-` turned into a `1.`, a link's URL typed into where it stands,
+  and the caret can step into a fenced code block (Enter there is one newline,
+  keeping the line's indent). **Cmd+S** writes it; the frame's
   legend carries a `●` while there is anything unsaved, and Esc on unsaved
   changes asks once before discarding them. The legend also says where the
   caret is as `line:column` **of the file** — the `# ` you never see still

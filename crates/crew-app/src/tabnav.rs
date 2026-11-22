@@ -55,15 +55,12 @@ impl From<Vec<PaneRow>> for NavList {
 
 impl NavList {
     /// Lines below the PANES rule.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         match self {
             NavList::Flat(r) => r.len(),
             NavList::Tabs(b) => b.iter().map(|b| b.rows.len() + 2).sum(),
         }
-    }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 
     /// The PANES section: its rule on row 0 and up to `limit` lines under it.
@@ -130,7 +127,7 @@ impl NavList {
     /// The collapsed rail's rows: a `─N─` divider per tab, then its panes.
     pub(crate) fn rail_cells(&self, cols: u16, rows: u16, spin: char) -> Vec<CellView> {
         let blocks = match self {
-            NavList::Flat(r) => return crate::navrail::rail_cells(r, cols, rows, spin),
+            NavList::Flat(r) => return crate::navrailbar::rail_cells(r, cols, rows, spin),
             NavList::Tabs(b) => b,
         };
         let mut out = Vec::new();
@@ -143,7 +140,7 @@ impl NavList {
             row += 1;
             let room = rows.saturating_sub(row);
             out.extend(
-                crate::navrail::rail_cells(&b.rows, cols, room, spin)
+                crate::navrailbar::rail_cells(&b.rows, cols, room, spin)
                     .into_iter()
                     .map(|mut c| {
                         c.row += row;

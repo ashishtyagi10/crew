@@ -83,7 +83,7 @@ impl CrewApp {
             true => self.rail_line_at_cursor()?,
             false => {
                 let (rel_row, l) = self.sidebar_row()?;
-                let k = crate::hit::sidebar_pane_index(rel_row, l.panes_top)?;
+                let k = crate::hit::sidebar_pane_index(rel_row, l.panes_top?)?;
                 *self.nav_lines().get(k)?
             }
         };

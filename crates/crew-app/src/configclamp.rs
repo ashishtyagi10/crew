@@ -49,6 +49,7 @@ impl CrewConfig {
             motion: self.motion,
             density: self.density,
             nav_card: self.nav_card,
+            nav_section: self.nav_section,
             weather_place: self.weather_place,
             approval_default: self
                 .approval_default

@@ -118,3 +118,21 @@ fn a_paragraph_actually_carries_offsets() {
     assert_eq!(got.len(), "hello world".len(), "{got:?}");
     assert_eq!(got.first(), Some(&('h', 0)));
 }
+
+/// A fence's lines are the file's own bytes, so a caret can stand in code — claimed, and right.
+#[test]
+fn a_fence_actually_carries_offsets() {
+    let src = "```rust\nlet x = 1;\n    y\n```\n\n- item\n\n  ```\n  in a list\n  ```\n";
+    for cols in [12, 40] {
+        every_claim_holds(src, cols);
+    }
+    let got: String = claims(src, 40).iter().map(|(c, _)| *c).collect();
+    // A fence in a list item is drawn after the list, out of byte order, and claims nothing.
+    assert!(!got.replace(' ', "").contains("inalist"), "{got:?}");
+    for want in ["letx=1;", "y"] {
+        assert!(
+            got.replace(' ', "").contains(want),
+            "{want:?} carries no offsets: {got:?}"
+        );
+    }
+}

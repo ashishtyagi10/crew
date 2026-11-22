@@ -10,7 +10,7 @@ use wrap::{marker_span, plain_span, split_hardbreaks, wrap_group};
 #[path = "table.rs"]
 mod table;
 #[path = "wrap.rs"]
-mod wrap;
+pub(super) mod wrap;
 
 /// Reaches `table::lines` for `md::table_lines` (the viewer's CSV rung):
 /// `table` is a private submodule of `layout`, not of `md`.
@@ -51,7 +51,11 @@ fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
             None => wrap_prose_lines(spans, cols),
         },
         Block::Heading(level, spans) => super::heading::lines(level, spans, cols),
-        Block::CodeBlock { lang, lines } => super::codeblock::lines(lang, lines, cols),
+        Block::CodeBlock {
+            lang,
+            lines,
+            starts,
+        } => super::codeblock::lines(lang, lines, &starts, cols),
         Block::List(items) => list_lines(items, cols),
         Block::BlockQuote(inner) => quote_lines(inner, cols),
         Block::Table {

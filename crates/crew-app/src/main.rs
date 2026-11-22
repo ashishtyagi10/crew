@@ -286,6 +286,9 @@ mod dispatchtodo;
 mod dispatchtype;
 mod dockicon;
 #[cfg(test)]
+#[path = "docrevealshot_tests.rs"]
+mod docrevealshot_tests;
+#[cfg(test)]
 #[path = "docshot_tests.rs"]
 mod docshot_tests;
 #[cfg(test)]
@@ -407,6 +410,12 @@ mod mdcardshot_tests;
 #[path = "mdshot_tests.rs"]
 mod mdshot_tests;
 #[cfg(test)]
+#[path = "navbarshot_tests.rs"]
+mod navbarshot_tests;
+#[cfg(test)]
+#[path = "paneeditshot_tests.rs"]
+mod paneeditshot_tests;
+#[cfg(test)]
 #[path = "shotfont_tests.rs"]
 mod shotfont_tests;
 mod todocli;
@@ -428,6 +437,9 @@ mod cornershot_tests;
 #[cfg(test)]
 #[path = "crtglassshot_tests.rs"]
 mod crtglassshot_tests;
+mod explorer;
+mod explorerdraw;
+mod explorerhit;
 #[cfg(test)]
 #[path = "frameshot_tests.rs"]
 mod frameshot_tests;
@@ -464,16 +476,21 @@ mod modernring;
 mod motion;
 mod mousereport;
 mod mouseroute;
+mod navbar;
 mod navcard;
 #[cfg(test)]
 #[path = "navcontrast_tests.rs"]
 mod navcontrast_tests;
 mod navglance;
+mod navicons;
 mod navlayout;
 mod navlog;
 mod navlogscroll;
 mod navmode;
+mod navopen;
+mod navpanel;
 mod navrail;
+mod navrailbar;
 mod navrailfoot;
 mod navrailrow;
 #[cfg(test)]
@@ -483,6 +500,8 @@ mod navrelief;
 mod navreliefactive;
 mod navreliefscene;
 mod navresize;
+mod navsection;
+mod navsectionlayout;
 mod navserving;
 mod navslot;
 mod navtext;
@@ -746,6 +765,7 @@ mod usagelayout;
 mod usageledger;
 mod usagepane;
 mod verbs;
+mod viewedit;
 mod viewpane;
 #[cfg(test)]
 #[path = "viewshot_tests.rs"]

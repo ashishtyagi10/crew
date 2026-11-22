@@ -1,11 +1,13 @@
 //! A cursor that lives in the rendered document.
 //!
-//! Not in the source. The whole point of the editor is that you never see a
-//! `**` or a `#`, so the thing you move with the arrow keys has to be a place
-//! in the *render* — and every place in the render that came from the file
-//! carries the byte it came from ([`crate::md::source`]). The caret is
-//! therefore a rendered position, and its offset is read off the cell under
-//! it whenever the file has to be touched.
+//! Not in the source. The editor is a render you type into, so the thing you
+//! move with the arrow keys has to be a place in the *render* — and every
+//! place in the render that came from the file carries the byte it came from
+//! ([`crate::md::source`]). The caret is therefore a rendered position, and
+//! its offset is read off the cell under it whenever the file has to be
+//! touched. The block it is in is drawn as its source, markers and all
+//! ([`crate::md::reveal`]), so those are places too — everywhere else they
+//! stay hidden.
 //!
 //! **A cell with no offset is not a place the caret can be.** A list bullet, a
 //! table's rules, the border of a code field, the space a soft break became:

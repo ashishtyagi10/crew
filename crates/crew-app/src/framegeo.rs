@@ -42,7 +42,8 @@ impl CrewApp {
             return 0.0;
         }
         if !self.config.nav_collapsed {
-            return self.config.nav_width * scale;
+            // The panel keeps the width it was given; the activity bar stands beside it.
+            return (self.config.nav_width + self.nav_bar_w()) * scale;
         }
         match self.renderer.as_ref().map(|r| r.cell_size().0) {
             Some(cw) if cw > 0.0 => crate::navrail::px(cw),

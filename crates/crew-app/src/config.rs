@@ -116,6 +116,9 @@ pub struct CrewConfig {
     /// The nav's variable slot: `glance` (who serves, what waits on you) or `log`. `/nav`.
     #[serde(default = "default_nav_card")]
     pub nav_card: String,
+    /// The nav section the activity bar has open: panes, system, activity, explorer. `/nav`.
+    #[serde(default)]
+    pub nav_section: String,
     /// The WEATHER card's place; empty = the time zone's city, `off` = none. `/weather`.
     #[serde(default)]
     pub weather_place: String,
@@ -224,6 +227,7 @@ impl Default for CrewConfig {
             motion: default_motion(),
             density: default_density(),
             nav_card: default_nav_card(),
+            nav_section: String::new(),
             weather_place: String::new(),
             approval_default: None,
             leading: default_leading(),

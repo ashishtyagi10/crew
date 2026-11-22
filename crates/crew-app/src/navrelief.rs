@@ -20,11 +20,12 @@ use crate::reliefwell::Box4;
 
 const RULE: char = '\u{2500}';
 
-/// The rows a section opens on: those with a rule at column 1, in order.
-pub(crate) fn heads(cells: &[CellView]) -> Vec<u16> {
+/// The rows a section opens on: those with a rule at column 1 of the panel, which starts at
+/// column `x0` of the card (past the activity bar, `navopen`), in order.
+pub(crate) fn heads(cells: &[CellView], x0: u16) -> Vec<u16> {
     let mut v: Vec<u16> = cells
         .iter()
-        .filter(|c| c.col == 1 && c.c == RULE)
+        .filter(|c| c.col == x0 + 1 && c.c == RULE)
         .map(|c| c.row)
         .collect();
     v.sort_unstable();
@@ -35,9 +36,13 @@ pub(crate) fn heads(cells: &[CellView]) -> Vec<u16> {
 /// section but the first (the panel's own top edge opens that one). It
 /// runs through the middle of the gap row over the heading, or along the
 /// heading's top edge where a short nav left no gap.
-pub(crate) fn grooves(cells: &[CellView]) -> Vec<f32> {
-    let inked = |row: u16| cells.iter().any(|c| c.row == row && !c.c.is_whitespace());
-    heads(cells)
+pub(crate) fn grooves(cells: &[CellView], x0: u16) -> Vec<f32> {
+    let inked = |row: u16| {
+        cells
+            .iter()
+            .any(|c| c.row == row && c.col >= x0 && !c.c.is_whitespace())
+    };
+    heads(cells, x0)
         .into_iter()
         .skip(1)
         .map(|h| match inked(h - 1) {
@@ -48,10 +53,10 @@ pub(crate) fn grooves(cells: &[CellView]) -> Vec<f32> {
 }
 
 /// `cells` with every section's rule blanked. The heading's words stay.
-pub(crate) fn unruled(cells: &mut [CellView]) {
-    let heads = heads(cells);
+pub(crate) fn unruled(cells: &mut [CellView], x0: u16) {
+    let heads = heads(cells, x0);
     for c in cells.iter_mut() {
-        if c.c == RULE && heads.contains(&c.row) {
+        if c.c == RULE && c.col >= x0 && heads.contains(&c.row) {
             c.c = ' ';
         }
     }
@@ -60,19 +65,32 @@ pub(crate) fn unruled(cells: &mut [CellView]) {
 /// The grooves at `ys` as paint, for a nav `cols` wide with `ch` px rows:
 /// the page's dark shadow as a hairline and its light one straight under
 /// it, the two a relief card is moulded with, so the line reads as cut
-/// into the panel. They span the columns the rules did, 1 to `cols - 2`.
-pub(crate) fn groove_paint(ys: &[f32], cols: u16, ch: f32) -> Vec<Paint> {
+/// into the panel. They span the columns the rules did, `x0 + 1` to `cols - 2`.
+pub(crate) fn groove_paint(ys: &[f32], x0: u16, cols: u16, ch: f32) -> Vec<Paint> {
     let g = crew_theme::glass_style();
     let line = (ch / 16.0).round().max(1.0) / ch.max(1.0);
-    let w = f32::from(cols.saturating_sub(2));
+    let x = f32::from(x0) + 1.0;
+    let w = f32::from(cols.saturating_sub(2 + x0));
     ys.iter()
         .flat_map(|&y| {
             [
-                Paint::solid(1.0, y - line, w, line, (0, 0, 0)).at(g.shadow_alpha),
-                Paint::solid(1.0, y, w, line, g.highlight).at(g.highlight_alpha),
+                Paint::solid(x, y - line, w, line, (0, 0, 0)).at(g.shadow_alpha),
+                Paint::solid(x, y, w, line, g.highlight).at(g.highlight_alpha),
             ]
         })
         .collect()
+}
+
+/// A groove running DOWN the panel at column boundary `x`, `rows` tall — the activity bar's
+/// edge, cut the way the sections' grooves are (`cw`/`ch` keep the hairline one px wide).
+pub(crate) fn vgroove_paint(x: f32, rows: u16, cw: f32) -> Vec<Paint> {
+    let g = crew_theme::glass_style();
+    let line = (cw / 8.0).round().max(1.0) / cw.max(1.0);
+    let h = f32::from(rows);
+    vec![
+        Paint::solid(x - line, 0.0, line, h, (0, 0, 0)).at(g.shadow_alpha),
+        Paint::solid(x, 0.0, line, h, g.highlight).at(g.highlight_alpha),
+    ]
 }
 
 /// Where a tab card's well lies, for a nav whose cells start at `origin`.

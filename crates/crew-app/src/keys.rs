@@ -41,7 +41,7 @@ impl CrewApp {
 
         // Shift+PageUp/Down page and Shift+Home/End jump the scrollback
         // (`shiftscroll`), or reach a full-screen program as its own keys.
-        if self.shift_scroll_key(event, mstate) {
+        if self.view_edit_key(event, mstate) || self.shift_scroll_key(event, mstate) {
             return;
         }
 

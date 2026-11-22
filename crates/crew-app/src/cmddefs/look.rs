@@ -25,7 +25,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/nav",
-        desc: "The left column: /nav glance, /nav log, /nav weather <place>",
+        desc: "The left column: /nav panes|system|activity|explorer, glance|log, weather <place>",
     },
     Cmd {
         name: "/focus",

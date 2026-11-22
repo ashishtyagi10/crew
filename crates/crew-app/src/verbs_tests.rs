@@ -74,7 +74,12 @@ fn the_verbs_complete_and_the_folded_spellings_still_answer() {
 fn the_left_column_is_one_verb_with_the_weather_under_it() {
     let rows = menu_items("/nav ");
     let labels: Vec<&str> = rows.iter().map(|r| r.label.as_str()).collect();
-    assert_eq!(labels, vec!["glance", "log", "weather"]);
+    // The sections first, every one of them — the menu is read off the same table the bar is.
+    let sections: Vec<&str> = crate::navsection::NavSection::ALL
+        .map(|s| s.as_str())
+        .to_vec();
+    assert_eq!(labels[..sections.len()], sections[..]);
+    assert_eq!(labels[sections.len()..], ["glance", "log", "weather"]);
     assert!(
         crate::cmddefs::answered("/weather"),
         "the old spelling runs on"

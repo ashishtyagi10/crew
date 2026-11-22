@@ -29,6 +29,10 @@ impl CrewApp {
             self.toggle_nav_collapsed();
             return Press::Done;
         }
+        // The activity bar's icons and gear, open or collapsed.
+        if self.nav_bar_press() || self.explorer_press() {
+            return Press::Done;
+        }
         if self.restart_btn_at_cursor() {
             self.want_restart = true;
             return Press::Done;

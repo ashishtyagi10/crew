@@ -37,10 +37,9 @@ fn a_zero_sized_grid_draws_nothing_and_does_not_panic() {
 
 // `cells_fit_inside_the_grid` only checks `c.col < cols`, which is true even
 // for a wide glyph whose col + width overruns the edge (its fixture is ASCII).
-// Inject a CardLine directly (bypassing `lines::for_state`, which already
-// wraps by display width and so never produces this shape on its own) so a
-// double-width glyph lands with one column of room left: four 1-wide chars
-// then a 2-wide CJK glyph in a 5-column grid. A naive char-count placement
+// Inject a CardLine directly (bypassing `lines::for_state`, which already wraps by display
+// width and so never produces this shape on its own) so a double-width glyph lands with one
+// column of room left: four 1-wide chars then a 2-wide CJK glyph in a 5-column grid. A naive char-count placement
 // emits it at col 4 (4 < 5, so `cells_fit_inside_the_grid`-style checks pass)
 // while its true extent reaches column 5, one past the last valid column.
 #[test]
@@ -65,6 +64,8 @@ fn a_double_width_glyph_never_straddles_the_grid_edge() {
         invisibles: false,
         split: false,
         theme: crew_theme::current_id(),
+        reveal: None,
+        reveal_for: None,
     }));
     for c in p.cells(5, 1) {
         let w = crate::chatwidth::char_w(c.c) as u16;
@@ -90,11 +91,9 @@ fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
     assert!(p.scroll <= 3, "offset clamped to content, got {}", p.scroll);
 }
 
-// Proves REUSE, not merely that a cache exists: mutating unrelated state
-// and re-rendering at the same width must not rebuild. The obvious version
-// of this test — render twice, assert the cache holds width 30 — passes
-// even against an always-rebuild implementation, because a rebuilt cache
-// holds width 30 too.
+// Proves REUSE, not merely that a cache exists: mutating unrelated state and re-rendering at
+// the same width must not rebuild. The obvious version of this test — render twice, assert the
+// cache holds width 30 — passes even against an always-rebuild one, which holds width 30 too.
 #[test]
 fn the_cache_survives_an_unrelated_state_mutation_at_the_same_width() {
     // The cache is keyed on the THEME among other things, and the theme is a
