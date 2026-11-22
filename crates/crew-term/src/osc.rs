@@ -439,7 +439,7 @@ mod osc9_tests {
             })
         );
         // 2 = error, 4 = warning: both keep their percentage and raise it.
-        for state in [b'2', b'4'] {
+        for state in *b"24" {
             let seq = [b"\x1b]9;4;".as_slice(), &[state], b";80\x07"].concat();
             assert_eq!(
                 fed(&seq).progress(),
