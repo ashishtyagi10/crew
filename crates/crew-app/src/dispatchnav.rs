@@ -29,6 +29,11 @@ impl CrewApp {
             self.config.nav_section = s.as_str().to_string();
             self.config.nav_collapsed = false;
             self.config.save();
+            // The Explorer, asked for from the keyboard, takes it: the one way to Cmd+Shift+E's
+            // tree-from-the-keys off a Mac, where Ctrl+Shift+E is already the hints' chord.
+            if s == crate::navsection::NavSection::Explorer && !self.tree_has_keys() {
+                self.explorer_keys_toggle();
+            }
             self.set_status(format!("nav: {}", s.as_str()));
             self.redraw();
             return;

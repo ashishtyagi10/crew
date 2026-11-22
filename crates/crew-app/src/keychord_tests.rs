@@ -114,3 +114,11 @@ fn off_a_mac_the_grid_walks_with_alt_and_never_with_altgr() {
     );
     assert!(grid_held(ModifiersState::SUPER, true));
 }
+
+/// Ctrl+P is a shell's previous line: off a Mac, Cmd+P's go-to-file must not take it from a
+/// terminal or a typed line — and still reaches go-to-file everywhere else.
+#[test]
+fn ctrl_p_stays_the_shells_off_a_mac() {
+    assert!(!plain("p", true));
+    assert!(plain("p", false));
+}

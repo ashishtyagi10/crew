@@ -125,3 +125,31 @@ fn the_cursor_row_is_a_bar() {
         "no bar without the keys"
     );
 }
+
+/// Lost once, lost for good: the bar taking the keys and giving them back, or a click off
+/// the tree, does not re-arm it.
+#[test]
+fn a_lost_hold_does_not_come_back() {
+    let _g = crate::app::theme_test_guard();
+    let root = tree("klost", &["a.txt"]);
+    let mut a = app(&root);
+    a.explorer_keys_toggle();
+    a.input.focused = true;
+    let _ = a.build_frame();
+    a.input.focused = false;
+    assert!(!a.tree_has_keys(), "Cmd+I then Esc gives the pane its keys");
+    a.explorer_keys_toggle();
+    a.cursor = (900.0, 400.0);
+    let _ = a.docked_press();
+    assert!(a.sidebar.explorer.keys.is_none(), "a click off the tree");
+}
+
+/// `/nav explorer` — the keyboard's way in on every platform — hands the tree the keys.
+#[test]
+fn nav_explorer_typed_gives_the_tree_the_keys() {
+    let _g = crate::app::theme_test_guard();
+    let root = tree("knav", &["a.txt"]);
+    let mut a = app(&root);
+    a.nav_command("explorer");
+    assert!(a.tree_has_keys());
+}

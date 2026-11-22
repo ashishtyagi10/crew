@@ -48,3 +48,33 @@ fn leaving_holds_still_at_motion_off() {
     assert!((x - 100.0).abs() < 0.5, "{x}");
     assert_eq!(leave(RESTING, 400.0, Full), (0.0, 0.0));
 }
+
+/// The pointer resting on a card, and NO frames while it rests (a held stack asks for none):
+/// neither the poll's prune nor the next drawn frame may time the card out.
+#[test]
+fn a_held_card_outlives_an_idle_gap() {
+    use crate::layout::Rect;
+    use crate::toast::push_toasts;
+    let mut t = crate::toast::Toasts::default();
+    t.push("waiting".into(), "waiting", true, 0);
+    let content = Rect {
+        x: 0.0,
+        y: 0.0,
+        w: 800.0,
+        h: 600.0,
+    };
+    let mut scenes = Vec::new();
+    push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 100, None);
+    let on = Some((scenes[0].x + 2.0, scenes[0].y + 2.0));
+    scenes.clear();
+    push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 200, on);
+    let later = 200 + 3 * TTL_MS;
+    assert!(!t.expire(later), "the poll leaves a held stack alone");
+    scenes.clear();
+    push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, later, on);
+    assert_eq!(
+        scenes.len(),
+        1,
+        "the next frame under the pointer still draws it"
+    );
+}

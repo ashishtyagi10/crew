@@ -41,13 +41,14 @@ impl CrewApp {
             return;
         }
         self.tabs.enter = crate::tabentry::direction(&self.tabs, to);
-        // The tab being left does not just vanish: its cards fold away the other way.
-        let (now, dir, from) = (crate::anim::now_ms(), self.tabs.enter, self.tabs.active);
-        for p in self
-            .panes
-            .iter()
-            .filter(|p| p.tab == from && !p.hidden && dir != 0)
-        {
+        // The tab being left does not just vanish: the cards it DREW fold away the other way —
+        // the zoomed one alone when one is zoomed, else the grid's (never a pane off it).
+        let (now, dir, zoomed) = (crate::anim::now_ms(), self.tabs.enter, self.zoomed_pane());
+        let drawn = |i: usize| zoomed.map_or_else(|| self.on_grid(i), |z| z == i);
+        let gone: Vec<usize> = (0..self.panes.len())
+            .filter(|&i| dir != 0 && drawn(i))
+            .collect();
+        for p in gone.into_iter().map(|i| &self.panes[i]) {
             let exit = crate::ghost::Exit::Departed(dir);
             // No legend: under a card still assembling, its letters showed through the words.
             (self.ghosts).push(crate::ghost::Ghost::new(p.rect, String::new(), exit, now));
