@@ -87,3 +87,39 @@ fn navbar_shot_tree_keys() {
         crate::crtglassshot_tests::window_with(&name, id, opacity, &["/far"], &prep);
     }
 }
+
+/// The tree over crew's own repository with its git marks, once the nav's poll has answered.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn navbar_shot_tree_git() {
+    let _g = crate::app::theme_test_guard();
+    for id in [ThemeId::TokyoNight, ThemeId::Porcelain] {
+        let name = format!("navbar-treegit-{id:?}").to_lowercase();
+        let prep = |app: &mut crate::app::CrewApp| {
+            app.explorer_keys_toggle();
+            let root = app.explorer_root();
+            let src = app
+                .sidebar
+                .explorer
+                .items(&root)
+                .into_iter()
+                .find(|i| i.name == "src");
+            if let Some(src) = src {
+                app.sidebar.explorer.toggle(&src);
+            }
+            // The cursor on this round's own new file, so the changed rows are in view.
+            app.sidebar.explorer.keys = None;
+            app.sidebar.explorer.picked = Some(root.join("src/explorergit.rs"));
+            app.explorer_keys_toggle();
+            for t in 0..400 {
+                app.git_fleet.poll(std::slice::from_ref(&root), t * 10);
+                if app.git_fleet.files(&root).is_some() {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        };
+        let opacity = crate::tubesheer::sheer(id.theme());
+        crate::crtglassshot_tests::window_with(&name, id, opacity, &["/far"], &prep);
+    }
+}

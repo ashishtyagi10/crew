@@ -125,6 +125,23 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   (DashScope 403s every model; no other key on this machine was tried).
 - `hint.rs` had grown past 200 with R4's row: `hintmatch.rs` split out.
 
+### R8 (nav) — git's marks in the Explorer
+- Behaviour: in a repository, a changed file's name in its change's ink
+  with M/A/U/D/! at the row's end; a folder holding changes amber with a
+  dot; an untracked folder U; the root none (VS Code's tree).
+- Cost: none extra. The fleet's `git status --porcelain --branch` already
+  ran every few seconds per pane folder and kept only the line count;
+  `gitfiles::query` keeps the lines (repo root found by walking up to
+  `.git`; porcelain paths are root-relative — checked live with `-C sub`).
+  `GitInfo` untouched (in debt at 210, built literally by 8 tests).
+- Bug found by the shot: the frame's fleet poll evicted every folder that
+  was not a pane's, so a tree rooted on the remembered root (or the far
+  pane's) never had marks. While the Explorer shows, its root is polled too.
+- Measured: 8 tests (porcelain kinds incl. rename/conflict/untracked
+  folder, a real `git init` asked from a subfolder, the drawn letter and
+  dot); shots `navbar_shot_tree_git` (TokyoNight, Porcelain) — before the
+  poll fix no marks, after: `src •`, `explorerdraw.rs M`, `explorergit.rs U`.
+
 ### Fix-ups after review (R2, R3)
 - **R2:** Enter takes the highlighted row, so `/dump read` + Enter became
   `/dump readme.md` — an overwrite — already via the folder's prefix rows,
@@ -197,6 +214,11 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   the next. (Claude Code's and Cline's fallback rules: only a retryable
   failure falls back.)
 
+- **The Explorer shows what git sees** (R8): changed files are coloured
+  with a letter at the end of their row — M, A, U, D, or ! for a conflict —
+  and folders holding changes carry a dot, as in VS Code. It reads the git
+  status the nav already asks for, so it costs nothing extra. (VS Code.)
+
 ## Log
 | # | lane | merge | title | before → after |
 |---|------|-------|-------|----------------|
@@ -206,4 +228,5 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
 | R4 | ai | 44b9ca9c | provider freshness + access hint | 2 retiring ids in chains → 0; 403 bare → with fix |
 | R5 | nav | aaf4da63 | Explorer from the keyboard | mouse-only → Cmd+Shift+E + arrows, 4 tests, 2 shots |
 | R6 | perf | 94b5471c | md caret crossings memoized | 7.12 → 2.96 ms per ↓ (release, 327 KB) |
-| R7 | ai | (this) | account failure ends the chain | refused key: 3 requests → 1 |
+| R7 | ai | 3f435ee6 | account failure ends the chain | refused key: 3 requests → 1 |
+| R8 | nav | (this) | git marks in the Explorer | none → M/A/U/D/! + folder dots, 0 extra git calls |

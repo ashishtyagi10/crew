@@ -23,6 +23,8 @@ pub(crate) struct Marks<'a> {
     pub hover: Option<usize>,
     pub picked: Option<&'a Path>,
     pub cursor: Option<usize>,
+    /// What git says of the tree's files, when the root is in a repository.
+    pub git: Option<&'a crate::gitfiles::Files>,
 }
 
 /// The tree's cells for a panel `cols` × `rows`, the list scrolled by `scroll`.
@@ -36,6 +38,7 @@ pub(crate) fn cells(
         hover,
         picked,
         cursor,
+        git,
     } = marks;
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
@@ -52,9 +55,11 @@ pub(crate) fn cells(
         let lit = hover == Some(k);
         // Folders in the accent's readable ink, files in ink; the file last opened, and the row
         // under the pointer, in the accent itself.
+        let said = git.and_then(|g| crate::explorergit::said(g, item));
         let fg = match () {
             _ if item.more.is_some() => t.text_muted,
             _ if lit || picked == Some(item.path.as_path()) => accent,
+            _ if said.is_some() => crate::explorergit::ink(said),
             _ if item.dir && item.depth > 0 => crate::accentink::accent_ink(),
             _ => t.ink,
         };
@@ -68,7 +73,24 @@ pub(crate) fn cells(
             0 => item.name.to_uppercase(),
             _ => item.name.clone(),
         };
-        put(&mut out, at + 2, row, cols, &name, fg);
+        // A marked row keeps its last two columns for the mark.
+        let end = if said.is_some() {
+            cols.saturating_sub(2)
+        } else {
+            cols
+        };
+        put(&mut out, at + 2, row, end, &name, fg);
+        if let Some(s) = said {
+            let letter = crate::explorergit::letter(s);
+            put(
+                &mut out,
+                cols - 1,
+                row,
+                cols,
+                letter,
+                crate::explorergit::ink(said),
+            );
+        }
         if cursor == Some(k) {
             bar(&mut out, row, cols);
         }

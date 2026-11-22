@@ -335,6 +335,7 @@ mod ghissues;
 mod ghost;
 mod git;
 mod gitbadge;
+mod gitfiles;
 mod gitfleet;
 mod glide;
 mod glyphlang;
@@ -439,6 +440,7 @@ mod cornershot_tests;
 mod crtglassshot_tests;
 mod explorer;
 mod explorerdraw;
+mod explorergit;
 mod explorerhit;
 mod explorerkeys;
 #[cfg(test)]

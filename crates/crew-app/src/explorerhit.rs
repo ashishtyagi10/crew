@@ -126,6 +126,7 @@ impl CrewApp {
             hover,
             picked: e.picked.as_deref(),
             cursor,
+            git: self.git_fleet.files(&self.explorer_root()),
         };
         crate::explorerdraw::cells(&items, scroll, marks, (cols, rows))
     }

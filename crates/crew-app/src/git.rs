@@ -113,7 +113,7 @@ impl GitWatch {
 
 /// Parse `git status --porcelain --branch` output: the `## …` header gives the
 /// branch and ahead/behind, and each further line is one changed file.
-fn parse_status(out: &str) -> Option<GitInfo> {
+pub(crate) fn parse_status(out: &str) -> Option<GitInfo> {
     let mut lines = out.lines();
     let header = lines.next()?;
     let branch = parse_branch(header)?;
@@ -154,7 +154,7 @@ fn grab(s: &str, key: &str) -> usize {
 }
 
 /// Run `git -C dir <args>`, returning trimmed stdout on success.
-fn run(dir: &Path, args: &[&str]) -> Option<String> {
+pub(crate) fn run(dir: &Path, args: &[&str]) -> Option<String> {
     let out = no_console_window(&mut Command::new("git"))
         .arg("-C")
         .arg(dir)

@@ -45,8 +45,12 @@ impl CrewApp {
         // Each card's git badge. `poll` starts at most one `git status` at a
         // time and re-asks a directory every few seconds, so this costs a map
         // lookup on almost every frame it is called on.
-        let dirs: Vec<std::path::PathBuf> =
+        let mut dirs: Vec<std::path::PathBuf> =
             self.panes.iter().filter_map(|p| p.dir.clone()).collect();
+        // The Explorer's root is asked about too: its marks come from the same answer.
+        if self.nav_section() == crate::navsection::NavSection::Explorer {
+            dirs.push(self.explorer_root());
+        }
         self.git_fleet.poll(&dirs, now / 1000);
         // Watching is reading: the pane you are looking at, at its live
         // bottom, has everything above the tail in front of you — so its mark
