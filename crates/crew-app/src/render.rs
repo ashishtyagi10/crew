@@ -152,7 +152,7 @@ impl CrewApp {
                 self.glide_active |= !settled;
                 relayout_one(&mut self.panes[idx], drawn, cw, ch);
             }
-            let f = (!self.input.focused).then_some(self.focused);
+            let f = (!self.input.focused && !self.tree_has_keys()).then_some(self.focused);
             full_scenes(
                 &self.panes,
                 &placed.full,

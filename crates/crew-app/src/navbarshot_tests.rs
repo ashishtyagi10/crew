@@ -69,3 +69,21 @@ fn navbar_shot_tabs() {
         crate::crtglassshot_tests::window_with(&name, id, opacity, &["/far", "/far"], &prep);
     }
 }
+
+/// The tree holding the keys: a folder open, the cursor two rows down, the pane unringed.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn navbar_shot_tree_keys() {
+    let _g = crate::app::theme_test_guard();
+    for id in [ThemeId::TokyoNight, ThemeId::Porcelain] {
+        let name = format!("navbar-treekeys-{id:?}").to_lowercase();
+        let prep = |app: &mut crate::app::CrewApp| {
+            app.explorer_keys_toggle();
+            let down = winit::keyboard::Key::Named(winit::keyboard::NamedKey::ArrowDown);
+            app.explorer_tree_key(&down, true);
+            app.explorer_tree_key(&down, true);
+        };
+        let opacity = crate::tubesheer::sheer(id.theme());
+        crate::crtglassshot_tests::window_with(&name, id, opacity, &["/far"], &prep);
+    }
+}

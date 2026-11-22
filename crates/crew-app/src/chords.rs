@@ -140,6 +140,7 @@ impl CrewApp {
             // Cmd+E: label everything on the focused pane worth reaching —
             // URLs, file references, hashes — and reach it with one letter.
             "e" => self.open_hints(),
+            "E" => self.explorer_keys_toggle(),
             // Cmd+N: another canvas — a whole crew window, with its own grid,
             // its own focus and its own input bar (see `canvas`).
             "n" => self.want_window = true,

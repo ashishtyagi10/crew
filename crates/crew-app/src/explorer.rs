@@ -63,6 +63,8 @@ pub(crate) struct Explorer {
     pub scroll: usize,
     /// The file last opened from the tree, drawn marked.
     pub picked: Option<PathBuf>,
+    /// The tree's hold on the keyboard ([`crate::explorerkeys`]).
+    pub keys: Option<crate::explorerkeys::TreeKeys>,
     /// The root last shown: kept while the focused pane has no directory of its own — a viewer
     /// the tree itself just opened must not swing the tree to somewhere else.
     pub(crate) root: RefCell<Option<PathBuf>>,

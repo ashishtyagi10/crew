@@ -169,7 +169,7 @@ impl CrewApp {
 
         // Hint mode takes every key while it is on: the letters ARE the
         // interface, exactly as the `/find` bar's are.
-        if self.hint_key(event) {
+        if self.hint_key(event) || self.explorer_key(event) {
             return;
         }
 

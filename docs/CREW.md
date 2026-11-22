@@ -425,6 +425,7 @@ way that machine presses it.
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder | **Cmd+P** |
+| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder or preview a file, ← close or go up, Home/End, Esc gives the keys back | **Cmd+Shift+E** |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Save the settings form | **Cmd+S** |

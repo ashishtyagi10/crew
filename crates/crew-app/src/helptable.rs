@@ -34,6 +34,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+D", "New shell pane in this tab"),
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+P", "Go to file: /view, matching any file under the folder"),
+    (
+        "Cmd+Shift+E",
+        "The Explorer takes the keys: \u{2191}\u{2193} move, \u{2192}/Enter open, \u{2190} up, Esc back",
+    ),
     ("Cmd+,", "Settings"),
     ("Cmd+O", "Open agent smith (same as /smith)"),
     ("Cmd+G / Cmd+Z", "Toggle the nav / zoom the focused pane, or put it on the grid"),
