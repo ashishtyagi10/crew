@@ -18,7 +18,7 @@ fn a_render_is_kept_per_text_and_width() {
 #[test]
 fn blocks_follow_the_text() {
     let a = "one\n\ntwo\n";
-    assert!(Rc::ptr_eq(&blocks(a), &blocks(a)));
-    assert_eq!(blocks(a).len(), 2);
-    assert_eq!(blocks("one\n\ntwo\n\nthree\n").len(), 3);
+    assert!(Rc::ptr_eq(&walk(a), &walk(a)));
+    assert_eq!(walk(a).leaves.len(), 2);
+    assert_eq!(walk("one\n\ntwo\n\nthree\n").leaves.len(), 3);
 }

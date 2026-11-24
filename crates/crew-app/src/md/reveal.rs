@@ -41,18 +41,31 @@ impl Reveal {
 }
 
 /// The block to reveal for a caret on byte `at` of `src`, if `at` is in one: the innermost of
-/// [`blocks`] holding it — a loose item's paragraph rather than the whole item. The blocks are
+/// [`Walk::leaves`] holding it — a loose item's paragraph rather than the whole item. The blocks are
 /// parsed once per version of the text ([`super::memo`]), not once per crossing.
 pub(crate) fn block_at(src: &str, at: u32) -> Option<Reveal> {
-    let all = super::memo::blocks(src);
-    all.iter()
+    let all = super::memo::walk(src);
+    all.leaves
+        .iter()
         .filter(|b| b.holds(at))
         .min_by_key(|b| b.to - b.from)
         .copied()
 }
 
-/// Every block a caret could reveal in `src`, widened to whole lines.
-pub(super) fn blocks(src: &str) -> Vec<Reveal> {
+/// One parse of a document, read two ways: the leaf blocks a caret can reveal, and where each
+/// top-level block's first line starts — the seams [`super::blockmemo`] renders between, kept
+/// here so a keystroke pays for one walk of the document, not two (when the caret's text and the
+/// rendered text are the same bytes — a file with tabs or `\r` renders a prepared copy).
+pub(crate) struct Walk {
+    pub leaves: Vec<Reveal>,
+    /// `None` when one block's render can depend on another's: a link reference definition or
+    /// a footnote anywhere, or two top-level blocks starting on one line.
+    pub tops: Option<Vec<u32>>,
+}
+
+/// The [`Walk`] of `src`: every block a caret could reveal, widened to whole lines, and the
+/// top-level seams.
+pub(super) fn walk(src: &str) -> Walk {
     let opts = Options::ENABLE_TABLES
         | Options::ENABLE_STRIKETHROUGH
         | Options::ENABLE_TASKLISTS
@@ -61,7 +74,10 @@ pub(super) fn blocks(src: &str) -> Vec<Reveal> {
     // Open list items, by index into `found`: a tight item has no paragraph of its own, so the
     // ITEM is the leaf — up to where a list or a fence nested inside it starts.
     let mut items: Vec<usize> = Vec::new();
-    for (e, r) in Parser::new_ext(src, opts).into_offset_iter() {
+    let mut tops = super::blockseam::Seams::new(src);
+    let mut events = Parser::new_ext(src, opts).into_offset_iter();
+    for (e, r) in events.by_ref() {
+        tops.see(&e, r.start);
         let block = |kind| Reveal {
             from: r.start as u32,
             to: r.end as u32,
@@ -93,7 +109,11 @@ pub(super) fn blocks(src: &str) -> Vec<Reveal> {
             _ => {}
         }
     }
-    found.into_iter().map(|b| widen(src, b)).collect()
+    let tops = tops.done(events.reference_definitions().iter().next().is_some());
+    Walk {
+        leaves: found.into_iter().map(|b| widen(src, b)).collect(),
+        tops,
+    }
 }
 
 /// Out to whole lines: back to the start of the first, on to the end of the last.

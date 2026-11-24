@@ -1,6 +1,8 @@
 //! Markdown model shared by the parser and the layout/render pass. Kept
 //! intentionally dumb: no wrapping, no color — just parsed structure and
 //! inline styling.
+mod blockmemo;
+mod blockseam;
 mod codeblock;
 pub(crate) mod dashbreak;
 #[cfg(test)]
