@@ -12,15 +12,59 @@ Mode: $ARGUMENTS — `[lanes] [loop N | loop Nh | one]`
     `.superpowers/sdd/ai-loop-2026-09-14.md`.
   - `smith` — agent smith's depth and its pane (was `/smith-loop`). Charter:
     `.superpowers/sdd/smith-loop-2026-10-16.md`.
-  - `ui` — the terminal, panes, rendering, themes, terminal emulation (was
-    the old `/crew`). Charter: the newest `.superpowers/sdd/ui-loop-*.md`, or
-    start a new one.
+  - `ui` — panes, the nav, rendering, themes, motion (was the old `/crew`).
+  - `crew` — crew AS A TERMINAL: pty, keys, escape sequences, mouse
+    reporting, scrollback, what programs in a pane see (the "C" rounds of
+    loops 25/8/39/30).
+  - A multi-lane loop writes ONE charter, `docs/superpowers/goals/<date>-<name>.md`
+    (the practice since loop 25); the old per-lane files under
+    `.superpowers/sdd/` are history to mine, not to append to.
 - `loop N` = N rounds (default 3, cap 12); `loop Nh` ≈ N hours; `one` = a
   single round; empty = propose the top three rows per chosen lane and ask.
+  When the user names a count per lane ("10 times each"), their count wins
+  over the cap: lanes × N rounds.
 
 Read `MEMORY.md` and the linked notes first: they outrank this file. Then
 read the lane's charter — it is the loop's memory, it holds the ranked
 backlog and the shipped table, and each round writes its row there.
+
+## Before round 1 — lessons the loop has paid for
+
+- **What the user asked for outranks the backlog, and is written down at
+  once.** 2026-11-23: the user had asked for Inbox and Far as their own nav
+  items; nothing recorded it and it was lost until they asked "did we do
+  that?". So the charter opens with an **"Asked by the user"** list: every
+  ask from this conversation, from MEMORY.md open lists and from the last
+  charter's `## Close`, each with its status. A lane's first rounds take its
+  open asks; a round that can't do one says why in the list. Any NEW ask that
+  arrives mid-loop goes into the list before the next tool call. The final
+  summary reports every ask.
+- **Preflight the live check now, not in the closing notes.** Five loops in a
+  row ended "not driven live" because osascript had no assistive access and
+  `screencapture` was denied. At loop start run
+  `osascript -e 'tell application "System Events" to count processes'` and
+  `screencapture -x <scratch>/p.png`; if either fails, tell the user in the
+  FIRST message (System Settings › Privacy & Security › Accessibility and
+  Screen Recording, for the terminal crew's session runs in) and plan every
+  round's proof as (a) offscreen shots (`crtglassshot_tests::window_with`,
+  the `*_shot` tests — LOOK at the PNGs) and (b) in-process click tests that
+  find the drawn word in `build_frame()` cells and press there
+  (`navfar_tests::drawn_at` is the pattern) — those prove the hit path the
+  user's click takes.
+- **A fresh reviewer reads each round's diff before it merges.** On
+  2026-11-23 one read caught four real faults the green suite missed. Check
+  every diff for: (1) a test that seeds a process-wide static (a card, a
+  list, the motion level) holds `theme_test_guard()`, and so does every test
+  that ticks that static; (2) the draw and the hit test read ONE function for
+  what is shown; (3) a new click path that claims whole rows comes after the
+  narrower targets in `btnpress::docked_press`; (4) doc comments that name a
+  count or a cost ("five shapes", "1 + 50 units") still tell the truth;
+  (5) a new on-disk store has an env-override seam, writes only under the
+  temp dir in `cfg(test)`, and its `CREW_*` name is documented or declared
+  in `chatcomplete_env_tests`' internal list.
+- **Never run two test binaries at once** (shared temp paths flake): rounds
+  run one after another in the main checkout; parallel help is for
+  read-only surveys.
 
 ## Guardrails (these outrank any idea)
 
@@ -245,12 +289,17 @@ touched since the last release. The tag triggers
 and Windows runs until the release is published (not a draft, all assets),
 then fill the version into the rows it covers and empty the pending lists.
 If a release already went out today, leave the lists pending for tomorrow
-unless the user explicitly asks for another.
+unless the user explicitly asks for another — then
+`SAME_DAY=1 scripts/daily-release.sh` (it otherwise refuses a second
+release in one day) cuts it with the same gate and notes run.
 
 ## Unattended operation
 
 - If `git push` fails, keep the commit local, report it, and stop.
 - If a whole round produces nothing that passes the gate, stop the loop and
   say what happened.
-- Final summary: a table of rounds (lane, merge sha, title, before → after)
+- Write each round's row into the charter as soon as it merges: a long loop
+  is compacted, and the charter is what survives.
+- Final summary: the "Asked by the user" list with each ask's status, then a
+  table of rounds (lane, merge sha, title, before → after)
   and whether they were released (version) or are pending.
