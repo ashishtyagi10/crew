@@ -12,7 +12,7 @@ static STATS: AtomicUsize = AtomicUsize::new(0);
 /// the timing assertion rather than hanging the suite.
 fn slow_gone(_: &Path) -> bool {
     STATS.fetch_add(1, Ordering::SeqCst);
-    std::thread::sleep(Duration::from_millis(400));
+    std::thread::sleep(Duration::from_millis(2000));
     false
 }
 
@@ -33,7 +33,7 @@ fn the_tick_starts_a_look_without_waiting_and_lands_it_later() {
     // Long past the throttle while the first look still runs: no second look starts.
     assert!(!refresh_with(10 * EVERY_MS, true, slow_gone));
     assert!(
-        t.elapsed() < Duration::from_millis(200),
+        t.elapsed() < Duration::from_millis(1000),
         "the tick waited on the stat: {:?}",
         t.elapsed()
     );
