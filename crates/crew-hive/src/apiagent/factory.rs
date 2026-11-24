@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use super::{ApiAgent, Say};
-use crate::advisor::Find;
+use crate::advisor::{CheckAfter, Find};
 use crate::agent::Agent;
 use crate::graph::AgentKind;
 use crate::provider::Provider;
@@ -32,6 +32,7 @@ pub struct ApiFactory {
     steers: Option<Steers>,
     /// Each task's advisor: where it finds its model, how it says its line.
     advisor: Option<(Find, Say)>,
+    check_after: Option<CheckAfter>,
 }
 
 impl ApiFactory {
@@ -44,6 +45,7 @@ impl ApiFactory {
             preamble: None,
             steers: None,
             advisor: None,
+            check_after: None,
         }
     }
 
@@ -76,6 +78,13 @@ impl ApiFactory {
         self.advisor = Some((find, say));
         self
     }
+
+    /// Tell every task's advisor whether the repo's check runs after it
+    /// (see [`ApiAgent::with_check_after`]).
+    pub fn with_check_after(mut self, after: CheckAfter) -> Self {
+        self.check_after = Some(after);
+        self
+    }
 }
 
 impl AgentFactory for ApiFactory {
@@ -95,6 +104,9 @@ impl AgentFactory for ApiFactory {
         }
         if let Some((find, say)) = &self.advisor {
             agent = agent.with_advisor(Arc::clone(find), Arc::clone(say));
+        }
+        if let Some(after) = &self.check_after {
+            agent = agent.with_check_after(Arc::clone(after));
         }
         Box::new(agent)
     }

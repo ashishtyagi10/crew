@@ -11,7 +11,7 @@ pub const HEAD: &str = "ADVICE (a second model read your calls; you decide):";
 const LINES: usize = 3;
 const LINE_CAP: usize = 240;
 /// Chars of the request, of the failure, and of a call's arguments.
-const REQUEST_CAP: usize = 2_000;
+pub(super) const REQUEST_CAP: usize = 2_000;
 const FAILURE_CAP: usize = 4_000;
 const ARGS_CAP: usize = 80;
 /// Chars of the advice smith's line shows.

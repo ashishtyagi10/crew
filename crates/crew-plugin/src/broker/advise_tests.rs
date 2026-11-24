@@ -89,3 +89,17 @@ impl ToolRunner for Runs {
         (s, t) == ("sys", "run") && out.starts_with("exit 101")
     }
 }
+
+#[test]
+fn a_declared_check_tells_the_advisor_one_runs_after_the_task() {
+    let _env = crate::broker::testenv::mock("hi");
+    let dir = std::path::PathBuf::from(std::env::var("CREW_PROJECT_DIR").unwrap());
+    let after = check_after();
+    assert!(!after(), "nothing declared");
+    std::fs::create_dir_all(dir.join(".crew")).unwrap();
+    std::fs::write(dir.join(".crew/check"), "cargo test\n").unwrap();
+    assert!(
+        after(),
+        "`.crew/check` runs after every task that changed files"
+    );
+}

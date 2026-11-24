@@ -122,7 +122,8 @@ impl Broker {
             super::advise::hooks(Arc::new(move |s: Spent| {
                 lock(&billed).stats.spend(&s);
             })),
-        );
+        )
+        .with_check_after(super::advise::check_after());
         let ctx = TurnContext {
             agent: AgentId::minted(&env.to),
             events: Arc::new(Pane {

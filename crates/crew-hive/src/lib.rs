@@ -52,6 +52,7 @@ pub mod batch;
 pub mod board;
 pub mod bus;
 pub mod catalog;
+pub mod checkrun;
 pub mod childproc;
 pub mod clipmiddle;
 pub mod deviceflow;

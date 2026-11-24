@@ -11,7 +11,7 @@
 use std::sync::Arc;
 
 use crate::broker::intent::classify::ONESHOT_TIMEOUT;
-use crew_hive::advisor::{Ask, Asked, Find, Hooks};
+use crew_hive::advisor::{Ask, Asked, CheckAfter, Find, Hooks};
 use crew_hive::{CompletionRequest, ModelTier, Provider, Spent};
 
 /// The tier the advisor runs on when `CREW_ADVISOR_MODEL` names none.
@@ -25,6 +25,16 @@ const MAX_TOKENS: u32 = 1024;
 /// has failed (finding the provider reads the credential store).
 pub(crate) fn find() -> Find {
     Arc::new(live)
+}
+
+/// Whether `selfcheck::after_task` will run the repo's declared check after
+/// this task, read the way it reads it: then the advisor's read before done
+/// would only say "run the check" just ahead of the check itself.
+pub(crate) fn check_after() -> CheckAfter {
+    Arc::new(|| {
+        use crate::broker::{checkcmd, selfcheck};
+        checkcmd::enabled() && checkcmd::declared_at(&selfcheck::base_dir()).is_some()
+    })
 }
 
 /// The advisor's one quiet line, in agent smith's name, the way a taken steer
