@@ -179,47 +179,20 @@ busting the cache via `tool_addition` blocks (beta `inline-tools-2026-09-15`).
 DashScope Qwen: `enable_thinking` (+ `thinking_budget`) ride the streaming
 body only.
 
-**Harness techniques that shipped this year, not yet in crew** (the backlog's
-source; strike a row when it ships):
-- ~~prompt caching on the tool loop~~ (shipped v0.25.x)
-- ~~long tool output written to a file the agent can read back~~ (shipped)
-- ~~steer, don't queue~~ (shipped; Codex made it the default 2026-10-15)
-- a completion judge after each turn that starts another turn until a stated
-  condition holds, with a no-progress stop (Claude Code `/goal` + LLM-judged
-  `Stop` hooks, Codex goals' no-activity limit, Grok Build `/goal`); crew's
-  judge covers swarms only (`swarmverify.rs`)
-- a read-only advisor model consulted before committing to an approach, when
-  stuck, and before declaring done — advice text only, ~2–3 calls a task
-  (Anthropic `advisor_20260301`, Claude Code `/advisor`, Amp oracle, Codex
-  Guardian, Claude Code's "You should know" side agent)
-- hooks with a JSON contract — PreToolUse / PostToolUse / Stop, a block
-  reason fed back without ending the turn, fail-closed when the hook can't run
-  (Claude Code `continueOnBlock`, `onFailure: "block"`; Codex; Kiro)
-- continue a reply that died mid-stream from its partial text, retry
-  thinking-only / empty replies, cap 3 (Claude Code 2.1.288, Cline 4.1.25)
-- an ordered fallback model list on 429 / 529 / refusal / retired id, with a
-  visible "fell back to X" line (Claude Code `fallbackModel`, Kiro V3 notices)
-- effort / thinking per route and per subagent, not one global budget (Claude
-  Code Agent-tool `effort`, `output_config.effort`, Sonnet `between_tools`,
-  DashScope `enable_thinking`, DeepSeek `reasoning_effort`)
-- review in levels (Quick / Standard / Deep), each finding verified before it
-  is reported, with the blast radius (callers of a changed pub item) in front
-  of the reviewer (Claude Code Code Review levels, ultrareview, Cursor
-  Security Review)
-- memory of corrections and RULED-OUT approaches, proposed for the user to
-  accept (Kiro 1.4.0 Memory, Codex, Gemini CLI)
-- compaction that keeps tool names and finished work in the summary (no
-  re-doing pre-compaction work), per-subagent compaction windows, idle
-  compaction before the 1-hour cache expires (Claude Code 2.1.293–2.1.304);
-  crew's relay keeps 8 entries verbatim already
-- MCP 2026-07-28 — per-request `_meta` protocol version, `server/discover`,
-  `ttlMs` / `resultType` / `cacheScope` (Claude Code defaults stdio servers to
-  it since 2.1.292; crew's client still speaks 2024-11-05)
-- tool search / deferred tools once the tool list grows (Claude Code default
-  behind gateways, Codex ranked tool search, Kiro on-demand MCP tools)
-- parallel read-only tool calls in every loop (Codex default 2026-10-15; crew's
-  relay batches ≤4 reads already — check the native tool-use loops)
-- ~~a budget reminder ("3 calls left") in the last rounds~~ (`toolround::next_step`)
+**Harness techniques — what is left** (survey 2026-11-23 found the judge,
+advisor, hooks, stream resume + empty-reply retry, OpenAI-wire fallback,
+one-shot effort, verified review findings, ruled-out memory, compaction keep,
+tool search and parallel reads ALREADY SHIPPED — grep before proposing; the
+gaps below are the remainder, ranked in the newest charter's ai queue):
+- fallback chain on the Anthropic wire (529 → next model, "fell back to" line)
+- advisor before "done" when files changed and no check passed
+- effort per route and per agent for the work turn
+- review in levels (quick / standard / deep)
+- corrections PROPOSED for the user to keep, not stored silently
+- idle compaction before the 1-hour cache expiry
+- MCP 2026-07-28 handshake + `tools/list_changed` re-list
+- hook failure defaults (fail-closed option) + a UserPromptSubmit event
+- Sonnet 5.5 `between_tools` thinking (vendor-unverified)
 
 **Measure before and after.** An AI iteration is judged on a live probe, not
 on green tests alone: drive `crew --broker-plugin` over stdio JSON lines in a
