@@ -21,6 +21,16 @@ pub(crate) const RULED: &str = "ruled out: ";
 /// Chars of one correction kept. It is a reminder, not the conversation.
 const RULED_KEPT: usize = 360;
 
+/// The text, and so the key, `what` is stored under: one function for the
+/// write and for `proposed`'s "already kept?" lookup, so a long correction
+/// is found under the clip it was kept with.
+pub(crate) fn ruled_key(what: &str) -> String {
+    format!(
+        "{RULED}{}",
+        crate::broker::thread::clip_chars(what.trim(), RULED_KEPT)
+    )
+}
+
 /// Whether a stored turn's text is a correction.
 pub(crate) fn is_ruled(text: &str) -> bool {
     text.starts_with(RULED)
@@ -31,10 +41,10 @@ pub(crate) fn is_ruled(text: &str) -> bool {
 /// under (`correction::line` keeps 160 of the user's words).
 const QUOTE_CHARS: usize = 80;
 
-/// Whether the stored correction quotes `ask`. A correction is noted as its
-/// message is routed, BEFORE that message's own recall runs, and it must not
-/// come back in front of the very message that said it as something said
-/// "before".
+/// Whether the stored correction quotes `ask`. One already kept is sighted
+/// again as its message is routed, BEFORE that message's own recall runs
+/// (a new one waits for "keep", `proposed`), and it must not come back in
+/// front of the very message that said it as something said "before".
 pub(crate) fn quotes(stored: &str, ask: &str) -> bool {
     let head: String = ask.trim().chars().take(QUOTE_CHARS).collect();
     !head.is_empty() && is_ruled(stored) && stored.contains(&head)
@@ -46,20 +56,42 @@ impl Recall {
     /// about, which often names no file itself. A compaction's line is not
     /// tied: the last recorded turn is an earlier task, not the one being
     /// compacted, and its own text names the files it is about.
+    pub(crate) fn record_ruled(&mut self, what: &str, tie_last: bool) {
+        let files = match tie_last {
+            true => self.last_files(),
+            false => Vec::new(),
+        };
+        self.record_ruled_tied(what, &files);
+    }
+
+    /// The keys of the files the turn recorded last mentions. Keys, not
+    /// ids: a proposed correction (`proposed`) holds them until the user
+    /// keeps it, and by then a forget or a prune may have renumbered the ids.
+    pub(crate) fn last_files(&self) -> Vec<String> {
+        let Some(prev) = self.prev else {
+            return Vec::new();
+        };
+        self.g
+            .neighbors(prev)
+            .filter_map(|(id, _)| self.g.node(id))
+            .filter(|n| n.kind == Kind::File)
+            .map(|n| n.key.clone())
+            .collect()
+    }
+
+    /// [`Recall::record_ruled`] joined to `files` (keys from
+    /// [`Recall::last_files`]); one the graph no longer holds is skipped.
     ///
     /// The same words twice are one node with two hits (the key is the
     /// text), so a summary that carries a line forward through every
     /// compaction does not fill the graph with copies of it.
-    pub(crate) fn record_ruled(&mut self, what: &str, tie_last: bool) {
+    pub(crate) fn record_ruled_tied(&mut self, what: &str, files: &[String]) {
         let what = what.trim();
         if !self.on || what.is_empty() {
             return;
         }
         let now = now_ms();
-        let text = format!(
-            "{RULED}{}",
-            crate::broker::thread::clip_chars(what, RULED_KEPT)
-        );
+        let text = ruled_key(what);
         let mut w = Writer::default();
         let node = w.node(self, Kind::Turn, &text, &text, now);
         for t in extract::topics(what) {
@@ -71,16 +103,11 @@ impl Recall {
             let id = w.node(self, Kind::File, &p, &p, now);
             w.edge(self, node, id, Rel::Mentions);
         }
-        let last_files: Vec<NodeId> = match (tie_last, self.prev) {
-            (true, Some(prev)) => self
-                .g
-                .neighbors(prev)
-                .filter(|(id, _)| self.g.node(*id).is_some_and(|n| n.kind == Kind::File))
-                .map(|(id, _)| id)
-                .collect(),
-            _ => Vec::new(),
-        };
-        for id in last_files {
+        let tied: Vec<NodeId> = files
+            .iter()
+            .filter_map(|k| self.g.find(Kind::File, k))
+            .collect();
+        for id in tied {
             w.edge(self, node, id, Rel::Mentions);
         }
         w.flush(self);

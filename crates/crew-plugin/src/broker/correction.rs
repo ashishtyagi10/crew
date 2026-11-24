@@ -1,6 +1,9 @@
 //! Corrections are remembered: what the user ruled out, and what a long turn
 //! found did not work, written into the recall graph so the next task on the
-//! same files is told before it tries the same thing again.
+//! same files is told before it tries the same thing again. The user's own
+//! are proposed first and kept on their word (`ruledpropose`); a
+//! compaction's lines are kept at once — there is nobody to ask mid-turn,
+//! and they are the model's own findings, not a reading of the user.
 //!
 //! WHY: "no, don't touch the lockfile" or "use the lexer, not the parser"
 //! steered one turn and was gone by the next session, and a compaction's
@@ -80,18 +83,40 @@ pub(crate) fn line(clause: Option<&str>, task: &str) -> String {
     }
 }
 
-/// Remember `task` as a correction when it is one. `clause` is the router's
-/// verdict: `Some(Some(_))` it said CORRECTS, `Some(None)` it read the
-/// message and said nothing (trusted: no correction), `None` no router read
-/// it, so the [`backstop`] decides.
-pub(crate) fn note(r: &SharedRecall, clause: Option<Option<&str>>, task: &str) {
+/// Propose `task` as a correction when it is one, and return the line that
+/// asks the user to keep or forget it. `clause` is the router's verdict:
+/// `Some(Some(_))` it said CORRECTS, `Some(None)` it read the message and
+/// said nothing (trusted: no correction), `None` no router read it, so the
+/// [`backstop`] decides.
+pub(crate) fn note(r: &SharedRecall, clause: Option<Option<&str>>, task: &str) -> Option<String> {
     let what = match clause {
         Some(Some(c)) => line(Some(c), task),
-        Some(None) => return,
+        Some(None) => return None,
         None if backstop(task) => line(None, task),
-        None => return,
+        None => return None,
     };
-    recall::ruled_out(r, &what, true);
+    crate::broker::ruledpropose::propose(r, &what)
+}
+
+/// What a message leaves behind, each said in one line of the pane: a
+/// correction proposed, a standing preference kept (`standing`). One call
+/// for both doors a message comes in by (`intent::routed`, `gate::led`), so
+/// neither can say one and forget the other. `lasting` is read as `clause`.
+pub(crate) fn said(
+    session: &crate::broker::session::Session,
+    clause: Option<Option<&str>>,
+    lasting: Option<Option<&str>>,
+    task: &str,
+    emit: &mut dyn FnMut(crate::PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let lines = [
+        note(&session.recall, clause, task),
+        crate::broker::standing::note(lasting, task),
+    ];
+    for l in lines.into_iter().flatten() {
+        emit(crate::broker::relay::msg("agent smith", l))?;
+    }
+    Ok(())
 }
 
 /// The `ruled out:` lines of a summary, label and bullet taken off; a line

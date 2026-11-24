@@ -181,11 +181,8 @@ pub(crate) fn routed(
     // when it did not (off, failed, off-grammar, or plan-first's forced shape).
     let read = matches!(routing, decision::Routing::Chosen(_)) && !forced;
     let clause = read.then_some(d.hints.corrects.as_deref());
-    super::correction::note(&session.recall, clause, task);
     let lasting = read.then_some(d.hints.remember.as_deref());
-    if let Some(kept) = super::standing::note(lasting, task) {
-        emit(super::relay::msg("agent smith", kept))?;
-    }
+    super::correction::said(session, clause, lasting, task, emit)?;
     if let Some(names) = &d.hints.skills {
         skillhint::seed(task, names);
     }

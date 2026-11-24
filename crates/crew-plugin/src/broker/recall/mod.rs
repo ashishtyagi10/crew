@@ -19,11 +19,13 @@ use std::sync::{Arc, Mutex, MutexGuard};
 mod ask;
 mod block;
 mod codec;
+mod doctor;
 mod extract;
 mod forget;
 mod graph;
 mod ingest;
 mod node;
+mod proposed;
 mod query;
 mod repeats;
 mod ruled;
@@ -32,8 +34,8 @@ mod score;
 mod store;
 
 pub(crate) use block::{ago, cut, Recalled, RECALL_CAP};
+pub(crate) use doctor::doctor_line;
 
-use super::wording::count;
 use graph::Graph;
 use node::{Kind, NodeId};
 
@@ -56,6 +58,8 @@ pub(crate) struct Recall {
     prev: Option<NodeId>,
     /// `CREW_RECALL=0`, read once at open.
     on: bool,
+    /// A correction waiting for the user's keep or forget (`proposed`).
+    proposed: Option<proposed::Proposed>,
 }
 
 impl Recall {
@@ -75,8 +79,8 @@ impl Recall {
         Self {
             g,
             path,
-            prev: None,
             on,
+            ..Self::default()
         }
     }
 
@@ -115,6 +119,7 @@ impl Default for Recall {
             path: std::path::PathBuf::new(),
             prev: None,
             on: true,
+            proposed: None,
         }
     }
 }
@@ -183,9 +188,9 @@ pub(crate) fn failure_digest(output: &str) -> String {
     repeats::digest(output)
 }
 
-/// Remember that `what` was ruled out (see `ruled`): a user's correction
-/// (`tie_last`, joined to the files of the turn it corrects) or a line a
-/// compaction wrote.
+/// Remember that `what` was ruled out (see `ruled`): a line a compaction
+/// wrote. A user's correction comes in by `proposed` instead and is written
+/// only when the user keeps it.
 pub(crate) fn ruled_out(r: &SharedRecall, what: &str, tie_last: bool) {
     lock(r).record_ruled(what, tie_last);
 }
@@ -195,32 +200,6 @@ pub(crate) fn record(r: &SharedRecall, asked: &str, answered: Option<&str>) {
     if let Some(a) = answered {
         lock(r).record(asked, a);
     }
-}
-
-/// `/doctor`'s line: the mark and the detail.
-pub(crate) fn doctor_line(
-    turns: usize,
-    topics: usize,
-    files: usize,
-    pages: usize,
-) -> (char, String) {
-    let mark = if turns > 0 { '\u{2713}' } else { '\u{2013}' };
-    // Pages are named only once there are some. Every project has files; a
-    // project that has never sent crew to the web should not read as one
-    // missing something.
-    let pages = match pages {
-        0 => String::new(),
-        n => format!(", {}", count(n, "page")),
-    };
-    (
-        mark,
-        format!(
-            "{}, {}, {}{pages} in the recall graph",
-            count(turns, "turn"),
-            count(topics, "topic"),
-            count(files, "file")
-        ),
-    )
 }
 
 #[cfg(test)]

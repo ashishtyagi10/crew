@@ -56,7 +56,15 @@ pub(crate) fn gate(
 pub(crate) fn answer(session: &Session, ask: Ask) -> String {
     let mut recall = super::recall::lock(&session.recall);
     match ask {
-        Ask::List => list(&recall.ruled()),
+        Ask::List => match recall.proposed() {
+            // Asked "what did I rule out?" while one waits: it is not kept,
+            // but hiding it would make the list look like the whole story.
+            Some(p) => format!(
+                "{}\n  not kept yet: {p} (\u{201c}keep\u{201d} or \u{201c}forget\u{201d})",
+                list(&recall.ruled())
+            ),
+            None => list(&recall.ruled()),
+        },
         Ask::Forget(n) => match recall.forget_ruled(n) {
             Some(what) => format!("forgot correction {n}: {what}"),
             None => match recall.ruled().len() {

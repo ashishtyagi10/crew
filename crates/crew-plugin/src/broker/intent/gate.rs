@@ -14,10 +14,11 @@ use super::super::session::Session;
 /// Every gate, in the order that makes them safe, or `None` when the message
 /// is an ordinary task. Undo leads: it is the only one that writes over your
 /// files, so a "yes" it is holding must never reach a draft instead. Then the
-/// session switches (plan-first, the memory question — neither touches
-/// anything), then commit — on the overlapping confirm words ("yes", "do it")
-/// a pending commit outranks a pending plan — then the plan verdict, then a
-/// review of the working changes. Anything else falls through and the draft
+/// session switches (plan-first, the memory questions, a proposed
+/// correction's keep/forget — none touches your files), then commit — on
+/// the overlapping confirm words ("yes", "do it") a pending commit outranks
+/// a pending plan — then the plan verdict, then a review of the working
+/// changes. Anything else falls through and the draft
 /// stays pending.
 pub(crate) fn human_gates(
     task: &str,
@@ -34,6 +35,9 @@ pub(crate) fn human_gates(
         return Some(done);
     }
     if let Some(done) = crate::broker::ruledask::gate(task, session, emit) {
+        return Some(done);
+    }
+    if let Some(done) = crate::broker::ruledpropose::gate(task, session, emit) {
         return Some(done);
     }
     if let Some(done) = crate::broker::selfrepair::gate(task, session, emit) {
@@ -82,10 +86,7 @@ pub(crate) fn led(
         return done;
     }
     // No router reads a led turn, so the openings decide (`correction`).
-    crate::broker::correction::note(&session.recall, None, task);
-    if let Some(kept) = crate::broker::standing::note(None, task) {
-        emit(crate::broker::relay::msg("agent smith", kept))?;
-    }
+    crate::broker::correction::said(session, None, None, task, emit)?;
     let dialled = format!("@{lead} {task}");
     super::super::stdio::relay_counting(&dialled, None, false, session, tick_emit, emit)
 }

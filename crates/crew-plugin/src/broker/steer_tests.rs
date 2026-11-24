@@ -6,16 +6,16 @@ use super::*;
 /// start each turn with it empty.
 static TURN: Mutex<()> = Mutex::new(());
 
-pub(super) fn turn() -> MutexGuard<'static, ()> {
+pub(crate) fn turn() -> MutexGuard<'static, ()> {
     let g = TURN.lock().unwrap_or_else(|e| e.into_inner());
     clear();
     g
 }
 
-pub(super) type Log = Arc<Mutex<Vec<String>>>;
+pub(crate) type Log = Arc<Mutex<Vec<String>>>;
 
 /// This thread as a task's worker, its announcements written to the log.
-pub(super) fn taking(log: &Log) -> Taking {
+pub(crate) fn taking(log: &Log) -> Taking {
     let log = Arc::clone(log);
     Taking::begin(Arc::new(move |ev| {
         if let PluginEvent::Steered { channel, text } = ev {

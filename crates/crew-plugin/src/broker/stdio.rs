@@ -131,8 +131,11 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             // on a worker thread waiting for exactly this, so it only has to reach the mailbox.
             PluginCommand::Approve { id, granted } => super::approval::deliver_answer(&id, granted),
             PluginCommand::Warm {} => super::prewarm::on_warm(&mut tasks),
-            // Typed while a task runs: offered to its next tool round (`steer`).
-            PluginCommand::Steer { channel, text } => super::steer::deliver(channel, text),
+            // Typed while a task runs: offered to its next tool round (`steer`),
+            // unless it answers a waiting correction (`ruledpropose::steer`).
+            PluginCommand::Steer { channel, text } => {
+                super::ruledpropose::steer(&session.recall, channel, text)
+            }
             // The pane's Shift+Tab: the gate reads it at the next tool call.
             PluginCommand::Mode { approval } => super::approval::set_mode(approval),
         }
@@ -234,6 +237,16 @@ fn banner_for(reg: &Registry, provider: bool) -> String {
     nameplate_art()
 }
 
+/// What `/clear` forgets besides the running tasks: the thread, anything
+/// typed into a run, a pending plan, and a correction waiting for "keep" —
+/// a fresh conversation must not answer a question the old one asked.
+fn fresh_start(session: &Session) {
+    super::thread::forget(&session.thread);
+    super::steer::clear();
+    *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    super::recall::lock(&session.recall).drop_proposed();
+}
+
 /// Route one Send. `/stop [#N]` and quick constructs
 /// answer inline; every other task spawns a NEW background worker (up to the
 /// cap), so several run at once.
@@ -272,12 +285,10 @@ fn send(
     }
 
     // /clear — a fresh conversation, as Claude Code's: anything running
-    // stops, and the thread, a pending plan and anything typed into a run are
-    // forgotten. The pane clears its own transcript (`chatslash`).
+    // stops, and the thread, a pending plan, a proposed correction and
+    // anything typed into a run are forgotten. The pane clears its own transcript (`chatslash`).
     if trimmed == "/clear" {
-        super::thread::forget(&session.thread);
-        super::steer::clear();
-        *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        fresh_start(session);
         let m = match tasks.cancel_all() {
             0 => "a fresh start \u{2014} the conversation so far is forgotten".to_string(),
             n => format!(
@@ -800,3 +811,7 @@ fn relayed(
 #[cfg(test)]
 #[path = "stdio_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "stdioclear_tests.rs"]
+mod clear_tests;
