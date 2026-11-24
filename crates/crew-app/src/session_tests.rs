@@ -83,3 +83,33 @@ fn ctrl_digits_and_slash_follow_xterms_table() {
     assert_eq!(ctrl_byte('9'), None);
     assert_eq!(ctrl_byte('0'), None);
 }
+
+/// ´ then e on X11/Wayland: xkb's composed `é` is in `text` while the logical
+/// key stays the keysym's `e`, and the pane got the bare letter.
+#[test]
+fn printable_keys_type_the_composed_text() {
+    use winit::keyboard::{Key, SmolStr};
+    let e = Key::Character(SmolStr::new("e"));
+    assert_eq!(typed_bytes(&e, Some("é"), false).unwrap(), [0xc3, 0xa9]);
+    let a = Key::Character(SmolStr::new("a"));
+    assert_eq!(typed_bytes(&a, Some("a"), false).unwrap(), b"a");
+    assert_eq!(typed_bytes(&a, None, false).unwrap(), b"a");
+    // The accent alone has nothing to type yet.
+    assert_eq!(typed_bytes(&Key::Dead(Some('´')), None, false), None);
+    // Ctrl reads the keycap, whatever text came with it.
+    let c = Key::Character(SmolStr::new("c"));
+    assert_eq!(typed_bytes(&c, Some("\u{3}"), true).unwrap(), [0x03]);
+    assert_eq!(typed_bytes(&c, Some("ç"), true).unwrap(), [0x03]);
+}
+
+/// Option as Meta on a Mac is decided before any text is typed: Option+e is
+/// still `ESC e`, not the accent.
+#[test]
+fn option_as_meta_still_sends_escape_e() {
+    let alt = crate::keyenc::Mods {
+        alt: true,
+        ..Default::default()
+    };
+    let meta = crate::altmeta::meta("´", "e", alt, true, true);
+    assert_eq!(meta.unwrap(), b"\x1be");
+}

@@ -86,6 +86,9 @@ objc2-foundation = { version = "0.3", default-features = false, features = [
     # scheduled OS appearance apart from a pinned one, which `auto` needs.
     "NSString",
     "NSUserDefaults",
+    # `composeinput::hold_repeats`: the press-and-hold registration default.
+    "NSDictionary",
+    "NSValue",
     # `/todo reminders` (`reminders::ek`): EventKit's arrays, due components,
     # errors, change notice and the Info.plist note it asks with.
     "NSArray",

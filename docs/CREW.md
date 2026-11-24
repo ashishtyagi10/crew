@@ -441,6 +441,7 @@ way that machine presses it.
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
 | Meta (M-b, M-f, M-d, M-.) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
+| An accented letter (é, ñ, ü) in a terminal | the layout's dead key, then the letter (on a Mac: **Option+e** then **e**, while Option is not Meta) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |

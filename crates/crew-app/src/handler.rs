@@ -175,6 +175,8 @@ impl CrewApp {
         self.open_pending_docs(event_loop);
         self.poll_doc_windows();
         self.tick_mail_window(event_loop);
+        // A tick can move focus (a blocked pane auto-focused) with no window event after it.
+        self.sync_ime();
     }
 
     /// Whether `id` is this canvas's own window.
@@ -197,6 +199,7 @@ impl CrewApp {
             return;
         }
         self.handle_window_event(event_loop, event);
+        self.sync_ime();
     }
 }
 
@@ -211,6 +214,8 @@ pub fn run() -> anyhow::Result<()> {
     // synchronously on the main thread before the event loop starts.
     #[cfg(target_os = "macos")]
     crate::dockicon::set();
+    #[cfg(target_os = "macos")]
+    crate::composeinput::hold_repeats();
     let config = CrewConfig::load();
     crate::usageledger::init(config.usage_budget_5h, config.usage_budget_7d);
     // Publish the persisted recents once at startup so the `/model` picker's

@@ -1,0 +1,127 @@
+//! The Mac's composed text reaches the focused shell or the input bar.
+use super::ime_wanted;
+use crate::app::CrewApp;
+use crate::pane::{Pane, PaneContent, TermPane};
+use crew_term::{GridSize, PtyTerm};
+use std::io::Write;
+use std::sync::{Arc, Mutex};
+use winit::event::Ime;
+
+/// The bytes a terminal pane was sent, in place of its pty's writer.
+#[derive(Clone, Default)]
+struct Sink(Arc<Mutex<Vec<u8>>>);
+
+impl Write for Sink {
+    fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().unwrap().extend_from_slice(b);
+        Ok(b.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn shell(sink: &Sink) -> Pane {
+    let grid = GridSize { cols: 40, rows: 8 };
+    let pty = PtyTerm::spawn_in(grid, "/bin/cat", &[], Some(&std::env::temp_dir())).unwrap();
+    let content = PaneContent::Terminal(Box::new(TermPane {
+        pty,
+        input: Box::new(sink.clone()),
+        cmd: None,
+        cmd_since: None,
+        tail: Default::default(),
+        read_at: 0,
+        spans: Default::default(),
+        trail: Default::default(),
+        images: Default::default(),
+    }));
+    Pane {
+        glide: crate::glide::Glide::default(),
+        content,
+        grid,
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+        hidden: false,
+        attention: None,
+        born_ms: 0,
+        zoom: None,
+        tab: 0,
+    }
+}
+
+fn commit(s: &str) -> Ime {
+    Ime::Commit(s.to_string())
+}
+
+/// Option+e then e on a Mac: the é the input system commits is the shell's.
+#[cfg(unix)]
+#[test]
+fn a_commit_types_into_the_focused_shell() {
+    let sink = Sink::default();
+    let mut a = CrewApp {
+        panes: vec![shell(&sink)],
+        focused: 0,
+        ..Default::default()
+    };
+    a.input.focused = false;
+    a.on_ime(Ime::Preedit("´".into(), Some((0, 2))));
+    assert!(sink.0.lock().unwrap().is_empty(), "the accent waits");
+    a.on_ime(commit("é"));
+    assert_eq!(*sink.0.lock().unwrap(), [0xc3, 0xa9]);
+}
+
+/// The input bar takes the letter when it holds focus; the shell does not.
+#[cfg(unix)]
+#[test]
+fn a_commit_goes_to_the_input_bar_when_it_has_focus() {
+    let sink = Sink::default();
+    let mut a = CrewApp {
+        panes: vec![shell(&sink)],
+        ..Default::default()
+    };
+    a.input.focused = true;
+    a.input.text = "caf".into();
+    a.on_ime(commit("é"));
+    assert_eq!(a.input.text, "café");
+    assert!(sink.0.lock().unwrap().is_empty());
+}
+
+/// A Mac takes composed text unless Option is Meta, which must stay a key
+/// press for `altmeta`; elsewhere winit composes into the key press itself.
+#[test]
+fn ime_is_on_for_a_mac_unless_option_is_meta() {
+    assert!(ime_wanted(true, false));
+    assert!(!ime_wanted(true, true));
+    assert!(!ime_wanted(false, false));
+}
+
+/// IME follows focus: only the shell and the input bar take a commit, and
+/// not while help reads keys as commands — a dead key there would be held
+/// as preedit and lost.
+#[cfg(unix)]
+#[test]
+fn only_a_shell_or_the_input_bar_takes_text() {
+    let sink = Sink::default();
+    let mut a = CrewApp {
+        panes: vec![shell(&sink)],
+        ..Default::default()
+    };
+    a.input.focused = false;
+    assert!(a.takes_text());
+    a.help_open = true;
+    assert!(!a.takes_text());
+    a.on_ime(commit("é"));
+    assert!(sink.0.lock().unwrap().is_empty(), "help holds the keys");
+    a.help_open = false;
+    a.panes.clear();
+    assert!(!a.takes_text(), "no shell, no bar");
+}

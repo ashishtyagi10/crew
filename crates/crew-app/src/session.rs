@@ -38,16 +38,28 @@ pub fn key_to_bytes(
         return crate::keyenc::named(*n, m, modes.app_cursor, modes.alt_screen)
             .or_else(|| named_bytes_shift(*n, shift));
     }
-    if let Key::Character(s) = &event.logical_key {
-        // Ctrl+<letter/@-_> → the ASCII control code (Ctrl+C = 0x03, etc.).
-        if ctrl {
-            if let Some(b) = s.chars().next().and_then(ctrl_byte) {
-                return Some(vec![b]);
-            }
-        }
-        return Some(s.as_bytes().to_vec());
+    typed_bytes(&event.logical_key, event.text.as_deref(), ctrl)
+}
+
+/// The bytes a printable key types. `text` is what winit says the press
+/// produced, a dead key's accent folded in; `logical` need not carry it. On
+/// X11 and Wayland the logical key is the keysym (`e`) and only `text` holds
+/// xkb's composed `é`, so ´ then e sent `e`; on Windows the two differ when
+/// the accent cannot combine (`´x`). A lone dead key (`Key::Dead`) has
+/// nothing to type yet. On a Mac `text` is the logical key itself and the
+/// composed letter arrives as an IME commit (`composeinput`). Ctrl keeps the
+/// keycap: its control code is the letter's, not the text's.
+pub(crate) fn typed_bytes(logical: &Key, text: Option<&str>, ctrl: bool) -> Option<Vec<u8>> {
+    let Key::Character(s) = logical else {
+        return None;
+    };
+    // Ctrl+<letter/@-_> → the ASCII control code (Ctrl+C = 0x03, etc.).
+    if ctrl {
+        let code = s.chars().next().and_then(ctrl_byte);
+        return Some(code.map_or_else(|| s.as_bytes().to_vec(), |b| vec![b]));
     }
-    None
+    let printable = |t: &&str| !t.is_empty() && !t.chars().any(char::is_control);
+    Some(text.filter(printable).unwrap_or(s).as_bytes().to_vec())
 }
 
 /// Named-key bytes honouring Shift: Shift+Tab is backtab (CSI Z), and Shift+Enter

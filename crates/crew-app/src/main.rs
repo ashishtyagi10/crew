@@ -125,6 +125,7 @@ mod chatswarmshot_tests;
 #[path = "chatswarmwhyshot_tests.rs"]
 mod chatswarmwhyshot_tests;
 mod completefuzzy;
+mod composeinput;
 #[cfg(test)]
 #[path = "errwording_tests.rs"]
 mod errwording_tests;
