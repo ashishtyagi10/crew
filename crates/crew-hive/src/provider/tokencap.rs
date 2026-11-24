@@ -12,10 +12,15 @@
 #[path = "stopseq.rs"]
 mod stopseq;
 
+#[path = "lunaeffort.rs"]
+mod lunaeffort;
+
 /// `body` as `endpoint` takes it: `max_tokens` renamed to
 /// `max_completion_tokens` on OpenAI's own API, and everywhere else a
 /// text-protocol request stopped at `</tool_call>` ([`stopseq`]) — the one
-/// place every chat-completions body passes on its way to a host.
+/// place every chat-completions body passes on its way to a host. A tool
+/// request for GPT-6 Luna on OpenAI's host is also told no effort
+/// ([`lunaeffort`]), the only setting its tools work under there.
 pub(crate) fn for_endpoint(endpoint: &str, mut body: serde_json::Value) -> serde_json::Value {
     let openai = is_openai(endpoint);
     if openai {
@@ -26,6 +31,7 @@ pub(crate) fn for_endpoint(endpoint: &str, mut body: serde_json::Value) -> serde
         }
     }
     stopseq::end_text_calls(openai, &mut body);
+    lunaeffort::tools_at_no_effort(openai, &mut body);
     body
 }
 

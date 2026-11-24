@@ -43,9 +43,10 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("Claude Opus 4.8", "claude-opus-4-8", Some("anthropic/claude-opus-4.8"), Vendor::Anthropic, Some((5 * M, 25 * M)), false, 1_000_000),
     m("Claude Fable 5", "claude-fable-5", Some("anthropic/claude-fable-5"), Vendor::Anthropic, Some((10 * M, 50 * M)), false, 1_000_000),
     // OpenAI — rates from `pricing::RATES`. The GPT-6 rows are pickable but
-    // are not the `openai` default: their model pages (2026-09-29) allow
+    // do not lead the `openai` chain: their model pages (2026-09-29) allow
     // function tools on Chat Completions only at `reasoning_effort: none`
-    // (Sol, Luna) or not at all (6.1 Sol, Astra) — see `DIRECT`.
+    // (Sol, Luna) or not at all (6.1 Sol, Astra) — see `DIRECT`. Luna is its
+    // last rung, sent `none` on tool turns (`provider::lunaeffort`).
     m("GPT-6.1 Sol", "gpt-6.1-sol", Some("openai/gpt-6.1-sol"), Vendor::OpenAI, Some((2 * M, 10 * M)), false, 1_050_000),
     m("GPT-6 Sol", "gpt-6-sol", Some("openai/gpt-6-sol"), Vendor::OpenAI, Some((2 * M, 10 * M)), false, 1_050_000),
     m("GPT-6 Luna", "gpt-6-luna", Some("openai/gpt-6-luna"), Vendor::OpenAI, Some((100_000, 500_000)), false, 1_050_000),

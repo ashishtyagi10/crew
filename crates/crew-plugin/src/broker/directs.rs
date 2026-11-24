@@ -39,18 +39,24 @@ pub struct DirectProvider {
 ///
 /// Each chain was re-read against its vendor's own docs on 2026-09-29, and a
 /// model leads only if it answers a TOOL request on `/v1/chat/completions` —
-/// the one wire this table speaks. That is why OpenAI's newer GPT-6 rows are
-/// catalogued but not defaults: their model pages allow function calling on
-/// Chat Completions only at `reasoning_effort: none` (Sol, Luna) or not at all
-/// (6.1 Sol, Astra), and crew's agent sends tools on every turn.
+/// the one wire this table speaks. That is why OpenAI's newer GPT-6 rows do
+/// not lead: their model pages allow function calling on Chat Completions
+/// only at `reasoning_effort: none` (Sol, Luna) or not at all (6.1 Sol,
+/// Astra), and crew's agent sends tools on every turn. Luna is the one
+/// exception, as the LAST rung: OpenAI names it `gpt-4.1`'s replacement, and
+/// crew's body seam tells a Luna tool request no effort (`lunaeffort`).
 pub static DIRECT: &[DirectProvider] = &[
     DirectProvider {
         name: "openai",
         var: "OPENAI_API_KEY",
         endpoint: "https://api.openai.com/v1/chat/completions",
         // gpt-5 left the chain: OpenAI shuts it down 2026-12-11 (deprecations
-        // page, read 2026-11-22); gpt-4.1 follows on 2027-01-14.
-        chain: &["gpt-5.5", "gpt-4.1"],
+        // page, read 2026-11-22); gpt-5.5 has no shutdown date (re-read
+        // 2026-11-23). gpt-4.1 shuts down 2027-01-14 and backs the head up
+        // until then; gpt-6-luna, OpenAI's named replacement for it, answers
+        // once it is gone — at `reasoning_effort: none`, its page's one
+        // setting for tools on Chat Completions.
+        chain: &["gpt-5.5", "gpt-4.1", "gpt-6-luna"],
         chain_env: "CREW_OPENAI_MODEL",
         base_url_env: "CREW_OPENAI_BASE_URL",
         vendor: crew_hive::catalog::Vendor::OpenAI,

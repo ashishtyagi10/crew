@@ -3798,10 +3798,15 @@ endpoint, the key and the default model chain differ:
 
 | `CREW_PROVIDER` | Key | Default chain | Override the chain | Override the endpoint |
 |---|---|---|---|---|
-| `openai` | `OPENAI_API_KEY` | `gpt-5.5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
+| `openai` | `OPENAI_API_KEY` | `gpt-5.5` → `gpt-4.1` → `gpt-6-luna` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
 | `gemini` | `GEMINI_API_KEY` | `gemini-3.8-flash` → `gemini-3.1-pro-preview` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
 | `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-flash` → `deepseek-v4-pro` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
 | `nvidia` | `NVIDIA_API_KEY` | `nvidia/nemotron-3.5-lightning-30b-a3b` → `nvidia/nemotron-3-super-120b-a12b` → `nvidia/nemotron-3-ultra-550b-a55b` | `CREW_NVIDIA_MODEL` | `CREW_NVIDIA_BASE_URL` |
+
+OpenAI shuts `gpt-4.1` down on 2027-01-14 and names `gpt-6-luna` as its
+replacement, so Luna is the last rung. Luna takes tools on Chat Completions
+only at `reasoning_effort: none`, so Crew sends that one field on a Luna tool
+request to `api.openai.com`, and on nothing else.
 
 **Free to start.** A chat pane with no provider says this itself, in **the
 longest form that fits the rows it has** — three lengths of the same advice

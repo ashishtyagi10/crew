@@ -19,13 +19,28 @@ fn gemini_leads_with_a_ga_model() {
 }
 
 /// OpenAI's head must take function tools on Chat Completions at the default
-/// reasoning effort, which rules the GPT-6 family out (see `DIRECT`).
+/// reasoning effort, which rules the GPT-6 family out of the lead (see
+/// `DIRECT`). The one GPT-6 rung is Luna, last, because crew's body seam
+/// sends it the `reasoning_effort: none` its tools need — no other GPT-6
+/// model gets that, so no other may appear.
 #[test]
 fn openai_leads_with_the_newest_model_that_takes_tools_on_chat_completions() {
-    assert_eq!(chain("openai"), ["gpt-5.5", "gpt-4.1"]);
-    assert!(DIRECT
-        .iter()
-        .all(|d| d.chain.iter().all(|m| !m.starts_with("gpt-6"))));
+    assert_eq!(chain("openai"), ["gpt-5.5", "gpt-4.1", "gpt-6-luna"]);
+    for d in DIRECT {
+        assert!(!d.chain[0].starts_with("gpt-6"), "{}", d.name);
+        for m in d.chain.iter().filter(|m| m.starts_with("gpt-6")) {
+            assert_eq!(*m, "gpt-6-luna", "{}: no effort seam for {m}", d.name);
+        }
+    }
+}
+
+/// When `gpt-4.1` is shut down (2027-01-14) the chain must still hold a rung
+/// past it that OpenAI has not retired: its named replacement, Luna.
+#[test]
+fn openai_keeps_a_rung_past_the_gpt_4_1_shutdown() {
+    let c = chain("openai");
+    let after = c.iter().position(|m| *m == "gpt-4.1").map_or(0, |i| i + 1);
+    assert!(c[after..].contains(&"gpt-6-luna"), "{c:?}");
 }
 
 /// No chain names a model its vendor has retired or set a shutdown date for
