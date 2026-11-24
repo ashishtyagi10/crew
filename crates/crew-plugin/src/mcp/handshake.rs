@@ -53,14 +53,14 @@ impl McpClient {
             if left.is_zero() {
                 return Err(Silence::Timeout);
             }
-            match self.rx.recv_timeout(left) {
+            match self.next_message(left) {
                 Ok(v) if v.get("id").and_then(Value::as_u64) == Some(id) => {
                     return Ok(match v.get("error") {
                         Some(err) => Err(err.clone()),
                         None => Ok(v.get("result").cloned().unwrap_or(Value::Null)),
                     });
                 }
-                Ok(_) => {} // a notification or someone else's reply
+                Ok(v) => self.heard(&v), // a notification or someone else's reply
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
                 Err(mpsc::RecvTimeoutError::Disconnected) => return Err(Silence::Closed),
             }
@@ -146,6 +146,8 @@ impl McpClient {
             stdin,
             rx,
             next_id: 0,
+            tools_changed: false,
+            held: Default::default(),
             // Until a probe says otherwise requests go out legacy-style
             // (no `_meta`), which is what `initialize` itself must look like.
             version: version::LEGACY[0].to_string(),

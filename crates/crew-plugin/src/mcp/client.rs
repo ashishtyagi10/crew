@@ -14,6 +14,8 @@ use serde_json::{json, Value};
 #[path = "handshake.rs"]
 mod handshake;
 use handshake::Silence;
+#[path = "notice.rs"]
+mod notice;
 #[path = "version.rs"]
 mod version;
 
@@ -38,6 +40,12 @@ pub struct McpClient {
     next_id: u64,
     /// The protocol revision agreed with this server (see `version.rs`).
     version: String,
+    /// The server said its tools changed since they were last listed
+    /// (`notice.rs`).
+    tools_changed: bool,
+    /// Messages read off the pipe to look for that notice, in arrival
+    /// order; a wait reads them before the pipe.
+    held: std::collections::VecDeque<Value>,
 }
 
 impl McpClient {
@@ -101,6 +109,9 @@ impl McpClient {
     pub fn tools(&mut self) -> Result<Vec<(String, String, Value)>, String> {
         let mut tools = Vec::new();
         let mut cursor: Option<String> = None;
+        // This listing answers every change announced before it; one that
+        // arrives while it runs marks the next listing stale again.
+        self.take_tools_changed();
         for _ in 0..PAGES {
             let params = cursor.map_or(json!({}), |c| json!({"cursor": c}));
             let r = self.request("tools/list", params)?;

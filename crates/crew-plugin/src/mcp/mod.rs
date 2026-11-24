@@ -5,6 +5,7 @@
 mod client;
 pub(crate) mod config;
 mod content;
+mod relist;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -199,46 +200,26 @@ impl McpHost {
         Ok(self.clients.get_mut(server).expect("just inserted"))
     }
 
-    /// One server's tools, fetched once and cached for the session.
+    /// One server's tools, fetched once and cached for the session — until the
+    /// server says they changed (`relist.rs`).
     fn fetch(&mut self, server: &str) -> Result<Vec<McpTool>, String> {
+        self.relist_if_changed(server);
         if let Some(t) = self.cache.get(server) {
             return Ok(t.clone());
         }
-        let list = match self.client(server)?.tools() {
-            Ok(list) => list,
-            Err(e) => {
-                // Connected but the tool listing failed — worth its own note
-                // (the connect keys are already spent by `client()`).
-                self.note_once(
-                    format!("{server}:fail"),
-                    true,
-                    &format!("mcp {server}: {e}"),
-                );
-                return Err(e);
-            }
-        };
+        let tools = self.fetch_listing(server)?;
         self.note_once(
             String::new(),
             false,
             &format!(
                 "mcp {server} connected \u{b7} {}",
-                count(list.len(), "tool")
+                count(tools.len(), "tool")
             ),
         );
         if let Some(events) = &self.events {
-            let names: Vec<&str> = list.iter().map(|(n, ..)| n.as_str()).collect();
+            let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
             events(loaded_event(server, &names));
         }
-        let tools: Vec<McpTool> = list
-            .into_iter()
-            .map(|(name, description, input_schema)| McpTool {
-                server: server.to_string(),
-                name,
-                description,
-                input_schema,
-            })
-            .collect();
-        self.cache.insert(server.to_string(), tools.clone());
         Ok(tools)
     }
 
