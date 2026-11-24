@@ -36,6 +36,14 @@ impl StatsPane {
             NavSection::Activity => activity_cells(l, cols, input),
             NavSection::Panes => panes_cells(l, cols, rows, input.panes),
             NavSection::Explorer => explorer_cells(cols),
+            NavSection::Inbox => crate::navinbox::cells(
+                &crate::inboxglance::state(),
+                &crate::inboxglance::unread(),
+                None,
+                crate::chattime::unix_now_ms() as i64,
+                (cols, rows),
+            ),
+            NavSection::Far => crate::navfar::cells(&crate::farrecent::list(), None, (cols, rows)),
         }
     }
 

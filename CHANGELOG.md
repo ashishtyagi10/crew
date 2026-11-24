@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.24
+
+**Inbox and Far get their own places in the left nav.**
+
+Inbox:
+- A new envelope icon in the activity bar opens an Inbox panel: your newest unread threads, each with who wrote, how long ago, and the subject. The panel's heading says how many are unread, and the icon carries the count (a dot past nine).
+- Clicking a thread opens the inbox on that thread — right away if the inbox already has it, or as soon as its list arrives. Clicking elsewhere on the panel opens the inbox; signed out, the panel says so and a click signs you in.
+- The INBOX card in Activity stays where it was.
+
+Far:
+- A new icon (two file panels) opens a Far panel: the folders Far went to most recently, newest first, with where each one is. The list is kept between launches.
+- Clicking a folder takes the open Far pane there, or opens Far on it.
+
+`/nav inbox` and `/nav far` open the two panels from the keyboard.
+
 ## 0.30.23
 
 **Cmd+P goes to any file; the Explorer shows git and takes keys.**

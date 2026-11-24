@@ -28,7 +28,7 @@ fn a_count_names_the_newest_unread_by_sender_and_subject() {
 #[test]
 fn a_fetch_lands_as_a_count_or_says_what_went_wrong() {
     assert_eq!(
-        super::landed(Ok((3, None))),
+        super::landed(Ok((3, Vec::new()))),
         Card::Count {
             unread: 3,
             newest: None
@@ -50,6 +50,8 @@ fn a_fetch_lands_as_a_count_or_says_what_went_wrong() {
 /// signed-out tick: no card, and nothing asked of Gmail.
 #[test]
 fn signed_out_there_is_no_card() {
+    // The card is process-wide; the nav's click tests seed it under the same guard.
+    let _g = crate::app::theme_test_guard();
     let mut app = crate::app::CrewApp::default();
     app.tick_inbox(1_000_000);
     assert_eq!(super::state(), Card::Off);

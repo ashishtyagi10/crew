@@ -61,6 +61,8 @@ pub(crate) fn at_row(row: u16, rows: u16) -> Option<BarHit> {
 pub(crate) struct Badges {
     pub panes: Option<(char, (u8, u8, u8))>,
     pub waiting: usize,
+    /// Unread mail threads, marked on the Inbox icon.
+    pub unread: u64,
 }
 
 /// The loudest mark among `panes`, in the rail's own priority: attention, then work in progress,
@@ -111,6 +113,11 @@ pub(crate) fn bar_cells(open: Option<NavSection>, badges: Badges, rows: u16) -> 
             NavSection::Activity if badges.waiting > 0 => {
                 let n = std::char::from_digit(badges.waiting.min(9) as u32, 10).unwrap_or('+');
                 Some((if badges.waiting > 9 { '+' } else { n }, t.bell))
+            }
+            NavSection::Inbox if badges.unread > 0 => {
+                let n = std::char::from_digit(badges.unread.min(9) as u32, 10).unwrap_or('+');
+                // A dot past nine: a `+` beside an envelope reads as "compose".
+                Some((if badges.unread > 9 { '\u{25cf}' } else { n }, accent))
             }
             _ => None,
         };
