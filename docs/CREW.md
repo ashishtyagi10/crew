@@ -812,9 +812,13 @@ The docked command bar supports:
   its first result, the same edit failing again, the same output twice), the
   advisor gets the calls list and names the step that is missing, once per
   such stall. And an answer about to stand is read once when the turn changed
-  files (`sys:edit`, `sys:write_file`) and no check (a `sys:run` of a build,
-  test or lint runner) passed after the last change, unless a failed check or
-  stall was already read since then: the advisor sees the request, the calls,
+  code files (`sys:edit`, `sys:write_file`) and no check (a `sys:run` of a
+  build, test or lint run, `cargo test 2>&1 | tail` and `npx eslint` included)
+  passed after the last change, unless a failed check or stall was already
+  read since then. It skips prose-only edits (`.md`, `.txt`, `.json`, `.toml`,
+  `.yaml` and the like, or anything under `docs/`, `.crew/`, `.superpowers/`),
+  and skips the read entirely when the repo declares a check (`.crew/check`
+  or its `AGENTS.md`) that crew runs after the task anyway: the advisor sees the request, the calls,
   the files changed, the last check and the answer, and its advice goes back
   with one more round to run the check or make the fix before answering again.
   The agent decides what to
@@ -823,7 +827,8 @@ The docked command bar supports:
   `/stop` pressed while the check ran or while it is read ends the turn before
   the next dial, as it always has.
   `CREW_ADVISOR=0` turns it off, `CREW_ADVISOR_MODEL` picks the model. Swarm
-  workers and CLI agents run their own loops and are not advised.
+  workers are advised the same way, each task its own advisor; CLI agents run
+  their own loops and are not advised.
 
 - **Smart bare-input routing** — plain text (not a slash command, `cd`, or a
   prefix below) routes by context: if the focused pane is a **visible, idle

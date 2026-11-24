@@ -13,11 +13,42 @@
 //!
 //! Never when nothing was written, when a check passed after the last write,
 //! or when the advisor already read a round since that write (a failed build
-//! after it, a stall): the agent has heard from it about this change. Once a
-//! turn, from the same [`super::PER_TURN`] reads the others draw on.
+//! after it, a stall): the agent has heard from it about this change. Nor for
+//! prose ([`prose`]: docs, notes, config data), which no build or test would
+//! prove, nor when the repo's own check runs after the task anyway
+//! ([`CheckAfter`], crew-plugin `selfcheck::after_task`). Once a turn, from
+//! the same [`super::PER_TURN`] reads the others draw on.
+
+use std::sync::Arc;
 
 use crate::clipmiddle::clip_middle;
 use crate::tools::ToolCall;
+
+/// Whether the repo's own check runs after this task, asked only when a read
+/// is otherwise due (it may read the repo's files). When it does, a read
+/// before the answer would only say "run the check" ahead of the check.
+pub type CheckAfter = Arc<dyn Fn() -> bool + Send + Sync>;
+
+/// Extensions of files no check proves: prose and data.
+const PROSE: &[&str] = &[
+    "md", "markdown", "txt", "rst", "json", "toml", "yaml", "yml", "lock", "csv",
+];
+
+/// Directories that hold notes, plans and docs rather than code.
+const PROSE_DIRS: &[&str] = &[".crew", "docs", ".superpowers"];
+
+/// Whether `path` is prose: an extension in [`PROSE`] or a directory in
+/// [`PROSE_DIRS`] anywhere along it.
+fn prose(path: &str) -> bool {
+    let p = std::path::Path::new(path);
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase);
+    ext.is_some_and(|e| PROSE.contains(&e.as_str()))
+        || p.components()
+            .any(|c| PROSE_DIRS.iter().any(|d| c.as_os_str() == *d))
+}
 
 /// Chars of the answer the brief shows.
 const ANSWER_CAP: usize = 1_500;
@@ -48,6 +79,10 @@ impl Done {
         match (call.server.as_str(), call.tool.as_str()) {
             ("sys", "edit" | "write_file") if ok => {
                 let path = field("path").unwrap_or_else(|| clip_middle(&call.args, 80));
+                // A prose write leaves the turn as it was: nothing to check.
+                if prose(&path) {
+                    return;
+                }
                 if !self.edited.contains(&path) {
                     self.edited.push(path);
                 }
@@ -111,9 +146,21 @@ impl super::Advisor {
             return None;
         }
         s.done.asked = true;
+        if self.check_after.as_ref().is_some_and(|f| f()) {
+            return None;
+        }
         let ask = s.ask.get_or_insert_with(|| (self.find)()).clone()?;
         s.asked += 1;
         Some((ask, brief(&self.request, &s.calls, &s.done, answer)))
+    }
+}
+
+impl super::Advisor {
+    /// Skip the read before done when `after` says the repo's check runs
+    /// after the task ([`CheckAfter`]).
+    pub fn with_check_after(mut self, after: CheckAfter) -> Self {
+        self.check_after = Some(after);
+        self
     }
 }
 

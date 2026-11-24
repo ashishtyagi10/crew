@@ -12,10 +12,11 @@
 //! When: a tool round in which a `sys:run` ran and exited non-zero
 //! (`Tools::failed`), or one that told the agent nothing new (`stall`: every
 //! call a repeat with the same result), once per stall, or an answer about
-//! to stand on files changed with no check passing since (`done`), once a
-//! turn; at most [`PER_TURN`] times a turn, all three counted. A stall's
-//! brief is the calls list and what it means to repeat them, with no failure
-//! to cut. For a failure it reads the request,
+//! to stand on code changed with no check passing since (`done`: not for
+//! prose, nor when the repo's check runs after the task), once a turn; at
+//! most [`PER_TURN`] times a turn, all three counted. A stall's brief is the
+//! calls list and what it means to repeat them, with no failure to cut. For a
+//! failure it reads the request,
 //! the turn's calls one line each, and the failure cut to its useful part
 //! (`failexcerpt`), which keeps first the line a run cut for length opens
 //! with, every error by its place: the errors the cut dropped are the ones
@@ -41,6 +42,7 @@ mod done;
 mod stall;
 mod text;
 
+pub use done::CheckAfter;
 pub use text::HEAD;
 
 /// Most advisor calls in one turn, failures, stalls and answers together. A
@@ -76,6 +78,8 @@ pub struct Advisor {
     tools: Arc<dyn Tools>,
     find: Find,
     hooks: Hooks,
+    /// Whether the repo's check runs after the task (`done`).
+    check_after: Option<CheckAfter>,
     state: Mutex<State>,
 }
 
@@ -106,6 +110,7 @@ impl Advisor {
             tools,
             find,
             hooks,
+            check_after: None,
             state: Mutex::default(),
         }
     }

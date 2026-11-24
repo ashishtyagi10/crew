@@ -35,7 +35,7 @@ const DETECTED: &[(&str, &str)] = &[
     ("Makefile", "make"),
 ];
 
-fn base_dir() -> PathBuf {
+pub(crate) fn base_dir() -> PathBuf {
     std::env::var("CREW_PROJECT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."))

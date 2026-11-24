@@ -45,7 +45,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::advisor::Find;
+use crate::advisor::{CheckAfter, Find};
 use crate::agent::{Agent, AgentContext, Attempt};
 use crate::board::TaskResult;
 use crate::graph::AgentKind;
@@ -75,6 +75,8 @@ pub struct ApiAgent {
     /// Where each task's advisor finds its model, and how it says its line
     /// (`crate::advisor`); `None` for no advisor.
     advisor: Option<(Find, Say)>,
+    /// Whether the repo's check runs after the task (`advisor::CheckAfter`).
+    check_after: Option<CheckAfter>,
 }
 
 impl ApiAgent {
@@ -87,6 +89,7 @@ impl ApiAgent {
             preamble: None,
             steers: None,
             advisor: None,
+            check_after: None,
         }
     }
 
@@ -141,6 +144,7 @@ impl Agent for ApiAgent {
         let preamble = self.preamble.clone();
         let steers = self.steers.clone();
         let advisor = self.advisor.clone();
+        let after = self.check_after.clone();
         Box::pin(async move {
             let task_id = ctx.task.id;
             // Honour the per-task model tier the planner assigned, not a fixed
@@ -166,7 +170,7 @@ impl Agent for ApiAgent {
             };
             let mut turn = ctx.turn();
             if let (Some(t), Some(a)) = (&tools, &advisor) {
-                turn.advice = Some(Arc::new(advisor_for(&ctx, t, a)));
+                turn.advice = Some(Arc::new(advisor_for(&ctx, t, a, after)));
             }
             let ended = harness::run(turn, spec, provider, tools, steers).await;
             attempt_of(ended, task_id)

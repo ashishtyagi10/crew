@@ -116,7 +116,8 @@ pub(super) fn backend_at(
                         // What the user types mid-run, read by every worker.
                         .with_steers(Steers::new(crate::broker::steer::take))
                         // A failed check read by a second model, as a relay turn's is.
-                        .with_advisor(crate::broker::advise::find(), crate::broker::advise::say());
+                        .with_advisor(crate::broker::advise::find(), crate::broker::advise::say())
+                        .with_check_after(crate::broker::advise::check_after());
                     if let Some(t) = tools {
                         f = f.with_tools(t);
                     }

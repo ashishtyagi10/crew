@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use crate::advisor::{Advisor, Find, Hooks};
+use crate::advisor::{Advisor, CheckAfter, Find, Hooks};
 use crate::agent::AgentContext;
 use crate::bus::HiveEvent;
 use crate::tools::Tools;
@@ -19,6 +19,7 @@ pub(super) fn advisor_for(
     ctx: &AgentContext,
     tools: &Arc<dyn Tools>,
     (find, say): &(Find, Say),
+    after: Option<CheckAfter>,
 ) -> Advisor {
     let (bus, agent) = (ctx.bus.clone(), ctx.agent.clone());
     let spent = Arc::new(move |s: crate::spent::Spent| {
@@ -36,10 +37,23 @@ pub(super) fn advisor_for(
         say: Arc::clone(say),
         spent,
     };
-    Advisor::new(
+    let advisor = Advisor::new(
         ctx.task.prompt.clone(),
         Arc::clone(tools),
         Arc::clone(find),
         hooks,
-    )
+    );
+    match after {
+        Some(after) => advisor.with_check_after(after),
+        None => advisor,
+    }
+}
+
+impl super::ApiAgent {
+    /// Let each task's advisor skip its read before done when the repo's own
+    /// check runs after the task anyway (`advisor::CheckAfter`).
+    pub fn with_check_after(mut self, after: CheckAfter) -> Self {
+        self.check_after = Some(after);
+        self
+    }
 }
