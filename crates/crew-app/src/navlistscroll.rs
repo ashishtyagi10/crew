@@ -76,9 +76,11 @@ impl CrewApp {
         let Some(off) = self.sidebar.lists.slot(s) else {
             return false;
         };
-        // Clamped by the same window the draw reads, so the stored offset is never one the
-        // panel would show differently.
-        let wanted = (*off as i64 - i64::from(lines)).max(0) as usize;
+        // From where the panel is DRAWN, not the stored offset: a list that shrank since the
+        // last wheel would otherwise spend the first notch walking back to the clamp. Stored
+        // through the same window the draw reads.
+        let cur = window(*off, len, fits).0;
+        let wanted = (cur as i64 - i64::from(lines)).max(0) as usize;
         *off = window(wanted, len, fits).0;
         true
     }

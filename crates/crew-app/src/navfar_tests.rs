@@ -101,5 +101,6 @@ fn a_click_on_a_folder_opens_far_there() {
     // …and the move is what the list learns next tick.
     a.tick_far_recent();
     assert_eq!(crate::farrecent::list().first(), Some(&two));
+    crate::farrecent::clear();
     let _ = std::fs::remove_dir_all(&base);
 }

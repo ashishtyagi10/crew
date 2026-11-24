@@ -80,6 +80,7 @@ fn the_wheel_scrolls_far_and_a_click_opens_the_folder_drawn_there() {
         find_drawn(&mut a, "fold00").is_some(),
         "the end is in reach"
     );
+    crate::farrecent::clear();
     let _ = std::fs::remove_dir_all(&base);
 }
 
@@ -153,5 +154,6 @@ fn nav_far_scrolled_shot() {
     };
     let id = crew_theme::ThemeId::TokyoNight;
     crate::crtglassshot_tests::window_sized("nav-far-scrolled", id, 1.0, &[], &prep, (900, 280));
+    crate::farrecent::clear();
     let _ = std::fs::remove_dir_all(&base);
 }
