@@ -49,6 +49,7 @@ impl CrewApp {
         // translucency — otherwise macOS keeps `NSWindow.isOpaque` false and
         // draws the title bar against the desktop, which is not ours to paint.
         crate::titlebar::apply_window(&window, self.window_opacity());
+        crate::composeinput::allow_ime(&window, self.config.option_as_meta);
 
         // Two things can want the launch note. A crash outranks a version
         // banner — the user watched the window vanish for no stated reason, and

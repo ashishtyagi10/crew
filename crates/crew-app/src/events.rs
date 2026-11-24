@@ -223,6 +223,7 @@ impl CrewApp {
                 self.scroll_at_cursor(lines, wheel);
             }
             WindowEvent::KeyboardInput { event, .. } => self.on_key_event(event_loop, &event),
+            WindowEvent::Ime(ime) => self.on_ime(ime),
             WindowEvent::Occluded(hidden) => self.set_occluded(hidden),
             WindowEvent::Resized(size) => self.on_resized(size),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
