@@ -4,6 +4,7 @@ use alacritty_terminal::vte::ansi::{Color, NamedColor};
 
 #[test]
 fn named_red_resolves_to_active_theme_ansi() {
+    let _t = crate::testtheme::lock();
     crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
     let palette = Colors::default(); // all slots unset → fall back to theme
     let got = resolve_color(

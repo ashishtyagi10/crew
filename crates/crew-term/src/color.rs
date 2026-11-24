@@ -40,14 +40,14 @@ pub(crate) fn xterm_palette(index: usize) -> Option<(u8, u8, u8)> {
 
 /// Answer a program's color query (OSC 4/10/11/12) for palette slot `index`,
 /// mirroring how [`resolve_color`] paints — both read [`xterm_palette`] — plus
-/// the theme terminal fg/bg/cursor for the named slots. `None` for slots we
-/// don't model (no reply is sent).
+/// the theme terminal fg/bg for the named slots. `None` for slots we don't
+/// model (no reply is sent). The cursor (258) is answered by
+/// [`crate::cursor::ink`], the colour it is drawn in.
 pub(crate) fn query_color(index: usize) -> Option<Rgb> {
     let t = crew_theme::theme();
     let (r, g, b) = match index {
         256 => t.term_fg, // NamedColor::Foreground
         257 => t.term_bg, // NamedColor::Background
-        258 => t.term_fg, // NamedColor::Cursor
         _ => xterm_palette(index)?,
     };
     Some(Rgb { r, g, b })
