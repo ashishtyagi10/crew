@@ -37,12 +37,16 @@ const RULES: &[Rule] = &[
     Rule("o3-pro", (2026, 12, 11), "gpt-6.1-sol", false),
     Rule("gpt-4.1", (2027, 1, 14), "gpt-6-luna", false),
     Rule("gpt-4o", (2027, 1, 14), "gpt-6-luna", false),
+    Rule("gpt-4o-mini", (2027, 1, 14), "gpt-6-luna", false),
+    Rule("gpt-4.1-mini", (2027, 1, 14), "gpt-6-luna", false),
     // Anthropic — platform.claude.com/docs/en/about-claude/model-deprecations,
     // read 2026-11-24 (also .claude/commands/crew.md "What is current").
     Rule("claude-sonnet-4-5", (2026, 11, 30), "claude-sonnet-5-5", false),
+    Rule("claude-opus-4-5", (2027, 1, 22), "claude-opus-5-5", false),
     // Google — aistudio.google.com/docs/deprecations, read 2026-11-24: API
     // calls route to the replacement from the date.
     Rule("gemini-2.5-pro", (2026, 12, 1), "gemini-3.8-flash", true),
+    Rule("gemini-2.5-flash", (2026, 12, 1), "gemini-3.5-flash-lite", true),
 ];
 
 /// The vendor's notice for `id` as of `today` (days since 1970-01-01, UTC),

@@ -51,6 +51,13 @@ fn dated_snapshots_share_their_base_date() {
         "gpt-6.1-terra"
     );
     assert_eq!(sunset("gpt-4.1", t).unwrap().day(), "Jan 14");
+    // Read off the vendor pages 2026-11-24: the minis, Opus 4.5 and 2.5 Flash have dates too.
+    assert_eq!(sunset("gpt-4o-mini-2024-07-18", t).unwrap().day(), "Jan 14");
+    assert_eq!(
+        sunset("claude-opus-4-5", t).unwrap().next,
+        "claude-opus-5-5"
+    );
+    assert!(sunset("gemini-2.5-flash", t).unwrap().routed);
 }
 
 #[test]
@@ -59,9 +66,10 @@ fn neighbours_of_a_dated_id_are_untouched() {
     for id in [
         "gpt-5.5",
         "gpt-6.1-sol",
-        "gpt-4o-mini",
-        "gpt-4.1-mini",
+        "gpt-4o-mini-tts",
+        "gpt-4.1-nano",
         "o3-mini",
+        "gemini-2.5-flash-lite",
         "gpt-5-1",
         "gemini-2.5-pro-preview-tts",
         "claude-sonnet-5-5",

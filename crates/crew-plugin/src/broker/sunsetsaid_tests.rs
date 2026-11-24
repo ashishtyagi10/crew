@@ -87,3 +87,25 @@ fn a_pinned_agents_reply_carries_the_notice() {
     assert!(u.retiring.starts_with(&format!("{pin} retire")), "{u:?}");
     assert!(u.retiring.ends_with("claude-sonnet-5-5 next"), "{u:?}");
 }
+
+/// Past the date every call fails, so the error itself says why.
+#[test]
+fn a_call_to_a_retired_model_fails_saying_so() {
+    let at = |y, m, d| crew_hive::catalog::sunset::days_from_civil(y, m, d);
+    let err = || "HTTP 404: model not found".to_string();
+    let after = super::why_failed_on("o3-pro", err(), at(2026, 12, 12));
+    assert!(after.contains("o3-pro retired Dec 11"), "{after}");
+    assert_eq!(
+        super::why_failed_on("o3-pro", err(), at(2026, 12, 10)),
+        err()
+    );
+    // Re-routed, not turned off: the error is the vendor's own.
+    assert_eq!(
+        super::why_failed_on("gemini-2.5-pro", err(), at(2027, 1, 1)),
+        err()
+    );
+    assert_eq!(
+        super::why_failed_on("gpt-5.5", err(), at(2027, 1, 1)),
+        err()
+    );
+}

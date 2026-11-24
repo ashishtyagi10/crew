@@ -36,7 +36,7 @@ impl Bounded {
                 None => inner.complete(req),
             };
             let c = match tokio::time::timeout(timeout, call).await {
-                Ok(got) => got?,
+                Ok(got) => got.map_err(|e| crate::broker::sunsetsaid::why_failed_hop(&model, e))?,
                 Err(_) => {
                     return Err(ProviderError::Http(format!(
                     "{model}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)"

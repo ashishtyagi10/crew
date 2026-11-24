@@ -53,7 +53,7 @@ fn an_undated_row_reads_as_before() {
         d,
         "gpt-5.5 \u{b7} $5/$30 \u{b7} 1M \u{b7} mock \u{b7} \u{25cf} current"
     );
-    assert!(!row_desc("gpt-4o-mini", nov24).contains("retire"));
+    assert!(!row_desc("gpt-6-luna", nov24).contains("retire"));
 }
 
 /// The value picker for `/model gpt` drawn in a window, to look at the
