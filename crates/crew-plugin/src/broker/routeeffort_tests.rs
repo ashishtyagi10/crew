@@ -169,9 +169,10 @@ fn an_agent_set_to_max_sends_max_whatever_the_route() {
 #[test]
 fn the_chat_completions_wire_carries_it_to_gpt_6_only() {
     let _env = crate::broker::testenv::mock("unused");
-    let (_d, _scope) = decided(&routed(Shape::Review));
+    // Lowered only (a commit): GPT-6 keeps its 4096 ceiling, so a raise is never sent.
+    let (_d, _scope) = decided(&routed(Shape::Commit));
     let sol = openai("gpt-6.1-sol");
-    assert_eq!(sol["reasoning_effort"], "high", "{sol}");
+    assert_eq!(sol["reasoning_effort"], "low", "{sol}");
     let old = openai("gpt-4.1");
     assert!(old.get("reasoning_effort").is_none(), "{old}");
 }

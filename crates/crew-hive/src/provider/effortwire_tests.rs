@@ -45,19 +45,14 @@ fn a_written_level_is_read_and_a_mistyped_one_is_not() {
 }
 
 #[test]
-fn gpt_6_without_tools_takes_up_to_high() {
-    assert_eq!(
-        openai_field("gpt-6.1-sol", Some(Effort::High), false),
-        Some("high")
-    );
+fn gpt_6_without_tools_is_only_ever_lowered() {
+    // Its reply ceiling stays 4096: a raised effort could think the whole reply away.
+    assert_eq!(openai_field("gpt-6.1-sol", Some(Effort::High), false), None);
     assert_eq!(
         openai_field("gpt-6-luna", Some(Effort::Low), false),
         Some("low")
     );
-    assert_eq!(
-        openai_field("gpt-6-astra", Some(Effort::Max), false),
-        Some("high")
-    );
+    assert_eq!(openai_field("gpt-6-astra", Some(Effort::Max), false), None);
     assert_eq!(openai_field("gpt-6.1-sol", None, false), None);
 }
 

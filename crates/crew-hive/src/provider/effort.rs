@@ -144,10 +144,10 @@ pub(crate) fn openai_field(
 ) -> Option<&'static str> {
     let effort = effort?;
     let gpt6 = GPT6.contains(&model);
-    (gpt6 && !tools).then(|| match effort {
-        Effort::Xhigh | Effort::Max => "high",
-        e => e.as_str(),
-    })
+    // Only ever LOWERED on GPT-6: its reply ceiling stays 4096 (no documented output limit
+    // to raise it to, `ceiling`), and reasoning counts against it — a raised effort could
+    // spend the whole reply thinking.
+    (gpt6 && !tools && effort == Effort::Low).then_some("low")
 }
 
 #[cfg(test)]

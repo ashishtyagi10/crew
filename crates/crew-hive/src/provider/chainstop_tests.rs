@@ -137,7 +137,7 @@ fn a_routed_level_rides_the_built_body_but_never_a_luna_tool_turn() {
         model: model.into(),
         prompt: "review this".into(),
         max_tokens: 8,
-        effort: Some(crate::provider::Effort::High),
+        effort: Some(crate::provider::Effort::Low),
         tools: match tools {
             true => vec![crate::provider::ToolDef {
                 name: "sys_run".into(),
@@ -155,7 +155,7 @@ fn a_routed_level_rides_the_built_body_but_never_a_luna_tool_turn() {
             super::build_body(&r.model, &r, &messages, false, Vec::new()),
         )
     };
-    assert_eq!(built(req("gpt-6.1-sol", false))["reasoning_effort"], "high");
+    assert_eq!(built(req("gpt-6.1-sol", false))["reasoning_effort"], "low");
     assert_eq!(built(req("gpt-6-luna", true))["reasoning_effort"], "none");
     assert!(built(req("gpt-4.1", false))
         .get("reasoning_effort")

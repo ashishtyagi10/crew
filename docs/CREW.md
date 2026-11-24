@@ -2970,8 +2970,9 @@ and a typo gets a **did-you-mean** suggestion):
   model that takes it: Claude's `output_config.effort` (brought down to the
   model's highest — Opus 4.5 stops at `high`), and `reasoning_effort` on
   `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna` and `gpt-6-astra` when the request
-  carries no tools (`xhigh`/`max` sent
-  as `high`). GPT-5.x, DeepSeek and the gateways are sent nothing. A raised
+  carries no tools — and there only `low`: GPT-6's reply ceiling stays at 4096
+  tokens, so a raised effort is never sent where its reasoning could fill the
+  reply. GPT-5.x, DeepSeek and the gateways are sent nothing. A raised
   effort on Claude raises the reply ceiling with it (4096 tokens → 16K at
   `high`, 32K at `xhigh`/`max`, since thinking counts against it), streams
   the call, and stretches `CREW_BROKER_TIMEOUT_MS` by the same factor.
