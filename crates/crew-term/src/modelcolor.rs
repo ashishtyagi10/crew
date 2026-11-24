@@ -21,12 +21,17 @@ use crate::color::{default_bg, query_color};
 ///   background is flattened to the theme's. Saying "white" while the pane
 ///   stays dark would have vim pick its light scheme on a dark page, so the
 ///   answer is the colour that survives the drop.
-/// - The cursor is drawn in the theme's colour whatever OSC 12 asked, so it
-///   keeps the theme's answer.
+/// - The cursor answers the focused block's colour ([`crate::cursor::ink`]):
+///   what OSC 12 set, floored against the page, or the theme's. Only the
+///   focused pane's program types, so that is the cursor it sees.
 pub(super) fn drawn(index: usize, palette: &Colors) -> Option<Rgb> {
+    if index == NamedColor::Cursor as usize {
+        let (r, g, b) = crate::cursor::ink(palette, true);
+        return Some(Rgb { r, g, b });
+    }
     let set = match palette[index] {
-        Some(c) if index != NamedColor::Cursor as usize => c,
-        _ => return query_color(index),
+        Some(c) => c,
+        None => return query_color(index),
     };
     if index == NamedColor::Background as usize {
         let dark = crate::contrast::luminance(default_bg()) < 0.5;

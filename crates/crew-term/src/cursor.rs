@@ -2,8 +2,10 @@
 //! content reports the cursor position and its DECSCUSR shape separately from
 //! the cells, so we draw it ourselves: a filled block by inverting the cell, a
 //! bar or a rule as a mark the renderer turns into quads.
+use alacritty_terminal::term::color::Colors;
 use alacritty_terminal::term::RenderableCursor;
 use alacritty_terminal::vte::ansi::CursorShape as TermShape;
+use alacritty_terminal::vte::ansi::NamedColor;
 use crew_theme::deco::{CursorMark, CursorShape};
 
 use crate::model::RenderCell;
@@ -25,6 +27,24 @@ pub(crate) fn shape_for(asked: TermShape, focused: bool) -> CursorShape {
     }
 }
 
+/// The cursor's colour: the one a program set with OSC 12 (nvim's
+/// `guicursor` highlight, a shell prompt's mode colour), floored to 3:1
+/// against the page so a dark-on-dark pick still shows where the keys go —
+/// WCAG's floor for a mark that is not text. Unset (or reset by OSC 112), it
+/// is the theme's. The unfocused outline keeps the theme's dimmer ink
+/// whatever was set: there it says which pane is NOT taking keys, a signal
+/// that must read the same in every pane on the canvas.
+///
+/// One function for the draw and for the OSC 12 answer (`modelcolor`), so a
+/// program that asks is told the colour it sees.
+pub(crate) fn ink(palette: &Colors, focused: bool) -> (u8, u8, u8) {
+    let theme = crew_theme::theme();
+    match palette[NamedColor::Cursor] {
+        Some(c) if focused => crate::contrast::ensure_min_contrast((c.r, c.g, c.b), theme.term_bg),
+        _ => crew_theme::readable::cursor(theme, focused),
+    }
+}
+
 /// Overlay the cursor onto `out`. Only drawn when the view is at the live
 /// bottom (`off == 0`) and the cursor is not hidden — when scrolled into
 /// history there is no live cursor to show. The block is the page's own ink in
@@ -37,13 +57,19 @@ pub(crate) fn shape_for(asked: TermShape, focused: bool) -> CursorShape {
 /// the FOCUSED cursor read at 1.5 against the page and the unfocused ones at
 /// 6.2, so the pane you were typing in had the faintest cursor on the canvas.
 /// They come from [`crew_theme::readable`] now, which measures.
-pub(crate) fn apply(out: &mut Vec<RenderCell>, cursor: &RenderableCursor, off: i32, focused: bool) {
+pub(crate) fn apply(
+    out: &mut Vec<RenderCell>,
+    cursor: &RenderableCursor,
+    off: i32,
+    focused: bool,
+    palette: &Colors,
+) {
     let shape = shape_for(cursor.shape, focused);
     if off != 0 || shape == CursorShape::None || cursor.point.line.0 < 0 {
         return;
     }
     let theme = crew_theme::theme();
-    let bg = crew_theme::readable::cursor(theme, focused);
+    let bg = ink(palette, focused);
     // The glyph under a block cursor is still a glyph: it takes the page's own
     // colour, pushed until it reads against whatever the block ended up being.
     let fg = crew_theme::readable::on_block(theme, bg);
@@ -78,3 +104,7 @@ pub(crate) fn apply(out: &mut Vec<RenderCell>, cursor: &RenderableCursor, off: i
 #[cfg(test)]
 #[path = "cursor_tests.rs"]
 mod cursor_tests;
+
+#[cfg(test)]
+#[path = "cursorcolor_tests.rs"]
+mod cursorcolor_tests;

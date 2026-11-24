@@ -61,15 +61,13 @@ fn a_background_the_pane_does_not_draw_is_not_reported() {
     assert_eq!(t.take_replies(), Some(rgb("11", theme)));
 }
 
-/// The cursor is drawn in the theme's colour, so OSC 12 keeps that answer.
+/// The cursor answers the colour it is drawn in: what OSC 12 set
+/// (`cursorcolor_tests` covers the floor and the reset).
 #[test]
-fn osc12_answers_the_drawn_cursor_not_the_set_one() {
+fn osc12_answers_the_set_cursor_it_draws() {
     let mut t = term();
-    t.feed(b"\x1b]12;rgb:20/40/80\x1b\\\x1b]12;?\x1b\\");
-    assert_eq!(
-        t.take_replies(),
-        Some(rgb("12", crew_theme::theme().term_fg))
-    );
+    t.feed(b"\x1b]12;rgb:e0/70/10\x1b\\\x1b]12;?\x1b\\");
+    assert_eq!(t.take_replies(), Some(rgb("12", (0xe0, 0x70, 0x10))));
 }
 
 /// Replies keep the order they were asked in: a colour query held for the
