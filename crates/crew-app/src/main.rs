@@ -443,6 +443,7 @@ mod cornershot_tests;
 mod crtglassshot_tests;
 mod explorer;
 mod explorerdraw;
+mod explorerfind;
 mod explorergit;
 mod explorerhit;
 mod explorerkeys;

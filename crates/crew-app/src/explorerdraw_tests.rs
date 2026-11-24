@@ -56,3 +56,32 @@ fn a_scrolled_tree_starts_at_its_scroll_and_stops_at_the_panel() {
     assert_eq!(drawn[1].trim(), items[5].name);
     assert!(c.iter().all(|c| c.row < 10 && c.col < 20));
 }
+
+/// Off-screen: crew's own tree mid-find — `ca` on `Cargo.toml`, then `caz` matching nothing.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn explorer_find_shot() {
+    use crew_theme::ThemeId;
+    let _g = crate::app::theme_test_guard();
+    for (id, typed) in [(ThemeId::TokyoNight, "ca"), (ThemeId::Porcelain, "caz")] {
+        let name = format!("explorer-find-{id:?}-{typed}").to_lowercase();
+        let prep = move |a: &mut crate::app::CrewApp| {
+            crate::explorerfind::TEST_NOW.with(|t| t.set(Some(0)));
+            a.explorer_keys_toggle();
+            for c in typed.chars() {
+                a.explorer_tree_key(&winit::keyboard::Key::Character(c.to_string().into()), true);
+            }
+        };
+        let opacity = crate::tubesheer::sheer(id.theme());
+        crate::crtglassshot_tests::window_with(&name, id, opacity, &[], &prep);
+    }
+}
+
+/// A wide prefix is clipped by display width, so the legend never outgrows the rule.
+#[test]
+fn a_wide_prefix_is_clipped_by_width() {
+    let room = crate::boxdraw::title_budget(30).saturating_sub("EXPLORER find: ".len());
+    let l = crate::explorerfind::legend(&"日".repeat(20), 30);
+    assert!(l.starts_with("find: \u{2026}"), "{l}");
+    assert!(crate::chatwidth::str_w(&l) - "find: ".len() <= room, "{l}");
+}

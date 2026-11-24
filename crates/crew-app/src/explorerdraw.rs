@@ -25,6 +25,8 @@ pub(crate) struct Marks<'a> {
     pub cursor: Option<usize>,
     /// What git says of the tree's files, when the root is in a repository.
     pub git: Option<&'a crate::gitfiles::Files>,
+    /// The name being typed to find, and whether it matched ([`crate::explorerfind`]).
+    pub find: Option<(&'a str, bool)>,
 }
 
 /// The tree's cells for a panel `cols` × `rows`, the list scrolled by `scroll`.
@@ -39,11 +41,20 @@ pub(crate) fn cells(
         picked,
         cursor,
         git,
+        find,
     } = marks;
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
+    // The prefix in the rule, muted when nothing starts with it.
+    let key = find.map_or(String::new(), |(p, _)| crate::explorerfind::legend(p, cols));
+    let key_fg = match find {
+        Some((_, true)) => t.ink,
+        // No match in the danger ink: muted read as ink on the light themes (porcelain shot).
+        _ => crew_theme::readable::danger(t),
+    };
+    let (border, bg) = (t.border_normal, t.page_bg);
     let mut out =
-        crate::boxdraw::section_header("EXPLORER", cols, t.border_normal, accent, t.page_bg);
+        crate::boxdraw::section_header_key("EXPLORER", &key, cols, border, accent, key_fg, bg);
     let shown = usize::from(rows.saturating_sub(TOP));
     for (k, item) in items.iter().enumerate().skip(scroll).take(shown) {
         let row = TOP + (k - scroll) as u16;

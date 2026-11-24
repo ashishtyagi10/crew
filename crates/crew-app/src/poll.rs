@@ -549,10 +549,10 @@ impl CrewApp {
         if self.parked_update.is_some() && crate::restartnote::animating() {
             any_changed = true;
         }
-        // Clear a status message once it has aged out, repainting the border.
-        // Likewise a toast past its time: pruned here, not only by a drawn
-        // frame, so taking it away is owed one repaint and never a stream.
-        if self.expire_status() | self.toasts.expire(crate::anim::now_ms()) {
+        // A status message, toast or Explorer find past its time is pruned here,
+        // not by a drawn frame, so taking it away is owed one repaint, never a stream.
+        let now = crate::anim::now_ms();
+        if self.expire_status() | self.toasts.expire(now) | self.explorer_find_expire(now) {
             any_changed = true;
         }
         // Animate the welcome screen while there are no panes — but

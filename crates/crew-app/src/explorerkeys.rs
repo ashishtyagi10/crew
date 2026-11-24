@@ -4,7 +4,8 @@
 //! pointer in an app driven from the keys. Cmd+Shift+E now opens the nav on the Explorer and
 //! hands the tree the keyboard: ↑/↓ (or k/j) move a cursor row, → or Enter opens a folder or
 //! previews a file in the tree's one viewer, ← closes a folder or steps to its parent,
-//! Home/End go to the ends, Esc — or the chord again — gives the keys back.
+//! Home/End go to the ends, a letter jumps to the next name starting with it
+//! ([`crate::explorerfind`]), Esc — or the chord again — gives the keys back.
 //!
 //! **Whose keys.** The tree holds them only while nothing else took them: the pane that had
 //! focus when the tree took over (or the viewer it opened since) is still focused and the bar is
@@ -80,6 +81,7 @@ impl CrewApp {
         let ch = |c: &str| matches!(key, Key::Character(s) if s.as_str() == c);
         let opens = ch(" ") || matches!(key, Key::Named(NamedKey::ArrowRight | NamedKey::Enter));
         match key {
+            _ if self.explorer_find_key(key, &items, &mut keys.row) => {}
             Key::Named(NamedKey::ArrowDown) => keys.row = (row + 1).min(last),
             _ if ch("j") => keys.row = (row + 1).min(last),
             Key::Named(NamedKey::ArrowUp) => keys.row = row.saturating_sub(1),

@@ -96,8 +96,8 @@ fn the_keys_go_back_on_esc_or_any_focus_change() {
     a.focused -= 1;
     a.explorer_keys_toggle();
     assert!(
-        !a.explorer_tree_key(&Key::Character("x".into()), true),
-        "x goes on to the pane"
+        !a.explorer_tree_key(&Key::Named(NamedKey::Tab), true),
+        "Tab goes on to the pane"
     );
     assert!(!a.tree_has_keys());
 }
