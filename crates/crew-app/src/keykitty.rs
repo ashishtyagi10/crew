@@ -99,10 +99,7 @@ pub(crate) fn text(
     if altgr {
         return None;
     }
-    let m = Mods {
-        alt: m.alt && (!mac || option_as_meta),
-        ..m
-    };
+    let m = meta_alt(m, mac, option_as_meta);
     if !m.ctrl && !m.alt {
         return None;
     }
@@ -117,8 +114,26 @@ pub(crate) fn text(
     Some(csi_u(u32::from(code), param(m)).into_bytes())
 }
 
+/// `m` with Alt dropped where it is a typing key: a Mac's Option, unless
+/// `option_as_meta` makes it Meta. What it types then goes out as text.
+fn meta_alt(m: Mods, mac: bool, option_as_meta: bool) -> Mods {
+    Mods {
+        alt: m.alt && (!mac || option_as_meta),
+        ..m
+    }
+}
+
 fn printable(s: &str) -> bool {
     !s.is_empty() && !s.chars().any(char::is_control)
+}
+
+/// Whether a key goes out in kitty form: the focused program asked for it
+/// (`kitty_keys`) and the bytes go to it alone. Under `/broadcast` the same
+/// bytes reach every terminal pane, and a zsh beside nvim would read
+/// Ctrl+C as `ESC [ 99 ; 5 u`; the legacy bytes every program reads go out
+/// instead (nvim and Claude Code take those too).
+pub(crate) fn armed(kitty_keys: bool, broadcast: bool) -> bool {
+    kitty_keys && !broadcast
 }
 
 /// [`encode`] for a winit key press.
@@ -159,6 +174,11 @@ pub(crate) fn encode(
 ) -> Option<Vec<u8>> {
     if !kitty {
         return None;
+    }
+    // Option+Space types a no-break space on a Mac, like Option+letter
+    // types its letter: Space alone of the named keys follows that rule.
+    if let Key::Named(NamedKey::Space) = logical {
+        return named(NamedKey::Space, meta_alt(m, mac, option_as_meta));
     }
     if let Key::Named(n) = logical {
         return named(*n, m);

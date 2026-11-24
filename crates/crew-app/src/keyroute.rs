@@ -137,7 +137,8 @@ impl CrewApp {
                 ctrl: mstate.control_key(),
             };
             let meta = self.config.option_as_meta;
-            let kitty = crate::keykitty::key_event(event, m, modes.kitty_keys, meta);
+            let on = crate::keykitty::armed(modes.kitty_keys, self.broadcast);
+            let kitty = crate::keykitty::key_event(event, m, on, meta);
             let bytes = kitty
                 .or_else(|| crate::altmeta::meta_key(event, m, meta))
                 .or_else(|| key_to_bytes(event, m, modes));

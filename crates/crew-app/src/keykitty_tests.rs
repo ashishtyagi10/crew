@@ -1,7 +1,7 @@
 //! The kitty keyboard protocol's flag 1, key by key (see the module doc).
 use winit::keyboard::{Key, NamedKey, NamedKey::*};
 
-use super::{encode, Mods};
+use super::{armed, encode, Mods};
 
 const NONE: Mods = Mods {
     shift: false,
@@ -142,4 +142,28 @@ fn without_the_flag_nothing_changes() {
         encode(&i, &bare, Some("\t"), CTRL, false, false, false),
         None
     );
+}
+
+/// A Mac's Option is a typing key unless it is Meta: Option+Space types
+/// (a no-break space) like Option+letter, and Ctrl still counts.
+#[test]
+fn option_space_follows_the_mac_option_rule() {
+    let sp = |m, mac, meta| {
+        let k = Key::Named(Space);
+        encode(&k, &k, None, m, true, mac, meta).map(|b| String::from_utf8(b).unwrap())
+    };
+    assert_eq!(sp(ALT, true, false), None, "Option types");
+    assert_eq!(sp(ALT, true, true).as_deref(), Some("\x1b[32;3u"));
+    assert_eq!(sp(ALT, false, false).as_deref(), Some("\x1b[32;3u"));
+    let ctrl_alt = Mods { ctrl: true, ..ALT };
+    assert_eq!(sp(ctrl_alt, true, false).as_deref(), Some("\x1b[32;5u"));
+}
+
+/// Broadcast writes one key's bytes to every terminal pane: they are the
+/// legacy ones, whatever the focused program asked for.
+#[test]
+fn broadcast_keys_are_never_kitty_form() {
+    assert!(armed(true, false));
+    assert!(!armed(true, true), "a zsh beside nvim must read Ctrl+C");
+    assert!(!armed(false, false) && !armed(false, true));
 }

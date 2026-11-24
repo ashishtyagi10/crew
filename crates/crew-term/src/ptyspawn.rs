@@ -99,6 +99,7 @@ impl PtyTerm {
             capture: None,
             child,
             focus_told: None,
+            fg_last: Default::default(),
         })
     }
 }

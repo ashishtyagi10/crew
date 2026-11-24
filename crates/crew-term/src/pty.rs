@@ -4,19 +4,16 @@ use std::sync::mpsc::{sync_channel, Receiver};
 
 use crate::model::{GridSize, RenderCell, TermCore, TermModel};
 
-/// Upper bound on chunks buffered from the reader thread. At 8 KiB per chunk
-/// this caps buffered PTY output at ~8 MiB and applies backpressure to a runaway
-/// program: once the OS pipe buffer and this queue fill, the child's `write`
-/// blocks, throttling it to our drain rate instead of piling up unbounded
-/// memory and unbounded parse work.
+/// Chunks buffered from the reader thread: at 8 KiB each, ~8 MiB. Past it a
+/// runaway program's `write` blocks, throttled to our drain rate instead of
+/// piling up unbounded memory and parse work.
 const CHANNEL_CAP: usize = 1024;
 
 /// Maximum bytes drained from the PTY into the parser per `try_read` — i.e. per
 /// poll tick. Without this cap a program that floods output (`yes`, `cat` of a
 /// huge file, a noisy build) makes a single `try_read` parse the entire backlog
-/// synchronously on the main thread, freezing rendering and input in EVERY pane
-/// until it finishes. Capping per tick keeps the UI responsive; any remainder is
-/// consumed on following ticks (see `has_pending`).
+/// on the main thread, freezing rendering and input in EVERY pane until it
+/// finishes; the remainder is consumed on following ticks (see `has_pending`).
 const READ_BUDGET: usize = 256 * 1024;
 
 pub struct PtyTerm {
@@ -47,6 +44,8 @@ pub struct PtyTerm {
     child: Box<dyn portable_pty::Child + Send + Sync>,
     /// The focus state last reported under DECSET 1004 (see `focusreport`).
     focus_told: Option<bool>,
+    /// The last foreground answer, kept when the OS can't say (`fgpid`).
+    fg_last: std::cell::Cell<Option<u32>>,
 }
 
 impl PtyTerm {
@@ -173,6 +172,8 @@ impl PtyTerm {
 /// flood (e.g. a progress bar redrawing with `\r`) grow the carry unbounded.
 const SCAN_CARRY_CAP: usize = 4096;
 
+#[path = "fgpid.rs"]
+mod fgpid;
 #[path = "focusreport.rs"]
 mod focusreport;
 #[path = "promptmodes.rs"]

@@ -222,7 +222,7 @@ impl CrewApp {
                             crew_term::ShellMark::Done(code) => t.spans.finished(code, at, ms),
                             // A prompt being drawn means whatever was running
                             // is over, whether or not the shell said `D`.
-                            crew_term::ShellMark::Prompt => t.shell_back(at, ms),
+                            crew_term::ShellMark::Prompt => t.prompt_back(at, ms),
                             // `C` is where output begins. The span is opened
                             // by the foreground-process watch, which is also
                             // the only thing that knows the command's NAME —

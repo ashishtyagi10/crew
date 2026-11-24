@@ -17,6 +17,14 @@ impl TermPane {
         self.spans.close_at(at, ms);
         self.pty.release_leftover_modes();
     }
+
+    /// [`Self::shell_back`] at the prompt's OSC 133 `A` mark: the kitty
+    /// keyboard flags stay, since a shell may have pushed its own just before
+    /// (fish 4); a dead program's were popped in-stream at the same mark.
+    pub(crate) fn prompt_back(&mut self, at: usize, ms: u64) {
+        self.spans.close_at(at, ms);
+        self.pty.release_prompt_leftovers();
+    }
 }
 
 #[cfg(test)]

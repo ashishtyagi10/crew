@@ -121,34 +121,10 @@ impl PtyTerm {
     }
 
     /// The spawned shell's own PID (the PTY child) — session restore asks the
-    /// OS for this process's live working directory at quit. May be stale
-    /// after the child exits (portable-pty keeps the stored pid); callers
-    /// treat an OS miss as "no cwd" and fall back.
+    /// OS for its live working directory at quit. May be stale after the child
+    /// exits; callers treat an OS miss as "no cwd" and fall back.
     pub fn shell_pid(&self) -> Option<u32> {
         self.child.process_id()
-    }
-
-    /// PID of the foreground command running in this pane — the process group in
-    /// control of the tty. `None` when the shell itself is at its prompt (so the
-    /// pane is idle) or on a platform that doesn't expose it. Lets the title name
-    /// the running program (e.g. `claude`, `codex`).
-    pub fn foreground_pid(&self) -> Option<u32> {
-        // `process_group_leader` is a Unix-only portable-pty API; Windows has no
-        // tty foreground-process-group concept, so the pane is simply never
-        // labelled with a running command there.
-        #[cfg(unix)]
-        {
-            let fg = u32::try_from(self.master.process_group_leader()?).ok()?;
-            // A shell waiting at its prompt is its own foreground group → idle.
-            if Some(fg) == self.child.process_id() {
-                return None;
-            }
-            Some(fg)
-        }
-        #[cfg(not(unix))]
-        {
-            None
-        }
     }
 
     /// Take any pending OSC 52 clipboard-store text (clearing it).

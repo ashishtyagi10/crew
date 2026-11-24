@@ -74,3 +74,22 @@ fn a_dead_programs_kitty_flags_go_when_the_shell_is_back() {
     assert!(!term.input_modes().kitty_keys);
     assert!(!term.release_leftover_modes(), "nothing left");
 }
+
+/// fish 4 before its first command: a prompt mark, then the shell's own
+/// `CSI = 5 u` (no `C` / `D` mark yet, so no command marks counted). The
+/// prompt mark's reset drops a left-on mouse but keeps the shell's flags.
+#[cfg(unix)]
+#[test]
+fn the_prompt_marks_reset_keeps_the_shells_own_kitty_flags() {
+    let mut term = PtyTerm::spawn(SIZE, "sh").unwrap();
+    let mut w = term.writer();
+    w.write_all(b"printf '\\033[?1000h'; sleep 0.2; printf '\\033]133;A\\007\\033[=5u'\n")
+        .unwrap();
+    w.flush().unwrap();
+    assert!(pump_until(&mut term, |t| t.input_modes().kitty_keys));
+    let marks = term.take_shell();
+    assert!(marks.contains(&crate::osc::ShellMark::Prompt), "{marks:?}");
+    assert!(term.release_prompt_leftovers());
+    let m = term.input_modes();
+    assert!(m.kitty_keys && !m.mouse, "{m:?}");
+}
