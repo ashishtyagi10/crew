@@ -98,8 +98,7 @@ impl CrewApp {
         let col = ((self.cursor.0 - panel.x) / cw).floor() as i32 - 1;
         let bar = f32::from(crate::navopen::BAR_TAKES) * cw;
         let (card, _) = crate::layout::card_inner_cells(panel.w + bar, panel.h, cw, ch);
-        let cols = card.saturating_sub(crate::navopen::BAR_TAKES);
-        (u16::try_from(col).ok()? == x_col(cols)).then_some(k)
+        (u16::try_from(col).ok()? == x_col(panel_cols(card))).then_some(k)
     }
 
     /// A press on a row's `×`: the folder is forgotten, not opened. `true` when it was the `×`'s.
@@ -133,6 +132,12 @@ impl CrewApp {
             gone: crate::fargone::gone(),
         }
     }
+}
+
+/// The nav panel's columns in a card `card_cols` wide: the card's interior less the activity
+/// bar's. The draw (`navopen`) and the `×`'s hit read this one sum, so the `×` is hit where drawn.
+pub(crate) fn panel_cols(card_cols: u16) -> u16 {
+    card_cols.saturating_sub(crate::navopen::BAR_TAKES)
 }
 
 /// The `×` under the pointer last drawn, encoded (0: none).

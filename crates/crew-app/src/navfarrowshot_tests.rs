@@ -21,6 +21,7 @@ fn navfar_row_shot() {
             app.config.nav_section = "far".into();
             crate::fargone::reset();
             crate::fargone::refresh(0, true);
+            crate::fargone::settle();
             let k = crate::farrecent::list().iter().position(|d| d == &dirs[2]);
             app.far_open_item(k);
             app.input.focused = false;
@@ -30,7 +31,7 @@ fn navfar_row_shot() {
             let (panel, _, _) = app.nav_hit_geometry().unwrap();
             let bar = f32::from(crate::navopen::BAR_TAKES) * cw;
             let (card, _) = crate::layout::card_inner_cells(panel.w + bar, panel.h, cw, ch);
-            let x = x_col(card - crate::navopen::BAR_TAKES);
+            let x = x_col(panel_cols(card));
             app.cursor = (panel.x + (f32::from(x) + 1.5) * cw, panel.y + 2.5 * ch);
         };
         let opacity = crate::tubesheer::sheer(id.theme());

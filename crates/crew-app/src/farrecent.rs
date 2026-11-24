@@ -127,7 +127,8 @@ fn save(list: &[PathBuf]) {
 impl crate::app::CrewApp {
     /// Once per tick: note the folder each Far pane's active panel now shows, when it moved
     /// since the last look, and — while the nav shows Far — which listed folders are gone
-    /// (`fargone`, throttled). `true` when either changed (the Far section repaints).
+    /// (`fargone`, throttled and off-thread: this starts a look or lands one, never waits on
+    /// a stat). `true` when either changed (the Far section repaints).
     pub(crate) fn tick_far_recent(&mut self) -> bool {
         let mut seen = SEEN.lock().unwrap_or_else(|p| p.into_inner());
         let mut changed = false;

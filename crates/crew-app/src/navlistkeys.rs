@@ -3,8 +3,10 @@
 //! Both lists answered the pointer only: every unread thread, every recent folder, was a reach
 //! for the mouse in an app driven from the keys. `/nav inbox` and `/nav far` now hand that list
 //! the keyboard: ↑/↓ (or k/j) move a cursor bar, Home/End go to the ends, Enter opens the item
-//! exactly as a click on it does, Esc gives the keys back. In Far, Delete or Backspace forgets
-//! the cursor's folder, as the `×` on its row does (`navfarrow`).
+//! exactly as a click on it does, Esc gives the keys back. In Far, Delete (Fn+Backspace on a Mac)
+//! forgets the cursor's folder, as the `×` on its row does (`navfarrow`) — not Backspace, which
+//! still ends the hold and goes to the pane, and not Delete's key repeat: a held Delete would
+//! empty the list in a second, with no undo.
 //!
 //! **Whose keys.** As with the tree: the list holds them only while the pane focused when it
 //! took them is still focused, the bar is not, and the nav still shows that list. Any other
@@ -72,12 +74,14 @@ impl CrewApp {
 
     /// A key while one of the nav's lists holds the keyboard. `true` when it was the list's.
     pub(crate) fn nav_key(&mut self, event: &KeyEvent) -> bool {
-        self.explorer_key(event) || self.list_key(&event.logical_key, event.state.is_pressed())
+        let (pressed, repeat) = (event.state.is_pressed(), event.repeat);
+        self.explorer_key(event) || self.list_key(&event.logical_key, pressed, repeat)
     }
 
     /// A key for the Inbox or Far list, on the logical key — the part a test can drive. Any key
     /// it has no use for ends the hold and goes on to the pane.
-    pub(crate) fn list_key(&mut self, key: &Key, pressed: bool) -> bool {
+    /// `repeat`: the key is held down — Delete forgets once per press, not per repeat.
+    pub(crate) fn list_key(&mut self, key: &Key, pressed: bool, repeat: bool) -> bool {
         if !pressed || !self.list_has_keys() {
             return false;
         }
@@ -107,9 +111,10 @@ impl CrewApp {
                 return true;
             }
             // Far's Delete: the cursor's folder forgotten, as its `×` does; the cursor stays put.
-            Key::Named(NamedKey::Delete | NamedKey::Backspace)
-                if keys.section == NavSection::Far =>
-            {
+            Key::Named(NamedKey::Delete) if keys.section == NavSection::Far => {
+                if repeat {
+                    return true;
+                }
                 if len > 0 {
                     self.far_forget_item(item);
                 }

@@ -79,22 +79,25 @@ fn a_click_one_column_left_of_the_x_still_opens_the_folder() {
 }
 
 #[test]
-fn delete_with_the_keys_held_forgets_the_cursors_folder() {
+fn delete_with_the_keys_held_forgets_the_cursors_folder_once_per_press() {
     let _g = crate::app::theme_test_guard();
     let (base, dirs) = folders("keys", &["kone", "ktwo", "kthree"]);
     let mut a = nav_app("panes");
     a.input.focused = true;
     a.nav_command("far");
-    assert!(a.list_key(&Key::Named(NamedKey::ArrowDown), true));
-    assert!(a.list_key(&Key::Named(NamedKey::Delete), true));
-    assert_eq!(crate::farrecent::list(), [dirs[2].clone(), dirs[0].clone()]);
+    let key = |a: &mut CrewApp, k, repeat| a.list_key(&Key::Named(k), true, repeat);
+    assert!(key(&mut a, NamedKey::ArrowDown, false));
+    assert!(key(&mut a, NamedKey::Delete, false));
+    let left = [dirs[2].clone(), dirs[0].clone()];
+    assert_eq!(crate::farrecent::list(), left);
+    // Delete held down: its repeats forget nothing more, and the list keeps the keys.
+    assert!(key(&mut a, NamedKey::Delete, true));
+    assert_eq!(crate::farrecent::list(), left, "a repeat forgets nothing");
     assert!(a.list_has_keys(), "the list keeps the keys");
-    assert!(a.list_key(&Key::Named(NamedKey::Backspace), true));
-    assert_eq!(
-        crate::farrecent::list(),
-        [dirs[2].clone()],
-        "the cursor stayed on the last"
-    );
+    // Backspace is not Delete: it ends the hold and goes on to the pane, forgetting nothing.
+    assert!(!key(&mut a, NamedKey::Backspace, false));
+    assert_eq!(crate::farrecent::list(), left, "Backspace forgets nothing");
+    assert!(!a.list_has_keys(), "Backspace gave the keys back");
     assert!(a.panes.is_empty());
     done(&base);
 }
@@ -116,8 +119,16 @@ fn a_folder_gone_from_disk_is_drawn_muted_and_struck_after_the_look() {
         (name(1), name(2))
     };
     assert!(!struck(&a).0 .0, "not looked at yet");
-    assert!(crate::fargone::refresh(0, true), "the look finds it gone");
+    assert!(
+        !crate::fargone::refresh(0, true),
+        "the look starts; its answer lands later"
+    );
+    crate::fargone::settle();
     assert!(!crate::fargone::refresh(1, true), "throttled");
+    assert!(
+        !crate::fargone::looking(),
+        "no second look inside the throttle"
+    );
     let (dead, live) = struck(&a);
     assert!(dead.0 && !live.0);
     assert_eq!(dead.1, crew_theme::theme().text_muted);
@@ -125,6 +136,7 @@ fn a_folder_gone_from_disk_is_drawn_muted_and_struck_after_the_look() {
     // The tick looks too, while Far shows.
     crate::fargone::reset();
     a.tick_far_recent();
+    crate::fargone::settle();
     assert!(crate::fargone::is_gone(&dirs[1]));
     done(&base);
 }

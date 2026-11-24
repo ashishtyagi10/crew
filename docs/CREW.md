@@ -426,7 +426,7 @@ way that machine presses it.
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
 | Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder or preview a file, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
-| The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete/Backspace forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
+| The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete (Fn+Backspace on a Mac; not its key repeat) forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Save the settings form | **Cmd+S** |
