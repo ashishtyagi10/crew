@@ -31,8 +31,8 @@ impl McpClient {
 
     /// Whether the server said its tools changed since the last listing —
     /// reading, without waiting, whatever it sent between requests — and
-    /// clears the mark. Every other message is held, in order, for the next
-    /// wait: nothing read here is lost.
+    /// clears the mark. Other notifications are dropped, as a wait drops
+    /// them; every reply is held, in order, for the next wait.
     pub fn take_tools_changed(&mut self) -> bool {
         while let Ok(v) = self.rx.try_recv() {
             match v.get("method").is_some() && v.get("id").is_none() {

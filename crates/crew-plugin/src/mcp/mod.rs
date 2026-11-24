@@ -54,7 +54,8 @@ pub struct McpTool {
 }
 
 /// All configured MCP servers: lazy connections plus a per-server tool cache,
-/// so listing tools costs one `tools/list` per server per session.
+/// so listing tools costs one `tools/list` per server per session — and one
+/// more each time a server says its tools changed (`relist.rs`).
 #[derive(Default)]
 pub struct McpHost {
     servers: BTreeMap<String, ServerConfig>,
@@ -73,6 +74,10 @@ pub struct McpHost {
     /// Cleared per server when its config changes and wholesale on `/reload`,
     /// so a reconnect announces itself again.
     noted: BTreeSet<String>,
+    /// Servers that said their tools changed and have not been listed since
+    /// (`relist.rs`). Kept across a dropped connection, so the notice is not
+    /// lost with the client that heard it.
+    relist: BTreeSet<String>,
 }
 
 impl McpHost {
@@ -200,10 +205,8 @@ impl McpHost {
         Ok(self.clients.get_mut(server).expect("just inserted"))
     }
 
-    /// One server's tools, fetched once and cached for the session — until the
-    /// server says they changed (`relist.rs`).
+    /// One server's tools, fetched once and cached for the session.
     fn fetch(&mut self, server: &str) -> Result<Vec<McpTool>, String> {
-        self.relist_if_changed(server);
         if let Some(t) = self.cache.get(server) {
             return Ok(t.clone());
         }
@@ -223,15 +226,20 @@ impl McpHost {
         Ok(tools)
     }
 
-    /// Every tool on every configured server (cached after the first fetch).
-    /// A server that fails to connect or list contributes nothing here — the
-    /// failure is visible in [`McpHost::report`].
+    /// Every tool on every configured server (cached after the first fetch,
+    /// listed again for a server that said its tools changed — here, where
+    /// the catalog is read, never inside a call). A server that fails to
+    /// connect or list contributes nothing here — the failure is visible in
+    /// [`McpHost::report`].
     pub fn tools(&mut self) -> Vec<McpTool> {
         self.sync();
         let names: Vec<String> = self.servers.keys().cloned().collect();
         names
             .iter()
-            .flat_map(|s| self.fetch(s).unwrap_or_default())
+            .flat_map(|s| {
+                self.relist_if_changed(s);
+                self.fetch(s).unwrap_or_default()
+            })
             .collect()
     }
 
@@ -257,11 +265,7 @@ impl McpHost {
         }
         let res = self.client(server)?.call(tool, value);
         if res.is_err() {
-            self.clients.remove(server);
-            // A drop starts a new connection generation: free the server's
-            // note keys so the reconnect announces itself (once) too.
-            self.noted
-                .retain(|k| k != server && !k.starts_with(&format!("{server}:")));
+            self.drop_client(server);
             // The chat surface already carries the call's own error; this
             // notes the connection consequence. Unkeyed: each drop is a real,
             // separate lifecycle event.

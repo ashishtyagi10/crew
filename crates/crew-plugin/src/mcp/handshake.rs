@@ -41,7 +41,7 @@ pub(super) enum Silence {
 
 impl McpClient {
     /// Wait up to `within` for the response to `id`: its `result` as `Ok`,
-    /// its `error` object as `Err`. Anything else on the pipe is skipped.
+    /// its `error` object as `Err`. Anything else passes `heard` (`notice.rs`).
     pub(super) fn wait(
         &mut self,
         id: u64,

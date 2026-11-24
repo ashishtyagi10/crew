@@ -62,7 +62,7 @@ impl McpClient {
 
     /// Send one request and wait for the matching response's `result`.
     /// A modern server gets the per-request `_meta` its revision requires.
-    /// Notifications and stray messages are skipped; an `error` member, a
+    /// Notifications are heard (`notice.rs`), stray messages skipped; an `error` member, a
     /// result that is not `complete`, or the deadline turns into `Err`.
     fn request(&mut self, method: &str, params: Value) -> Result<Value, String> {
         self.request_within(method, params, timeout())

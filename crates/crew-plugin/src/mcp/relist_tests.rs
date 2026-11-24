@@ -9,7 +9,7 @@ use super::changed_note;
 use crate::mcp::{McpHost, McpTool, ServerConfig};
 
 /// A fake server that answers as a real one does: each request with an id
-/// gets the next of `groups`, and a group may follow its reply with a
+/// gets the next of `groups` (and past the last, the server exits), and a group may follow its reply with a
 /// notification (messages in a group are tab-joined; JSON has no raw tabs).
 fn server(tag: &str, groups: &[&[&str]]) -> McpHost {
     let path =
@@ -18,7 +18,7 @@ fn server(tag: &str, groups: &[&[&str]]) -> McpHost {
     std::fs::write(&path, lines.join("\n") + "\n").unwrap();
     let script = format!(
         "exec 3<'{}'; while IFS= read -r req; do case \"$req\" in *'\"id\"'*) \
-         IFS= read -r g <&3 && printf '%s\\n' \"$g\" | tr '\\t' '\\n';; esac; done",
+         {{ IFS= read -r g <&3 || exit 0; }} && printf '%s\\n' \"$g\" | tr '\\t' '\\n';; esac; done",
         path.display()
     );
     let cfg = ServerConfig {
@@ -87,6 +87,11 @@ fn a_change_announced_during_a_call_is_heard() {
     let log = notes(&mut host);
     assert_eq!(names(&mut host), ["echo"]);
     assert_eq!(host.call("fake", "echo", "").unwrap(), "hi");
+    let mid = log.lock().unwrap().join("\n");
+    assert!(
+        !mid.contains("tools changed"),
+        "never relisted inside a call: {mid}"
+    );
     assert_eq!(
         names(&mut host),
         ["grep"],
@@ -121,5 +126,52 @@ fn the_note_names_what_came_and_went() {
     assert_eq!(
         changed_note("gh", &[t("a")], &[t("a")]),
         "mcp gh tools changed \u{b7} 1 tool"
+    );
+}
+
+/// The server said its tools changed, then died: the listing fails at once
+/// ("closed its pipe"). The old list stays — every tool hidden and every
+/// call failing until `/reload` was the alternative — and the next read
+/// reconnects and lists it.
+#[test]
+fn a_failed_relist_keeps_the_list_and_retries_on_a_fresh_connection() {
+    let mut host = server("fails", &[&[PROBE], &[INIT], &[ECHO, CHANGED]]);
+    let log = notes(&mut host);
+    assert_eq!(names(&mut host), ["echo"]);
+    settle();
+    let t = std::time::Instant::now();
+    assert_eq!(
+        names(&mut host),
+        ["echo"],
+        "kept through the failed listing"
+    );
+    assert!(
+        t.elapsed().as_secs() < 5,
+        "one quick failure, not a timeout"
+    );
+    assert!(!log.lock().unwrap().join("\n").contains("tools changed"));
+    // A fresh process (the fake starts over): listed again, the change said.
+    assert_eq!(names(&mut host), ["echo"]);
+    let said = log.lock().unwrap().join("\n");
+    assert!(
+        said.contains("mcp fake tools changed \u{b7} 1 tool"),
+        "{said}"
+    );
+}
+
+/// A call that fails drops its connection; a notice heard while waiting for
+/// it used to go with the client, leaving the reconnect's list stale.
+#[test]
+fn a_notice_heard_during_a_failing_call_outlives_the_connection() {
+    let err = r#"{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"boom"}],"isError":true}}"#;
+    let mut host = server("dropped", &[&[PROBE], &[INIT], &[ECHO], &[CHANGED, err]]);
+    let log = notes(&mut host);
+    assert_eq!(names(&mut host), ["echo"]);
+    assert!(host.call("fake", "echo", "").is_err());
+    assert_eq!(names(&mut host), ["echo"]);
+    let said = log.lock().unwrap().join("\n");
+    assert!(
+        said.contains("mcp fake tools changed"),
+        "relisted after the reconnect: {said}"
     );
 }

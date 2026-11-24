@@ -1,34 +1,62 @@
 //! A server's tools listed again when it says they changed.
 //!
-//! The tool cache ([`McpHost::fetch`]) is read at every task's start, so a
-//! change lands on the NEXT task, never mid-loop: a tool list that moved
-//! between two rounds of one turn would break the prompt cache's prefix and
-//! leave the model's earlier tool calls naming tools it can no longer see.
-//! The LOG says what changed, so a tool that appears or vanishes is not a
-//! mystery.
+//! Only where the catalog is read ([`McpHost::tools`]: a turn's start, the
+//! planner's capabilities, a `find_tools` search) — never inside a call. The
+//! list a turn OFFERS the model is fixed when the turn starts, so a change
+//! reaches the model at the next turn (the next hop of a /crew task counts):
+//! a list that moved between two rounds of one turn would break the prompt
+//! cache's prefix and leave earlier tool calls naming tools it no longer
+//! sees. The LOG says what came and went.
+//!
+//! A listing that fails keeps the list the server had and drops the client:
+//! the next read reconnects and tries again, where emptying the cache would
+//! have hidden every tool and failed every call until `/reload`.
 use super::{McpHost, McpTool};
 
 impl McpHost {
-    /// Drop `server`'s cached tools when it announced a change, and say so.
-    /// The next [`McpHost::fetch`] lists them again.
+    /// List `server` again when it announced a change (now or before a
+    /// dropped connection), and say what changed.
     pub(super) fn relist_if_changed(&mut self, server: &str) {
         if !self.cache.contains_key(server) {
             return;
         }
-        let changed = self
+        let heard = self
             .clients
             .get_mut(server)
             .is_some_and(|c| c.take_tools_changed());
-        if !changed {
+        if heard {
+            self.relist.insert(server.to_string());
+        }
+        if !self.relist.contains(server) {
             return;
         }
         let before = self.cache.remove(server).unwrap_or_default();
-        let Ok(after) = self.fetch_listing(server) else {
-            return;
-        };
-        if let Some(sink) = &self.sink {
-            sink(false, &changed_note(server, &before, &after));
+        match self.fetch_listing(server) {
+            Ok(after) => {
+                self.relist.remove(server);
+                if let Some(sink) = &self.sink {
+                    sink(false, &changed_note(server, &before, &after));
+                }
+            }
+            Err(_) => {
+                self.cache.insert(server.to_string(), before);
+                self.drop_client(server);
+            }
         }
+    }
+
+    /// Drop `server`'s connection: the next use reconnects. A tools notice its
+    /// client heard is kept for the reconnect, and a drop starts a new
+    /// connection generation, so the server's note keys are freed and the
+    /// reconnect announces itself (once) too.
+    pub(super) fn drop_client(&mut self, server: &str) {
+        if let Some(mut c) = self.clients.remove(server) {
+            if c.take_tools_changed() {
+                self.relist.insert(server.to_string());
+            }
+        }
+        self.noted
+            .retain(|k| k != server && !k.starts_with(&format!("{server}:")));
     }
 
     /// `tools/list` on `server`, cached: the listing alone, which a first
