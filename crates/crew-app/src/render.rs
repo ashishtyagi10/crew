@@ -37,6 +37,7 @@ impl CrewApp {
         // The nav's hold on the keys (the tree's, a list's), once lost (the bar, another pane,
         // the nav put away), is gone for good: coming back must not hand them back.
         self.nav_keys_settle();
+        self.explorer_reveal();
         let peek = match self.input.focused {
             true => crate::suggest::menu_items_in(&self.input.text, &self.input.cwd),
             false => Vec::new(),

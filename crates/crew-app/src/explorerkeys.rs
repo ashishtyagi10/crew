@@ -47,6 +47,8 @@ impl CrewApp {
             self.pick_nav_section(NavSection::Explorer);
         }
         self.input.focused = false;
+        // The cursor starts on the focused viewer's file: reveal it now, not a frame later.
+        self.explorer_reveal();
         let items = self.sidebar.explorer.items(&self.explorer_root());
         let picked = self.sidebar.explorer.picked.as_deref();
         let row = items.iter().position(|i| Some(i.path.as_path()) == picked);
@@ -129,9 +131,15 @@ impl CrewApp {
 
     /// Scroll the tree so its cursor row is on screen.
     fn explorer_follow(&mut self) {
-        let Some(keys) = self.sidebar.explorer.keys else {
-            return;
-        };
+        if let Some(keys) = self.sidebar.explorer.keys {
+            self.explorer_show_row(keys.row, None);
+        }
+    }
+
+    /// Scroll the tree as little as it takes to put item `row` on screen — or, given the list's
+    /// `len`, with an off-screen row brought to the middle, so a jump lands with its
+    /// neighbours around it rather than on the panel's edge.
+    pub(crate) fn explorer_show_row(&mut self, row: usize, centre_in: Option<usize>) {
         let Some((sb, _, _)) = self.nav_hit_geometry() else {
             return;
         };
@@ -141,7 +149,13 @@ impl CrewApp {
         let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
         let shown = usize::from(rows.saturating_sub(crate::explorerdraw::TOP)).max(1);
         let e = &mut self.sidebar.explorer;
-        e.scroll = e.scroll.clamp(keys.row.saturating_sub(shown - 1), keys.row);
+        let off = !(e.scroll..e.scroll + shown).contains(&row);
+        match centre_in {
+            Some(len) if off => {
+                e.scroll = row.saturating_sub(shown / 2).min(len.saturating_sub(shown))
+            }
+            _ => e.scroll = e.scroll.clamp(row.saturating_sub(shown - 1), row),
+        }
     }
 }
 

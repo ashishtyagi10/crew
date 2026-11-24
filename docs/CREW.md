@@ -502,7 +502,9 @@ tree — the focused pane's directory, or crew's own when that pane has none:
 folders first, then files, `.git` and `.DS_Store` left out. Click a folder to
 open or close it (an open folder stays open by path, so walking between panes
 and back finds the tree as you left it); click a file to open it in a viewer
-pane, where `i` edits a markdown one. The wheel scrolls the tree. A folder is
+pane, where `i` edits a markdown one. A viewer opened any other way (Cmd+P, a link, `/view`)
+opens the tree down to its file and marks it, scrolled into view once per file. The wheel
+scrolls the tree. A folder is
 re-read when its listing is more than two seconds old, so a file an agent just
 wrote appears on its own; past 2000 entries a folder says how many it is not
 showing. In a git repository the tree wears **git's marks**, as VS Code's
