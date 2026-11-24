@@ -92,6 +92,7 @@ pub(crate) fn plan_cmd(
     // cut-off marker alone; held, approval would run the marker as a swarm.
     if plan.trim() == crew_hive::provider::cutoff::CUT_OFF {
         *lock(&session.plan) = None;
+        emit(PluginEvent::Plan { pending: false })?;
         return emit(msg(
             "agent smith",
             "plan draft was cut off at the token limit before it said anything \

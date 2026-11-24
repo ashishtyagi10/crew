@@ -109,8 +109,9 @@ pub(crate) fn anthropic_field(model: &str, effort: Option<Effort>) -> Option<ser
 /// the relay's ceiling thinking and come back as nothing but the cut-off
 /// marker. So a raised level raises the room with it — `high` 16K, `xhigh`
 /// and `max` 32K, keyed off the level actually sent (Opus 4.5 asked `max` is
-/// sent `high`) — only on a model that takes the level: every Anthropic one
-/// that does documents 64K output or more (Opus 4.5 64K, the rest 128K).
+/// sent `high`) — only on a model that takes the level: the 4.6-and-later
+/// Anthropic models document 128K output, and Opus 4.5 (which never gets
+/// past `high`, so 16K) far more than 16K.
 /// Everything else keeps `base`: NIM refuses a ceiling over the model's own
 /// limit, and GPT-6's output limit is not in crew's catalog, so it is not
 /// guessed at.

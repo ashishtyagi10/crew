@@ -96,3 +96,33 @@ fn a_level_that_is_not_a_string_is_ignored_and_the_roster_survives() {
     let coder = kept.iter().find(|s| s.name == "coder").unwrap();
     assert_eq!(coder.effort, Some(serde_json::json!(3)));
 }
+
+/// A model that answers only after `0`: the length of a long think.
+struct Slow(Duration);
+
+impl Provider for Slow {
+    fn complete(&self, _: CompletionRequest) -> Call {
+        let wait = self.0;
+        Box::pin(async move {
+            tokio::time::sleep(wait).await;
+            Ok(Completion {
+                text: "1. do it".into(),
+                ..Default::default()
+            })
+        })
+    }
+}
+
+#[test]
+fn a_reply_slower_than_the_base_deadline_lands_when_the_ceiling_was_raised() {
+    let ask = |effort: Option<Effort>| {
+        let slow = Arc::new(Slow(Duration::from_millis(900)));
+        let a = ApiAdapter::new("planner", "claude-opus-5-5", "", None, slow).unwrap();
+        let _route = enter(effort);
+        a.call("plan the scheduler", Duration::from_millis(400))
+    };
+    // 400 ms stretched ×3.9 is ~1.56 s: the 900 ms reply lands.
+    assert_eq!(ask(Some(Effort::High)).as_deref(), Ok("1. do it"));
+    let late = ask(None).unwrap_err();
+    assert!(late.contains("timed out"), "{late}");
+}

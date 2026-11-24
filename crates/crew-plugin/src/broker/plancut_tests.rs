@@ -28,6 +28,10 @@ fn a_draft_cut_off_before_it_said_anything_is_not_held() {
             .any(|e| matches!(e, PluginEvent::Plan { pending: true })),
         "no approval affordance"
     );
+    // The older draft's enter/esc goes with it.
+    assert!(out
+        .iter()
+        .any(|e| matches!(e, PluginEvent::Plan { pending: false })));
     let said = out.iter().any(|e| {
         matches!(e, PluginEvent::Message { text, .. } if text.contains("cut off at the token limit before"))
     });
