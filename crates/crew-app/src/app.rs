@@ -288,8 +288,8 @@ pub struct CrewApp {
     /// Gates blocked-pane auto-focus: focus is never stolen while the user is
     /// actively driving some other pane (see [`crate::blocked`]).
     pub(crate) last_input_ms: u64,
-    /// What the window was last told about IME input (`composeinput`).
-    pub(crate) ime_on: Option<bool>,
+    /// The window's IME and the composition in flight (`imepreedit`).
+    pub(crate) ime: crate::imepreedit::ImeState,
     /// Blocked-on-a-human episode tracking + check throttle (see
     /// [`crate::blocked`]): which panes are waiting, and which have already
     /// had their one auto-focus for the current episode.

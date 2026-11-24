@@ -371,6 +371,8 @@ mod history;
 mod histsearch;
 mod hit;
 mod host;
+mod imedraw;
+mod imepreedit;
 pub(crate) mod imgcache;
 mod inputbar;
 mod inputbar_render;

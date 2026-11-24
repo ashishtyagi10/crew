@@ -25,4 +25,24 @@ impl TermCore {
         let p = self.term.grid().cursor.point;
         (p.line.0 >= 0).then_some((p.column.0 as u16, p.line.0 as u16))
     }
+
+    /// Where text being composed by an input method is drawn: the live
+    /// cursor's cell even when the program hid it. A TUI that draws its own
+    /// caret (Claude Code, a fuzzy finder) hides the terminal's, yet the
+    /// glyphs a Japanese input method is building belong where the next
+    /// character lands — as in Alacritty. `None` only while scrolled back.
+    pub(crate) fn ime_cell(&self) -> Option<(u16, u16)> {
+        if self.display_offset() != 0 {
+            return None;
+        }
+        let p = self.term.grid().cursor.point;
+        (p.line.0 >= 0).then_some((p.column.0 as u16, p.line.0 as u16))
+    }
+}
+
+impl crate::PtyTerm {
+    /// [`TermCore::ime_cell`]: where an input method's composition is drawn.
+    pub fn ime_cell(&self) -> Option<(u16, u16)> {
+        self.core.ime_cell()
+    }
 }

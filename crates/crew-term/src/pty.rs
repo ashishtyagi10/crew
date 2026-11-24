@@ -20,7 +20,7 @@ const CHANNEL_CAP: usize = 1024;
 const READ_BUDGET: usize = 256 * 1024;
 
 pub struct PtyTerm {
-    core: TermCore,
+    pub(crate) core: TermCore,
     master: Box<dyn portable_pty::MasterPty + Send>,
     /// The single pty writer, shared between the app's input path (see
     /// [`PtyTerm::writer`]) and `try_read`'s query replies (OSC color / DSR
