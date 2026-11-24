@@ -53,7 +53,12 @@ impl CrewApp {
         match (item.dir, item.more) {
             // The "n more" line: the tree keeps CAP entries a folder, Far lists them all — so
             // the rest of this folder opens there, where they can be scrolled and sorted.
-            (_, Some(_)) => self.far_open_at(&item.path.clone()),
+            // Browsing goes on in Far, and the tree's hold on the keys ends with the click: Far
+            // may be the very pane that held them, so the focus change alone would not end it.
+            (_, Some(_)) => {
+                self.far_open_at(&item.path);
+                self.sidebar.explorer.keys = None;
+            }
             (true, None) => self.sidebar.explorer.toggle(item),
             (false, None) => {
                 let path = item.path.clone();

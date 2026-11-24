@@ -3,8 +3,8 @@
 //! The tree was mouse-only: every folder opened, every file previewed, was a reach for the
 //! pointer in an app driven from the keys. Cmd+Shift+E now opens the nav on the Explorer and
 //! hands the tree the keyboard: ↑/↓ (or k/j) move a cursor row, → or Enter opens a folder,
-//! previews a file in the tree's one viewer, or on "… n more" opens that folder in Far; ← closes
-//! a folder or steps to its parent, Home/End go to the ends, a letter jumps to the next name starting with it
+//! previews a file in the tree's one viewer, or on "… n more" opens that folder in Far; ←
+//! closes a folder or steps to its parent, Home/End go to the ends, a letter jumps to the next name starting with it
 //! ([`crate::explorerfind`]), Esc — or the chord again — gives the keys back.
 //!
 //! **Whose keys.** The tree holds them only while nothing else took them: the pane that had

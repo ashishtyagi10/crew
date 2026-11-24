@@ -26,16 +26,23 @@ fn a_click_on_n_more_opens_the_folder_in_far() {
     let _g = crate::app::theme_test_guard();
     let root = capped("morefar");
     let mut a = app(&root);
-    a.sidebar.explorer.scroll = usize::MAX; // the last row on top, where it can be clicked
+    // The last row on top, where it can be clicked.
+    a.sidebar.explorer.scroll = a.sidebar.explorer.items(&root).len() - 1;
     a.cursor = at(&mut a, "3 more");
     assert!(a.explorer_press());
     assert_eq!(a.panes.len(), 1, "a Far pane opened");
     assert_eq!(a.focused, 0);
     assert_eq!(far_dir(&a, 0), Some(root.clone()));
-    // A second click goes to the Far pane already open, not a new one.
+    // A second click goes to the Far pane already open, not a new one — and when that pane
+    // lent the tree its keys, the click takes them back for Far.
+    a.explorer_keys_toggle();
+    assert!(a.tree_has_keys(), "the Far pane lent the tree its keys");
+    a.sidebar.explorer.scroll = a.sidebar.explorer.items(&root).len() - 1;
     a.cursor = at(&mut a, "3 more");
     a.explorer_press();
     assert_eq!(a.panes.len(), 1);
+    assert!(!a.tree_has_keys(), "the keys went back to Far");
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 #[test]
@@ -49,8 +56,9 @@ fn enter_on_n_more_opens_far_and_hands_it_the_keys() {
     assert!(a.explorer_tree_key(&Key::Named(NamedKey::Enter), true));
     let far = a.panes.len() - 1;
     assert_eq!(a.focused, far);
-    assert_eq!(far_dir(&a, far), Some(root));
+    assert_eq!(far_dir(&a, far), Some(root.clone()));
     assert!(!a.tree_has_keys(), "Far took focus, and the keys with it");
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 /// Muted at rest — it is not a file — but the accent under the pointer, as every row a click
@@ -76,4 +84,5 @@ fn n_more_lights_under_the_pointer() {
     let t = crew_theme::theme();
     assert_eq!(ink(None), t.text_muted);
     assert_ne!(ink(Some(last)), t.text_muted);
+    let _ = std::fs::remove_dir_all(&root);
 }
