@@ -709,6 +709,14 @@ characters (`∫`, `™`), so Meta there is the Settings switch **Option key is
 Meta**, off by default. Shells launch as your `$SHELL` login shell, so
 your full config and plugins load.
 
+A program that asks for the **kitty keyboard protocol** (nvim, helix, fish 4,
+Claude Code push `CSI > 1 u`) gets its "disambiguate" flag: Esc is `CSI 27 u`,
+Ctrl and Alt chords are `CSI code ; mods u` (so Ctrl+I is not Tab and
+Ctrl+Shift+A is not Ctrl+A), and Shift/Ctrl/Alt with Enter, Tab or Backspace
+are `CSI 13/9/127 ; mods u`; plain typing stays plain. Its other flags are not
+honoured, and `CSI ? u` says so. A program killed in that mode doesn't leave
+the shell in it: the stack is emptied when the shell's prompt comes back.
+
 On **Windows** a pane is PowerShell — **PowerShell 7** (`pwsh`) when it is
 installed (on `PATH`, in `Program Files\PowerShell\7`, or from winget, the
 Store, Scoop or the .NET tool), else Windows PowerShell; a `$SHELL` you set

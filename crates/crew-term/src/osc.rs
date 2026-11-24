@@ -143,6 +143,9 @@ pub(crate) struct OscScanner {
     /// WHERE in a chunk each prompt began (the queue is capped, so its
     /// length can't).
     prompts: u64,
+    /// Command (`C`, `D`) marks ever seen: whether a command ran since a
+    /// prompt (`modelkitty`).
+    commands: u64,
     /// The latest reported directory.
     cwd: Option<PathBuf>,
     /// Set when `cwd` changed since the last `take`.
@@ -158,6 +161,11 @@ impl OscScanner {
         } else {
             None
         }
+    }
+
+    /// Command (`C` / `D`) marks ever seen.
+    pub(crate) fn commands(&self) -> u64 {
+        self.commands
     }
 
     /// The semantic marks seen since the last call, oldest first.
@@ -269,6 +277,7 @@ impl OscScanner {
         };
         if let Some(mark) = ShellMark::parse(rest) {
             self.prompts += u64::from(mark == ShellMark::Prompt);
+            self.commands += u64::from(matches!(mark, ShellMark::OutputStart | ShellMark::Done(_)));
             self.marks.push(mark);
             // A shell replaying a long scrollback can emit hundreds of these
             // before anyone drains them; keep the newest.

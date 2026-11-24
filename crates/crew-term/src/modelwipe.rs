@@ -5,11 +5,13 @@ use alacritty_terminal::term::TermMode;
 use super::TermCore;
 use crate::wipescan::{Hit, ImageWipe, WipeScan};
 
-/// The watcher and the wipes the app has not collected yet.
+/// The watcher, the wipes the app has not collected yet, and the kitty
+/// keyboard stack depths the same watcher counts (`modelkitty`).
 #[derive(Default)]
 pub(super) struct Wipes {
     scan: WipeScan,
     pending: Vec<ImageWipe>,
+    pub(crate) kitty: modelkitty::KittyStacks,
 }
 
 impl TermCore {
@@ -21,6 +23,21 @@ impl TermCore {
         for (end, hit) in self.wipes.scan.feed(bytes) {
             self.parse(&bytes[at..end]);
             at = end;
+            match hit {
+                Hit::KittyPush if !self.kitty_push() => {
+                    // Its final byte swapped for CAN, which aborts it.
+                    self.parse(b"\x18");
+                    at = end + 1;
+                    continue;
+                }
+                Hit::KittyPush => continue,
+                Hit::KittyPop(n) => {
+                    self.kitty_pop(n);
+                    continue;
+                }
+                Hit::Reset => self.kitty_reset(),
+                _ => {}
+            }
             let alt = self.term.mode().contains(TermMode::ALT_SCREEN);
             match hit {
                 Hit::EraseScreen => self.wipe(ImageWipe::Screen {
@@ -33,6 +50,7 @@ impl TermCore {
                     self.wipe(ImageWipe::All);
                     self.wipe(ImageWipe::Alt(false));
                 }
+                Hit::KittyPush | Hit::KittyPop(_) => {}
             }
         }
         self.parse(&bytes[at..]);
@@ -63,6 +81,10 @@ impl TermCore {
         std::mem::take(&mut self.wipes.pending)
     }
 }
+
+#[path = "modelkitty.rs"]
+mod modelkitty;
+pub(super) use modelkitty::POP_ALL;
 
 #[cfg(test)]
 #[path = "modelwipe_tests.rs"]

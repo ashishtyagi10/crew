@@ -136,8 +136,12 @@ impl CrewApp {
                 alt,
                 ctrl: mstate.control_key(),
             };
-            let meta = crate::altmeta::meta_key(event, m, self.config.option_as_meta);
-            if let Some(bytes) = meta.or_else(|| key_to_bytes(event, m, modes)) {
+            let meta = self.config.option_as_meta;
+            let kitty = crate::keykitty::key_event(event, m, modes.kitty_keys, meta);
+            let bytes = kitty
+                .or_else(|| crate::altmeta::meta_key(event, m, meta))
+                .or_else(|| key_to_bytes(event, m, modes));
+            if let Some(bytes) = bytes {
                 self.write_to_terminals(&bytes);
             }
         }
