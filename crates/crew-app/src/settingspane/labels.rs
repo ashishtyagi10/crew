@@ -33,6 +33,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Maximized => "Launch maximized",
         Field::OptionMeta => "Option key is Meta",
         Field::Scrollback => "Scrollback",
+        Field::ClipboardRead => "Clipboard read",
         Field::Notify => "Notifications",
         // Commands AND agent turns since 0.25.32: "cmd done" undersold it.
         Field::NotifyAgentDone => "Notify: done",
@@ -112,6 +113,10 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         ),
         Field::Contrast => (format!("\u{2039} {} \u{203a}", p.draft.contrast), false),
         Field::ShapeCues => (format!("\u{2039} {} \u{203a}", p.draft.shape_cues), false),
+        Field::ClipboardRead => (
+            format!("\u{2039} {} \u{203a}", p.draft.clipboard_read),
+            false,
+        ),
         Field::Gradient => (
             format!("\u{2039} {} \u{203a}", p.draft.gradient_level().as_str()),
             false,

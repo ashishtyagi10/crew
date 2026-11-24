@@ -2295,6 +2295,20 @@ longer aim at.
   clipboard holds an **image** (and no text), it's written to a temp PNG and the
   file path is pasted instead — so agent CLIs can read the image by path.
 - Programs can copy to the system clipboard via **OSC 52**.
+- Programs can also **read** it via OSC 52 (`ESC ] 52 ; c ; ? BEL` — nvim's
+  paste provider over ssh, tmux's `set-clipboard`), but only with
+  `clipboard_read = "allow"` (Settings → **Clipboard read**). It is off by
+  default because reading is a privacy risk: any program in any pane, or bytes
+  `cat`ed from a file, could ask for what you copied (a password, a token).
+  Even when allowed, only the focused pane of a focused window is answered;
+  an ask from anywhere else is dropped, not saved for later. Text only, up to
+  1 MiB — a bigger clipboard gets no answer rather than a cut one.
+  Be clear what `allow` means: **any program in the pane you focus can read
+  the clipboard** — focusing a pane is not consent to a specific read, and
+  you are not asked. Each pane is answered at most about **4 times a
+  second** (one read per 250 ms; extra asks are dropped), never while the
+  window's focus is still unknown or the input bar has the keys, and not
+  again until the program has taken its last answer.
 - **Drag & drop**: a file dragged from the OS file manager lands in the
   **focused** pane — a chat composer gets an `@path ` mention (quoted as
   `@"path" ` when the path has spaces, cwd-relative when it can be), a
@@ -4493,7 +4507,8 @@ value.
 - **WINDOW** — **Nav width**, **Scrollback** (lines each terminal keeps,
   100–100 000, default 10 000; a save resizes open panes too), **Show nav**,
   **Launch maximized**, **Option key is Meta** (macOS: Option+key sends
-  `ESC`+key to a terminal).
+  `ESC`+key to a terminal), **Clipboard read** (`deny · allow`: may a
+  terminal program read the clipboard with OSC 52; see [Clipboard](#clipboard)).
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**done** — a command or an agent's turn,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
@@ -4965,3 +4980,4 @@ characters, not its columns.
 | `backdrop_3d` | empty = the theme's | the 3D scene behind the panes (`/look 3d`): empty for the theme's own (`prism` has one), `off`, `orbit` or `prism`; also Settings → **3D backdrop** |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `scrollback` | `10000` | lines a terminal pane keeps above its screen, 100–100 000; Settings → **Scrollback** applies it to open panes at once (a shrink drops the oldest lines) |
+| `clipboard_read` | `deny` | whether a terminal program may READ the clipboard with OSC 52 (`deny` or `allow`; anything else, `ask` included, is `deny`); when allowed any program in the focused pane of a focused window can read it (no prompt), at most ~4 reads a second, text only, up to 1 MiB (past it: no answer). Settings → **Clipboard read** |

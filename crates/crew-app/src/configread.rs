@@ -95,6 +95,12 @@ impl CrewConfig {
         }
     }
 
+    /// Whether a program may read the clipboard (OSC 52). Only `allow` opens
+    /// it: `ask` has no prompt yet, and a typo must fail closed.
+    pub(crate) fn clipboard_read_allowed(&self) -> bool {
+        self.clipboard_read.trim().eq_ignore_ascii_case("allow")
+    }
+
     /// The configured density; an unknown name falls back to `cozy`, the
     /// default — a typo must not re-space the whole canvas.
     pub(crate) fn density(&self) -> crate::density::Density {

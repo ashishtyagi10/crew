@@ -1,9 +1,10 @@
 //! Terminal event listener. We capture the program-set window title (OSC 0/2)
-//! and clipboard-store requests (OSC 52); everything else is ignored.
+//! and clipboard requests (OSC 52 store and read); everything else is ignored.
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use alacritty_terminal::event::{Event, EventListener, WindowSize};
+use alacritty_terminal::term::ClipboardType;
 use alacritty_terminal::vte::ansi::Rgb;
 
 /// A colour query waiting for its answer: where in [`TermEvents::replies`]
@@ -29,7 +30,15 @@ pub(crate) struct TermEvents {
     /// see the palette a program set, so `TermCore` answers these after the
     /// parser runs, from `term.colors()` (see `modelcolor`).
     pub color_asks: Arc<Mutex<Vec<ColorAsk>>>,
+    /// The latest OSC 52 clipboard read, with alacritty's reply formatter.
+    /// One slot, not a queue: a file of a thousand queries `cat`ed into a
+    /// pane must not become a thousand copies of the clipboard owed back.
+    pub clip_ask: Arc<Mutex<Option<ClipFormat>>>,
 }
+
+/// alacritty's OSC 52 reply formatter: the text in, the whole answer out
+/// (base64, the selector and the terminator the query used).
+pub(crate) type ClipFormat = Arc<dyn Fn(&str) -> String + Sync + Send>;
 
 impl TermEvents {
     /// Drain the pending query replies (`None` when empty).
@@ -50,6 +59,12 @@ impl EventListener for TermEvents {
             Event::Title(t) => *self.title.lock().unwrap() = t,
             Event::ResetTitle => self.title.lock().unwrap().clear(),
             Event::ClipboardStore(_, text) => *self.clipboard.lock().unwrap() = Some(text),
+            // Only the clipboard proper: a Mac has no primary selection, and
+            // answering `p`/`s` from the clipboard would hand it out under a
+            // name the program did not ask for.
+            Event::ClipboardLoad(ClipboardType::Clipboard, format) => {
+                *self.clip_ask.lock().unwrap() = Some(format)
+            }
             Event::Bell => self.bell.store(true, Ordering::Relaxed),
             // Status reports (DSR cursor position, device attributes, …) the
             // child expects as terminal input.

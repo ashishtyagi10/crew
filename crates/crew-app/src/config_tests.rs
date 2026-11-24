@@ -123,6 +123,7 @@ fn round_trip() {
         todo_reminders: true,
         option_as_meta: true,
         scrollback: 2500,
+        clipboard_read: "allow".to_string(),
         accent: Some("#112233".to_string()),
         maximized: true,
         last_dir: Some("/tmp".to_string()),

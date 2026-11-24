@@ -232,6 +232,7 @@ mod chords;
 pub mod chrome;
 mod clickopen;
 mod clipboard;
+mod clipread;
 mod clock;
 mod cmdcheck;
 mod cmddefs;

@@ -46,6 +46,12 @@ pub(crate) fn default_gradient() -> String {
     "subtle".to_string()
 }
 
+pub(crate) fn default_clipboard_read() -> String {
+    // Any program in a pane, or bytes `cat`ed from a file, could otherwise
+    // read what was copied: Ghostty asks, kitty leaves it out by default.
+    "deny".to_string()
+}
+
 pub(crate) fn default_shape_cues() -> String {
     // Follow the OS: macOS's Accessibility -> Display -> "Differentiate
     // without color" is the switch this answers (see `shapecues`).

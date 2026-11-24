@@ -16,7 +16,7 @@ mod ptylocale;
 mod schemenotify;
 mod wipescan;
 pub use graphicscmd::ImageCmd;
-pub use model::{GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel};
+pub use model::{ClipboardAsk, GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel};
 pub use modes::InputModes;
 pub use osc::{Progress, ShellMark};
 pub use pty::PtyTerm;

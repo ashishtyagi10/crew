@@ -166,6 +166,9 @@ pub struct CrewApp {
     /// focused, because a window that has just opened is, and not every
     /// platform sends `Focused(true)` to say so.
     pub(crate) win_focus: Option<bool>,
+    /// When each pane last had an OSC 52 clipboard read answered, so one
+    /// program can't poll the clipboard (see [`crate::clipread::READ_GAP`]).
+    pub(crate) clip_reads: crate::clipread::LastReads,
     /// What focus mode has held back since it was entered (see
     /// [`crate::focusmode`]). Reset every time the mode is entered, reported
     /// and cleared on the way out.
