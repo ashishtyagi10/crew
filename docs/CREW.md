@@ -2960,6 +2960,17 @@ and a typo gets a **did-you-mean** suggestion):
   routes in: the roster's names, whether the tree is dirty, and the tool
   surface. `CREW_INTENT=0` restores plain-swarm routing. **`@a+b <task>`**
   still fans out to just that subset by hand.
+- **how hard the agent thinks follows the route** — a plan or a review
+  asks the agent's model for `high` effort, a commit message or a standup
+  for `low`, and every other shape (a reply, fan, loop, goal or swarm) for
+  nothing, which keeps the model's own default (Opus 5.5 `medium`, Sonnet
+  5.5 `high`). A specialist in `.crew/specialists.json` may carry its own
+  `"effort": "low" | "medium" | "high" | "xhigh" | "max"`, which outranks the
+  route for that agent; a misspelt level is ignored. The level goes only to a
+  model that takes it: Claude's `output_config.effort` (brought down to the
+  model's highest — Opus 4.5 stops at `high`), and `reasoning_effort` on
+  OpenAI's GPT-6 models when the request carries no tools (`xhigh`/`max` sent
+  as `high`). GPT-5.x, DeepSeek and the gateways are sent nothing.
 - **"keep working until …"** — relay rounds until a judge agent (elected by
   the model) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
   the next round. The router's model picks the round count (`ROUNDS:`); 5
@@ -3861,7 +3872,8 @@ endpoint, the key and the default model chain differ:
 OpenAI shuts `gpt-4.1` down on 2027-01-14 and names `gpt-6-luna` as its
 replacement, so Luna is the last rung. Luna takes tools on Chat Completions
 only at `reasoning_effort: none`, so Crew sends that one field on a Luna tool
-request to `api.openai.com`, and on nothing else.
+request to `api.openai.com`, whatever level the route asked for (a GPT-6
+request with no tools carries the route's level instead).
 
 **Free to start.** A chat pane with no provider says this itself, in **the
 longest form that fits the rows it has** — three lengths of the same advice

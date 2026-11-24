@@ -127,3 +127,37 @@ fn the_built_luna_tool_body_asks_openai_for_no_effort() {
     let head = built("gpt-5.5");
     assert!(head.get("reasoning_effort").is_none(), "{head}");
 }
+
+/// A routed level rides the built body: `high` for a hard route on Sol with
+/// no tools, while the same level on a Luna tool turn still leaves OpenAI's
+/// host `none` — the route never outranks the one setting Luna's tools take.
+#[test]
+fn a_routed_level_rides_the_built_body_but_never_a_luna_tool_turn() {
+    let req = |model: &str, tools: bool| CompletionRequest {
+        model: model.into(),
+        prompt: "review this".into(),
+        max_tokens: 8,
+        effort: Some(crate::provider::Effort::High),
+        tools: match tools {
+            true => vec![crate::provider::ToolDef {
+                name: "sys_run".into(),
+                description: "run".into(),
+                input_schema: serde_json::json!({"type": "object"}),
+            }],
+            false => Vec::new(),
+        },
+        ..Default::default()
+    };
+    let built = |r: CompletionRequest| {
+        let messages = super::build_messages(&r);
+        super::super::tokencap::for_endpoint(
+            "https://api.openai.com/v1/chat/completions",
+            super::build_body(&r.model, &r, &messages, false, Vec::new()),
+        )
+    };
+    assert_eq!(built(req("gpt-6.1-sol", false))["reasoning_effort"], "high");
+    assert_eq!(built(req("gpt-6-luna", true))["reasoning_effort"], "none");
+    assert!(built(req("gpt-4.1", false))
+        .get("reasoning_effort")
+        .is_none());
+}

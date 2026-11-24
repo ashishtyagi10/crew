@@ -167,6 +167,9 @@ impl Agent for ApiAgent {
                 model: model.unwrap_or_else(|| tier.model_id().to_owned()),
                 tier,
                 max_tokens,
+                // A swarm worker keeps its model's default: the router's
+                // effort reaches the relay's turns (crew-plugin `routeeffort`).
+                effort: None,
             };
             let mut turn = ctx.turn();
             if let (Some(t), Some(a)) = (&tools, &advisor) {

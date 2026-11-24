@@ -5,17 +5,19 @@
 //! dial left is `output_config.effort`. Left unset, a one-shot judge asking
 //! "did this reply answer the question?" pays the same thinking as the work
 //! turn that wrote the reply. The one-shots (the reply judge, the router,
-//! the classifiers, tool and skill choice) ask for `Low`; the work turn and
-//! the compaction summary, which every later hop works from, ask for nothing
-//! and keep the model's own default.
+//! the classifiers, tool and skill choice) ask for `Low`; the compaction
+//! summary asks for nothing; and the work turn asks for what its route and
+//! its agent say (crew-plugin `routeeffort`) — usually nothing, which keeps
+//! the model's own default.
 //!
-//! Only the Anthropic wire sends it. DashScope's one-shots already go
-//! unstreamed and are told `enable_thinking: false` (`thinking`), and the
-//! one `reasoning_effort` crew sends OpenAI is a wire requirement, not a
-//! per-call dial: `none` on a GPT-6 Luna tool request (`lunaeffort`).
+//! Two wires carry it, each only to a model that takes the level sent: the
+//! Anthropic one as `output_config.effort` ([`anthropic_field`]), OpenAI's
+//! own GPT-6 models as `reasoning_effort` ([`openai_field`]). DashScope's
+//! one-shots are told `enable_thinking: false` instead (`thinking`), and a
+//! GPT-6 Luna tool request is always told `none` (`lunaeffort`).
 
 /// One call's effort, as the Anthropic API spells the levels.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Effort {
     Low,
     Medium,
@@ -34,6 +36,35 @@ impl Effort {
             Effort::Max => "max",
         }
     }
+
+    /// The level a person wrote (`high`, ` Max `), or `None` for anything
+    /// else: a mistyped level keeps the default rather than guessing one.
+    pub fn parse(s: &str) -> Option<Effort> {
+        [
+            Effort::Low,
+            Effort::Medium,
+            Effort::High,
+            Effort::Xhigh,
+            Effort::Max,
+        ]
+        .into_iter()
+        .find(|e| s.trim().eq_ignore_ascii_case(e.as_str()))
+    }
+}
+
+/// `model`'s family, major and minor (`claude-opus-4-5-20251101` → opus 4.5).
+fn anthropic_version(model: &str) -> Option<(&str, u32, u32)> {
+    let rest = model.strip_prefix("claude-")?;
+    let mut parts = rest.split('-');
+    let family = parts.next().unwrap_or("");
+    let major = parts.next().and_then(|p| p.parse::<u32>().ok())?;
+    // A minor is one or two digits; a longer number is a date suffix.
+    let minor = parts
+        .next()
+        .filter(|p| p.len() <= 2)
+        .and_then(|p| p.parse::<u32>().ok())
+        .unwrap_or(0);
+    Some((family, major, minor))
 }
 
 /// Whether `model` (a native Anthropic id, date suffix or not) takes
@@ -41,20 +72,9 @@ impl Effort {
 /// error, and Haiku 4.5 is in the catalog, so an id this cannot read gets
 /// nothing: an unsent effort costs some thinking, a rejected one the call.
 pub(crate) fn anthropic_accepts(model: &str) -> bool {
-    let Some(rest) = model.strip_prefix("claude-") else {
+    let Some((family, major, minor)) = anthropic_version(model) else {
         return false;
     };
-    let mut parts = rest.split('-');
-    let family = parts.next().unwrap_or("");
-    let Some(major) = parts.next().and_then(|p| p.parse::<u32>().ok()) else {
-        return false;
-    };
-    // A minor is one or two digits; a longer number is a date suffix.
-    let minor = parts
-        .next()
-        .filter(|p| p.len() <= 2)
-        .and_then(|p| p.parse::<u32>().ok())
-        .unwrap_or(0);
     match family {
         "opus" => (major, minor) >= (4, 5),
         "sonnet" => (major, minor) >= (4, 6),
@@ -64,13 +84,50 @@ pub(crate) fn anthropic_accepts(model: &str) -> bool {
     }
 }
 
+/// `effort` brought down to the highest level `model` takes (the claude-api
+/// thinking table): Opus 4.5 stops at `high`, and the 4.6 models have `max`
+/// but no `xhigh`, which arrived with Opus 4.7. Every later model takes all five.
+fn anthropic_level(model: &str, effort: Effort) -> Effort {
+    match anthropic_version(model) {
+        Some(("opus", 4, 5)) if effort > Effort::High => Effort::High,
+        Some((_, 4, 6)) if effort == Effort::Xhigh => Effort::High,
+        _ => effort,
+    }
+}
+
 /// The `output_config` field for `effort` on `model`, or `None` when the
 /// request asks for none or the model would refuse it.
 pub(crate) fn anthropic_field(model: &str, effort: Option<Effort>) -> Option<serde_json::Value> {
     let effort = effort?;
-    anthropic_accepts(model).then(|| serde_json::json!({ "effort": effort.as_str() }))
+    anthropic_accepts(model)
+        .then(|| serde_json::json!({ "effort": anthropic_level(model, effort).as_str() }))
+}
+
+/// The `reasoning_effort` a chat-completions request for `model` carries for
+/// `effort`, or `None`. Only OpenAI's GPT-6 ids (their pages list `none`
+/// through `high`, so `xhigh` and `max` are sent as `high`) and only with no
+/// tools: on Chat Completions a GPT-6 model takes tools at `none` or not at
+/// all (`lunaeffort`, crew-plugin `directs`). GPT-5.x, DeepSeek and the
+/// gateways are left at their defaults until their own pages are read.
+pub(crate) fn openai_field(
+    model: &str,
+    effort: Option<Effort>,
+    tools: bool,
+) -> Option<&'static str> {
+    let effort = effort?;
+    let gpt6 = model
+        .strip_prefix("gpt-6")
+        .is_some_and(|r| r.is_empty() || r.starts_with(['-', '.']));
+    (gpt6 && !tools).then(|| match effort {
+        Effort::Xhigh | Effort::Max => "high",
+        e => e.as_str(),
+    })
 }
 
 #[cfg(test)]
 #[path = "effort_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "effortwire_tests.rs"]
+mod wire_tests;

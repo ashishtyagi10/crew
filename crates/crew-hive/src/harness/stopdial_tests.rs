@@ -39,6 +39,7 @@ async fn a_dial_that_ends_on_the_stop_ends_the_turn_stopped() {
         advice: None,
     };
     let spec = TurnSpec {
+        effort: None,
         ask: "q".into(),
         prompt: "q".into(),
         hinted: None,

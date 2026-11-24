@@ -28,6 +28,9 @@ impl ApiAdapter {
             system: self.system.clone(),
             prompt: body.to_string(),
             max_tokens: MAX_TOKENS,
+            // A plan, a review, a commit message: the agent's own level,
+            // else the route's (`routeeffort`).
+            effort: crate::broker::routeeffort::for_turn(&self.name),
             ..Default::default()
         };
         let provider = Arc::clone(&self.provider);

@@ -176,7 +176,7 @@ pub(crate) fn routed(
         ),
         false => decision::classify_live(task, &world, classifier, emit)?,
     };
-    let d = routing.decision();
+    let (d, _effort) = super::routeeffort::decided(&routing);
     // The router's `CORRECTS:` line when it read the message; the openings
     // when it did not (off, failed, off-grammar, or plan-first's forced shape).
     let read = matches!(routing, decision::Routing::Chosen(_)) && !forced;

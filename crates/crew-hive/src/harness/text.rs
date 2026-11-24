@@ -30,6 +30,7 @@ pub(super) async fn run(
         model: model_id,
         tier,
         max_tokens,
+        effort,
         ..
     } = spec;
     let ending = ending.unwrap_or_default();
@@ -77,6 +78,7 @@ pub(super) async fn run(
             system: system.clone(),
             prompt,
             max_tokens,
+            effort,
             ..Default::default()
         };
         // Raced against the stop: a call nobody wants any more is dropped,

@@ -114,6 +114,7 @@ async fn turn(native: bool, paths: &[&'static str]) -> (Vec<String>, Vec<String>
         advice: Some(Arc::new(advisor)),
     };
     let spec = TurnSpec {
+        effort: None,
         ask: "fix a.rs".into(),
         prompt: "TASK: fix a.rs".into(),
         hinted: None,

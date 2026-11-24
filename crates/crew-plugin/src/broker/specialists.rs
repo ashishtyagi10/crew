@@ -29,6 +29,11 @@ pub(crate) struct Specialist {
     /// Unix ms of last use, for LRU eviction. Bumped by a run that invents the
     /// name (`record`) and by an `@`-dial (`touch`).
     pub last_used: u64,
+    /// How hard this agent's model thinks (`low` … `max`), written by hand;
+    /// it outranks the route's (`routeeffort`). Absent from a file that never
+    /// set it, and kept through every rewrite.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effort: Option<String>,
 }
 
 fn path(base: &Path) -> PathBuf {
@@ -38,7 +43,7 @@ fn path(base: &Path) -> PathBuf {
 /// The project dir the store lives under. `CREW_PROJECT_DIR` overrides the
 /// process CWD — the seam tests use, since lib tests share one CWD and cannot
 /// each chdir. Production never sets it: the broker's CWD *is* the project.
-fn base_dir() -> PathBuf {
+pub(crate) fn base_dir() -> PathBuf {
     std::env::var("CREW_PROJECT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."))
@@ -96,6 +101,7 @@ pub(crate) fn record_at(base: &Path, seen: &[(String, String)]) {
                     name,
                     role: crew_hive::agentname::role_clamp(role),
                     last_used: now,
+                    effort: None,
                 },
             ),
         }

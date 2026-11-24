@@ -150,6 +150,8 @@ impl Broker {
             // Billing's fallback only, and the relay bills from the model's usage.
             tier: ModelTier::Standard,
             max_tokens,
+            // The agent's own level, else the route's (`routeeffort`).
+            effort: super::routeeffort::for_turn(&env.to),
         };
         let steers = Steers::new(super::steer::take).with_tail(super::steer::TAIL);
         let ended = rt.block_on(harness::run(
@@ -188,6 +190,9 @@ mod kit;
 #[path = "hopturn_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "hopeffort_tests.rs"]
+mod effort_tests;
 #[cfg(test)]
 #[path = "hopfull_tests.rs"]
 mod full_tests;
