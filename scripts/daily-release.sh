@@ -1,6 +1,7 @@
 #!/bin/bash
 # scripts/daily-release.sh            cut today's release, if there is one to cut
 # DRY_RUN=1 scripts/daily-release.sh  write the release notes and stop
+# SAME_DAY=1 scripts/daily-release.sh a second release today, when the user asks for one
 #
 # Run every evening by launchd (com.atyagi.crew-daily-release). Ships what is
 # merged on local main and not yet tagged, as ONE release, through
@@ -35,7 +36,8 @@ git fetch -q --tags origin || fail "could not reach origin"
 
 TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
 # (A dry run only writes notes, so it may run on a day that has its release.)
-[[ -n ${DRY_RUN:-} || $(git log -1 --format=%cd --date=format:%Y-%m-%d "$TAG") != $(date +%Y-%m-%d) ]] ||
+# SAME_DAY=1: the user asked for a second release today.
+[[ -n ${DRY_RUN:-} || -n ${SAME_DAY:-} || $(git log -1 --format=%cd --date=format:%Y-%m-%d "$TAG") != $(date +%Y-%m-%d) ]] ||
   stop "$TAG already went out today"
 N=$(git rev-list --count "$TAG..main")
 ((N > 0)) || stop "nothing merged since $TAG"
