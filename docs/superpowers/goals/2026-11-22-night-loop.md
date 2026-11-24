@@ -2,7 +2,7 @@
 
 Ask: "keep improving crew in each aspect for rest of the night .. UI, navigation,
 ai capabilities and overall performance." v0.30.22 went out at 00:35 today, so
-every round merges to main untagged; the 8 PM job releases.
+every round merges to main untagged; the 8 PM job releases. Released as **v0.30.23** on 2026-11-23.
 
 Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, merged.
 
@@ -200,7 +200,7 @@ Lanes rotate: perf/health → nav → ai → ui. One change per round, gated, me
   9b941e6f). crew-app can't be linted on 1.100 locally (objc2 0.4.1 breaks
   on macOS; ring blocks a Linux-target check), so CI is its oracle.
 
-## Pending release
+## Released — v0.30.23 (2026-11-23, 8 PM job)
 - **CI checks again** (R1): the CI workflow had failed on every push for
   weeks — clippy lints and 16 unused workspace dependencies — so it caught
   nothing. Clippy is clean and the unused dependencies are gone; a red CI run
