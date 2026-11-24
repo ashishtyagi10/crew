@@ -9,6 +9,10 @@ fn a_review_of_the_working_changes_is_asked_for() {
         "go over the diff",
         "review the staged change",
         "critique my uncommitted edits",
+        // The quick look's words (`reviewlevel`).
+        "give my changes a quick look",
+        "skim my diff",
+        "glance over the staged changes",
     ] {
         assert!(asks_review(task), "{task}");
     }

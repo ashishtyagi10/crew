@@ -234,7 +234,7 @@ pub(crate) fn dispatch(
             emit,
         ),
         Shape::Commit => super::gitmsg::commit_cmd(session, "", emit),
-        Shape::Review => super::review::review_cmd(session, emit),
+        Shape::Review => super::review::review_cmd(session, task, emit),
         Shape::Standup => super::standup::standup_cmd(session, "", emit),
         Shape::Resume => super::sessionlog::resume_cmd(session, emit),
     }

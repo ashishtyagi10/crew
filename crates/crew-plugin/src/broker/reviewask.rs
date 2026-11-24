@@ -14,8 +14,20 @@
 //! review nobody asked for.
 use crate::broker::intent::shapeguard::says_any;
 
-/// Asking for a review: the verb, or the noun with its verb in it.
-const REVIEW: &[&str] = &["review", "look over", "go over", "check over", "critique"];
+/// Asking for a review: the verb, or the noun with its verb in it — and
+/// the light pass's words, so "skim my diff" reaches the quick look
+/// (`reviewlevel`).
+const REVIEW: &[&str] = &[
+    "review",
+    "look over",
+    "go over",
+    "check over",
+    "critique",
+    "quick look",
+    "skim",
+    "glance over",
+    "glance at",
+];
 
 /// The working changes, which is what the review path reads.
 const CHANGES: &[&str] = &[

@@ -1,7 +1,8 @@
 //! `/review` — AI code review of the working tree (à la Codex's `/review`):
 //! the reviewer agent reads the diff `/commit` would describe (staged wins,
 //! else everything the tree has changed) and reports severity-ordered findings in
-//! the pane. Read-only, and the reviewer's CLI runs in its read-only mode
+//! the pane, at the level the ask names: quick, standard or deep
+//! (`reviewlevel`). Read-only, and the reviewer's CLI runs in its read-only mode
 //! (`handsoff`): unlike `/commit` there is nothing to apply, so the
 //! construct carries no session state.
 use crate::PluginEvent;
@@ -33,9 +34,11 @@ pub(crate) fn review_prompt(diff: &str, callers: &str) -> String {
     p
 }
 
-/// `/review`: review the current diff and stream the findings back.
+/// Review the current diff at the level `task` asks for
+/// (`reviewlevel`) and stream the findings back.
 pub(crate) fn review_cmd(
     session: &mut Session,
+    task: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let dir = match super::gitmsg::project_dir() {
@@ -52,7 +55,6 @@ pub(crate) fn review_cmd(
         }
         Ok(Some(d)) => d,
     };
-    let callers = super::reviewcallers::section(&dir, &diff);
     let reg = session.registry();
     if reg.is_empty() {
         return emit(msg("agent smith", roster(&reg)));
@@ -79,39 +81,34 @@ pub(crate) fn review_cmd(
     // Read-only: a reviewer that fixes what it was asked to judge takes the
     // decision from the person who asked (`handsoff`); one with no read-only
     // mode has whatever it edited put back and said (`reviewguard`).
-    let (reply, edited) = match reg.get(&author) {
-        Some(a) => {
-            let body = review_prompt(&diff, &callers);
-            let (r, note) = super::reviewguard::call(&dir, a, &body, call_timeout());
-            (Some(r), note)
-        }
-        None => (None, None),
-    };
+    let level = super::reviewlevel::Level::of_ask(task);
+    let ran = reg
+        .get(&author)
+        .map(|a| super::reviewrun::run(level, &dir, &diff, a, call_timeout()));
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
         from: String::new(),
     })?;
-    if let Some(note) = edited {
+    let Some(ran) = ran else {
+        return emit(msg(
+            "agent smith",
+            "review stopped — the reviewer went missing",
+        ));
+    };
+    for note in ran.notes {
         emit(msg("agent smith", note))?;
     }
-    match reply {
-        Some(Ok(r)) if !r.trim().is_empty() => {
-            // Checked before shown: a finding citing a file or line that is
-            // not there is dropped and said so, the verdict recounted.
-            let t = super::reviewfindings::tidy_in(&dir, &diff, &r);
+    match ran.reply {
+        Ok(Some(t)) => {
             emit(msg(&format!("{author} → user"), t.text))?;
             match super::reviewfindings::dropped_note(&t.dropped) {
                 Some(note) => emit(msg("agent smith", note)),
                 None => Ok(()),
             }
         }
-        Some(Ok(_)) => emit(msg("agent smith", "the review came back empty — try again")),
-        Some(Err(e)) => emit(msg("agent smith", format!("review failed: {e}"))),
-        None => emit(msg(
-            "agent smith",
-            "review stopped — the reviewer went missing",
-        )),
+        Ok(None) => emit(msg("agent smith", "the review came back empty — try again")),
+        Err(e) => emit(msg("agent smith", format!("review failed: {e}"))),
     }
 }
 
