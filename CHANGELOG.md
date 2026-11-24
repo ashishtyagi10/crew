@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.23
+
+**Cmd+P goes to any file; the Explorer shows git and takes keys.**
+
+Go to file:
+- Cmd+P opens the input bar at `/view` with a picker that matches every file under the folder, not just the folder's own rows. Up to 30 matches are listed: names that start with what you typed first, then the text anywhere in the path, then the letters in order (`exhit` finds `explorerhit.rs`).
+- The folder is searched in the background, so typing never stalls the window. Off a Mac, Ctrl+P stays the terminal's previous-line key.
+
+Explorer:
+- In a git repository the tree shows git's marks, as VS Code does: a changed file's name in its change's colour with a letter at the row's end (M modified, A added, U untracked, D deleted, ! in conflict), and a folder holding changes gets a dot. It uses the git status the side panel already reads, so it adds no extra git work.
+- Cmd+Shift+E hands the keyboard to the tree: arrows or j/k move, right or Enter opens a folder or previews a file, left closes or goes up, Home/End jump, Esc gives the keys back. Clicking elsewhere or changing focus also gives them back. Off a Mac, `/nav explorer` does it.
+
+Motion:
+- Switching tabs, the tab you leave now folds away under the one arriving, moving the opposite way.
+- With Motion `off`, a notice costs one frame and then goes. Before, an empty card could be left on screen.
+
+AI:
+- A refused key or an unpaid account now stops the model chain at once, instead of trying every model in turn on the same account.
+- The default chains no longer use the retiring `gpt-5` and `gemini-2.5-pro`.
+- Claude Fable 5.2 and Qwen4 Max are priced. Gemini 4 Argon is now costed at its price from December 1, so estimates in its last introductory week run high, not low.
+- A DashScope model you have not bought, or an OpenAI model your account cannot use, now says what to do about it.
+
+Fixes:
+- `/dump` no longer offers existing files in its picker, and `/dump` and `/batch` no longer offer files from deep in the tree, so Enter cannot overwrite or run a file you never named.
+- Moving the caret between blocks while editing a long markdown file is more than twice as fast.
+
 ## 0.30.22
 
 **Side panel gets icons and a file tree; markdown edits in place.**
