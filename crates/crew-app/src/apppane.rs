@@ -24,6 +24,8 @@ impl CrewApp {
         if self.refuse_dirty(idx, "close it again to discard them") {
             return false;
         }
+        // A tree or list holding the keys tracks its pane by index; a close shifts indexes.
+        (self.sidebar.explorer.keys, self.sidebar.lists.keys) = (None, None);
         // Closing the pane that had the screen lands on the grid you left.
         let had_screen = self.zoomed_pane() == Some(idx);
         if idx < self.panes.len() {

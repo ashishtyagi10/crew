@@ -139,14 +139,18 @@ impl CrewApp {
         let Some(k) = self.sidebar.lists.keys.filter(|k| k.section == s) else {
             return;
         };
-        if !self.list_has_keys() || k.item < first || k.item >= first + shown {
+        // Where Enter acts: the item clamped to a list that may have shrunk since.
+        let item = k
+            .item
+            .min(crate::navlistscroll::listed(s).saturating_sub(1));
+        if !self.list_has_keys() || item < first || item >= first + shown {
             return;
         }
         let (top, per) = match s {
             NavSection::Inbox => (crate::navinbox::TOP, crate::navinbox::PER),
             _ => (crate::navfar::TOP, 1),
         };
-        let row = top + (k.item - first) as u16 * per;
+        let row = top + (item - first) as u16 * per;
         for r in row..row + per {
             crate::explorerdraw::bar(out, r, cols);
         }
