@@ -84,8 +84,8 @@ fn ctrl_digits_and_slash_follow_xterms_table() {
     assert_eq!(ctrl_byte('0'), None);
 }
 
-/// ´ then e: winit folds the accent into `text` while the logical key stays
-/// the keycap's `e`, and the pane got the bare letter.
+/// ´ then e on X11/Wayland: xkb's composed `é` is in `text` while the logical
+/// key stays the keysym's `e`, and the pane got the bare letter.
 #[test]
 fn printable_keys_type_the_composed_text() {
     use winit::keyboard::{Key, SmolStr};

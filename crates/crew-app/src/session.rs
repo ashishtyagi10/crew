@@ -42,11 +42,13 @@ pub fn key_to_bytes(
 }
 
 /// The bytes a printable key types. `text` is what winit says the press
-/// produced, a dead key's accent folded in; `logical` is the keycap's
-/// character, which need not carry it — so ´ then e sent `e`. A lone dead key
-/// (`Key::Dead`) has nothing to type yet. On a Mac `text` is the logical key
-/// itself and the composed letter arrives as an IME commit (`composeinput`).
-/// Ctrl keeps the keycap: its control code is the letter's, not the text's.
+/// produced, a dead key's accent folded in; `logical` need not carry it. On
+/// X11 and Wayland the logical key is the keysym (`e`) and only `text` holds
+/// xkb's composed `é`, so ´ then e sent `e`; on Windows the two differ when
+/// the accent cannot combine (`´x`). A lone dead key (`Key::Dead`) has
+/// nothing to type yet. On a Mac `text` is the logical key itself and the
+/// composed letter arrives as an IME commit (`composeinput`). Ctrl keeps the
+/// keycap: its control code is the letter's, not the text's.
 pub(crate) fn typed_bytes(logical: &Key, text: Option<&str>, ctrl: bool) -> Option<Vec<u8>> {
     let Key::Character(s) = logical else {
         return None;

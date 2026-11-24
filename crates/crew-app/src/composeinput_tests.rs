@@ -103,3 +103,25 @@ fn ime_is_on_for_a_mac_unless_option_is_meta() {
     assert!(!ime_wanted(true, true));
     assert!(!ime_wanted(false, false));
 }
+
+/// IME follows focus: only the shell and the input bar take a commit, and
+/// not while help reads keys as commands — a dead key there would be held
+/// as preedit and lost.
+#[cfg(unix)]
+#[test]
+fn only_a_shell_or_the_input_bar_takes_text() {
+    let sink = Sink::default();
+    let mut a = CrewApp {
+        panes: vec![shell(&sink)],
+        ..Default::default()
+    };
+    a.input.focused = false;
+    assert!(a.takes_text());
+    a.help_open = true;
+    assert!(!a.takes_text());
+    a.on_ime(commit("é"));
+    assert!(sink.0.lock().unwrap().is_empty(), "help holds the keys");
+    a.help_open = false;
+    a.panes.clear();
+    assert!(!a.takes_text(), "no shell, no bar");
+}

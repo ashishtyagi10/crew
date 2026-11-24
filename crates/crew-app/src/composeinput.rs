@@ -10,8 +10,14 @@
 //! combos, Cmd chords and the named keys still arrive as key presses, since
 //! AppKit leaves them nothing to compose.
 //!
-//! Option as Meta keeps IME off: there Option+e must reach `altmeta` as a key
-//! press to send `ESC e`, and the input system would hold it as an accent.
+//! IME is on only while a shell or the input bar holds focus — the two that
+//! take the commit. Option as Meta keeps it off: there Option+e must reach
+//! `altmeta` as a key press to send `ESC e`, and the input system would hold
+//! it as an accent.
+//!
+//! A view that takes IME also gets the Mac's press-and-hold accent picker:
+//! holding `l` in vim would open a menu instead of repeating. Crew turns it
+//! off for itself ([`hold_repeats`]), as Alacritty and kitty do.
 //! Off a Mac winit folds the accent into the key press's `text`, which
 //! `session::typed_bytes` prefers.
 //!
@@ -19,7 +25,6 @@
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
 use winit::event::Ime;
-use winit::window::Window;
 
 /// Whether the window takes composed text from the input system: on a Mac,
 /// unless Option is Meta (see the module note).
@@ -27,22 +32,59 @@ pub(crate) fn ime_wanted(mac: bool, option_as_meta: bool) -> bool {
     mac && !option_as_meta
 }
 
-/// Put [`ime_wanted`] into effect on `window` — at creation, and again when
-/// the Option-as-Meta setting changes.
-pub(crate) fn allow_ime(window: &Window, option_as_meta: bool) {
-    window.set_ime_allowed(ime_wanted(cfg!(target_os = "macos"), option_as_meta));
+/// Holding a key repeats it rather than offering accents: registers
+/// `ApplePressAndHoldEnabled = NO` for this process only — a registration
+/// default, never written to the user's preferences, and outranked by an
+/// explicit `defaults write` should someone want the picker back.
+#[cfg(target_os = "macos")]
+pub(crate) fn hold_repeats() {
+    use objc2::runtime::AnyObject;
+    use objc2_foundation::{ns_string, NSDictionary, NSNumber, NSUserDefaults};
+    let no = NSNumber::new_bool(false);
+    let value: &AnyObject = &no;
+    let defaults = NSDictionary::from_slices(&[ns_string!("ApplePressAndHoldEnabled")], &[value]);
+    // SAFETY: the dictionary maps a string key to an NSNumber, the shape
+    // `registerDefaults:` documents.
+    unsafe { NSUserDefaults::standardUserDefaults().registerDefaults(&defaults) };
 }
 
 impl CrewApp {
+    /// Whether what holds focus takes composed text: the input bar or a
+    /// terminal pane, with no mode up that reads keys as commands (help,
+    /// hints, the Explorer tree). Chat, editors, settings and inbox read key
+    /// presses only, and a dead key held as preedit would never reach them.
+    pub(crate) fn takes_text(&self) -> bool {
+        if self.help_open || crate::hints::active() || self.tree_has_keys() {
+            return false;
+        }
+        let focused = self.panes.get(self.focused).map(|p| &p.content);
+        self.input.focused || matches!(focused, Some(PaneContent::Terminal(_)))
+    }
+
+    /// Keep the window's IME on exactly while [`ime_wanted`] and
+    /// [`Self::takes_text`] both hold. Run after every window event: winit
+    /// asks the flag before crew sees a key, so it must already be right for
+    /// the next one. Told only on a change.
+    pub(crate) fn sync_ime(&mut self) {
+        let want =
+            ime_wanted(cfg!(target_os = "macos"), self.config.option_as_meta) && self.takes_text();
+        if self.ime_on == Some(want) {
+            return;
+        }
+        if let Some(w) = &self.window {
+            w.set_ime_allowed(want);
+            self.ime_on = Some(want);
+        }
+    }
+
     /// A committed composition goes where a typed letter would: the input bar
     /// when it holds focus, else the focused terminal pane (broadcast
-    /// included). Other panes and the help overlay take keys, not text, and
-    /// are left alone. Preedit changes carry nothing to type.
+    /// included). Preedit changes carry nothing to type.
     pub(crate) fn on_ime(&mut self, ime: Ime) {
         let Ime::Commit(text) = ime else {
             return;
         };
-        if text.is_empty() || text.chars().any(char::is_control) || self.help_open {
+        if text.is_empty() || text.chars().any(char::is_control) || !self.takes_text() {
             return;
         }
         self.last_input_ms = crate::anim::now_ms();
@@ -50,9 +92,7 @@ impl CrewApp {
             self.input.text.push_str(&text);
             self.input.menu_sel = 0;
             self.input.hist_pos = None;
-        } else if let Some(PaneContent::Terminal(_)) =
-            self.panes.get(self.focused).map(|p| &p.content)
-        {
+        } else {
             self.write_to_terminals(text.as_bytes());
         }
         self.redraw();

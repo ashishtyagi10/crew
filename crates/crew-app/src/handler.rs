@@ -49,7 +49,6 @@ impl CrewApp {
         // translucency — otherwise macOS keeps `NSWindow.isOpaque` false and
         // draws the title bar against the desktop, which is not ours to paint.
         crate::titlebar::apply_window(&window, self.window_opacity());
-        crate::composeinput::allow_ime(&window, self.config.option_as_meta);
 
         // Two things can want the launch note. A crash outranks a version
         // banner — the user watched the window vanish for no stated reason, and
@@ -198,6 +197,7 @@ impl CrewApp {
             return;
         }
         self.handle_window_event(event_loop, event);
+        self.sync_ime();
     }
 }
 
@@ -212,6 +212,8 @@ pub fn run() -> anyhow::Result<()> {
     // synchronously on the main thread before the event loop starts.
     #[cfg(target_os = "macos")]
     crate::dockicon::set();
+    #[cfg(target_os = "macos")]
+    crate::composeinput::hold_repeats();
     let config = CrewConfig::load();
     crate::usageledger::init(config.usage_budget_5h, config.usage_budget_7d);
     // Publish the persisted recents once at startup so the `/model` picker's

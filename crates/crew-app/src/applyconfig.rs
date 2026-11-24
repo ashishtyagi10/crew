@@ -35,9 +35,6 @@ impl CrewApp {
         crate::bordermarks::set(self.config.border_marks);
         crate::invisibles::set(self.config.invisibles);
         crate::lspon::set(self.config.lsp);
-        if let Some(w) = &self.window {
-            crate::composeinput::allow_ime(w, self.config.option_as_meta);
-        }
         self.config.publish_appearance_sources();
         let want = self.config.theme_selection();
         let live = match want {
