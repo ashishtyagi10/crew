@@ -5,6 +5,7 @@
 mod client;
 pub(crate) mod config;
 mod content;
+mod relist;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -53,7 +54,8 @@ pub struct McpTool {
 }
 
 /// All configured MCP servers: lazy connections plus a per-server tool cache,
-/// so listing tools costs one `tools/list` per server per session.
+/// so listing tools costs one `tools/list` per server per session — and one
+/// more each time a server says its tools changed (`relist.rs`).
 #[derive(Default)]
 pub struct McpHost {
     servers: BTreeMap<String, ServerConfig>,
@@ -72,6 +74,10 @@ pub struct McpHost {
     /// Cleared per server when its config changes and wholesale on `/reload`,
     /// so a reconnect announces itself again.
     noted: BTreeSet<String>,
+    /// Servers that said their tools changed and have not been listed since
+    /// (`relist.rs`). Kept across a dropped connection, so the notice is not
+    /// lost with the client that heard it.
+    relist: BTreeSet<String>,
 }
 
 impl McpHost {
@@ -204,53 +210,36 @@ impl McpHost {
         if let Some(t) = self.cache.get(server) {
             return Ok(t.clone());
         }
-        let list = match self.client(server)?.tools() {
-            Ok(list) => list,
-            Err(e) => {
-                // Connected but the tool listing failed — worth its own note
-                // (the connect keys are already spent by `client()`).
-                self.note_once(
-                    format!("{server}:fail"),
-                    true,
-                    &format!("mcp {server}: {e}"),
-                );
-                return Err(e);
-            }
-        };
+        let tools = self.fetch_listing(server)?;
         self.note_once(
             String::new(),
             false,
             &format!(
                 "mcp {server} connected \u{b7} {}",
-                count(list.len(), "tool")
+                count(tools.len(), "tool")
             ),
         );
         if let Some(events) = &self.events {
-            let names: Vec<&str> = list.iter().map(|(n, ..)| n.as_str()).collect();
+            let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
             events(loaded_event(server, &names));
         }
-        let tools: Vec<McpTool> = list
-            .into_iter()
-            .map(|(name, description, input_schema)| McpTool {
-                server: server.to_string(),
-                name,
-                description,
-                input_schema,
-            })
-            .collect();
-        self.cache.insert(server.to_string(), tools.clone());
         Ok(tools)
     }
 
-    /// Every tool on every configured server (cached after the first fetch).
-    /// A server that fails to connect or list contributes nothing here — the
-    /// failure is visible in [`McpHost::report`].
+    /// Every tool on every configured server (cached after the first fetch,
+    /// listed again for a server that said its tools changed — here, where
+    /// the catalog is read, never inside a call). A server that fails to
+    /// connect or list contributes nothing here — the failure is visible in
+    /// [`McpHost::report`].
     pub fn tools(&mut self) -> Vec<McpTool> {
         self.sync();
         let names: Vec<String> = self.servers.keys().cloned().collect();
         names
             .iter()
-            .flat_map(|s| self.fetch(s).unwrap_or_default())
+            .flat_map(|s| {
+                self.relist_if_changed(s);
+                self.fetch(s).unwrap_or_default()
+            })
             .collect()
     }
 
@@ -276,11 +265,7 @@ impl McpHost {
         }
         let res = self.client(server)?.call(tool, value);
         if res.is_err() {
-            self.clients.remove(server);
-            // A drop starts a new connection generation: free the server's
-            // note keys so the reconnect announces itself (once) too.
-            self.noted
-                .retain(|k| k != server && !k.starts_with(&format!("{server}:")));
+            self.drop_client(server);
             // The chat surface already carries the call's own error; this
             // notes the connection consequence. Unkeyed: each drop is a real,
             // separate lifecycle event.

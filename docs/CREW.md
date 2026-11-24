@@ -3802,7 +3802,13 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   answer is logged and spoken to as 2025-11-25). A server that dies of the
   probe is launched once more and sent `initialize` straight away.
   `/doctor` lists each server's
-  tools — every page of them, when a server pages its list. A tool's answer
+  tools — every page of them, when a server pages its list. A server's tools
+  are listed once a session, until it sends `notifications/tools/list_changed`:
+  the next read of the tool list lists them again — the next turn (a /crew
+  task's next hop counts) or a `find_tools` search, never inside a call; the
+  tools a turn offers the model stay as they were when it started — and the
+  LOG says what came and went (`mcp gh tools changed · +create_pr −old · 13
+  tools`). A listing that fails keeps the old list and reconnects next time. A tool's answer
   reaches the agent whole: text as it is, an image or audio clip as its kind
   and size, a resource link as its name and address, an embedded resource as
   its text, and a structured-only answer as its JSON. When servers are configured, every relay prompt advertises the tools
