@@ -19,4 +19,11 @@ impl TermCore {
             focus_events: m.contains(TermMode::FOCUS_IN_OUT),
         }
     }
+
+    /// The program hid the cursor (DECTCEM off, `ESC [ ? 25 l`). Not an
+    /// `InputModes` field: nothing routes input by it; only the leftover
+    /// reset at a fresh prompt reads it (`promptmodes`).
+    pub(crate) fn cursor_hidden(&self) -> bool {
+        !self.term.mode().contains(TermMode::SHOW_CURSOR)
+    }
 }
