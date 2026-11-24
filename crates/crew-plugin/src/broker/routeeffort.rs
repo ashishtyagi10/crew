@@ -81,3 +81,7 @@ pub(crate) fn for_turn_at(base: &std::path::Path, agent: &str) -> Option<Effort>
 #[cfg(test)]
 #[path = "routeeffort_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "routeeffortdoor_tests.rs"]
+mod door_tests;

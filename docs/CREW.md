@@ -2969,7 +2969,8 @@ and a typo gets a **did-you-mean** suggestion):
   route for that agent; a misspelt level is ignored. The level goes only to a
   model that takes it: Claude's `output_config.effort` (brought down to the
   model's highest — Opus 4.5 stops at `high`), and `reasoning_effort` on
-  OpenAI's GPT-6 models when the request carries no tools (`xhigh`/`max` sent
+  `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna` and `gpt-6-astra` when the request
+  carries no tools (`xhigh`/`max` sent
   as `high`). GPT-5.x, DeepSeek and the gateways are sent nothing.
 - **"keep working until …"** — relay rounds until a judge agent (elected by
   the model) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed

@@ -103,6 +103,10 @@ pub(crate) fn anthropic_field(model: &str, effort: Option<Effort>) -> Option<ser
         .then(|| serde_json::json!({ "effort": anthropic_level(model, effort).as_str() }))
 }
 
+/// The GPT-6 ids in crew's catalog. A sibling OpenAI adds later is sent
+/// nothing until its page is read: its levels are not known.
+const GPT6: &[&str] = &["gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-6-astra"];
+
 /// The `reasoning_effort` a chat-completions request for `model` carries for
 /// `effort`, or `None`. Only OpenAI's GPT-6 ids (their pages list `none`
 /// through `high`, so `xhigh` and `max` are sent as `high`) and only with no
@@ -115,9 +119,7 @@ pub(crate) fn openai_field(
     tools: bool,
 ) -> Option<&'static str> {
     let effort = effort?;
-    let gpt6 = model
-        .strip_prefix("gpt-6")
-        .is_some_and(|r| r.is_empty() || r.starts_with(['-', '.']));
+    let gpt6 = GPT6.contains(&model);
     (gpt6 && !tools).then(|| match effort {
         Effort::Xhigh | Effort::Max => "high",
         e => e.as_str(),
