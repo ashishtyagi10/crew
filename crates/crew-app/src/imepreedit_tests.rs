@@ -53,16 +53,16 @@ fn a_preedit_is_kept_and_a_commit_or_disabled_clears_it() {
     assert!(s.preedit.is_some(), "Enabled keeps what is held");
 }
 
-/// Focus moving to another pane keeps the IME on — no Disabled comes — so
-/// the composition is dropped when its owner stops taking text.
+/// Focus moving to another pane keeps the IME on — no Disabled comes, and the OS still holds
+/// the marked text — so the composition moves to where its commit will land.
 #[test]
-fn a_composition_is_dropped_when_focus_leaves_its_owner() {
+fn a_composition_follows_focus_to_where_it_will_land() {
     let mut s = ImeState::default();
     s.note(&Ime::Preedit("か".into(), None), Owner::Pane(0));
     assert!(!s.follow(Some(Owner::Pane(0))));
     assert!(s.preedit.is_some());
     assert!(s.follow(Some(Owner::Pane(1))));
-    assert_eq!(s.preedit, None);
+    assert_eq!(s.preedit.as_ref().map(|p| p.owner), Some(Owner::Pane(1)));
     s.note(&Ime::Preedit("か".into(), None), Owner::Bar);
     assert!(s.follow(None), "nothing takes text");
 }

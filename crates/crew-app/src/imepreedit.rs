@@ -66,18 +66,19 @@ impl ImeState {
         changed
     }
 
-    /// Drop a composition whose owner no longer takes text (`owner` is who
-    /// does now): moving to another pane keeps the window's IME on, so no
-    /// `Disabled` ever arrives to clear it. True when one was dropped.
+    /// Move a composition to the surface that takes text now (`owner`), or drop it when none
+    /// does. Moving to another pane keeps the window's IME on and the OS still holds the
+    /// marked text — its next commit lands in the NEW surface — so the composition is shown
+    /// there, not hidden. True when it moved or was dropped.
     pub(crate) fn follow(&mut self, owner: Option<Owner>) -> bool {
-        let stale = self
-            .preedit
-            .as_ref()
-            .is_some_and(|p| Some(p.owner) != owner);
-        if stale {
-            self.preedit = None;
+        let Some(p) = self.preedit.as_mut().filter(|p| Some(p.owner) != owner) else {
+            return false;
+        };
+        match owner {
+            Some(o) => p.owner = o,
+            None => self.preedit = None,
         }
-        stale
+        true
     }
 }
 
@@ -97,7 +98,9 @@ pub(crate) fn overlay(
     let widths: Vec<(usize, char, u16)> = pre
         .text
         .char_indices()
-        .map(|(i, c)| (i, c, char_w(c).max(1) as u16))
+        .map(|(i, c)| (i, c, char_w(c) as u16))
+        // A combining mark (゙ U+3099) rides on the glyph before it, as in the grid.
+        .filter(|&(_, _, w)| w > 0)
         .collect();
     let caret_at_end = pre.caret.is_some_and(|b| b >= pre.text.len());
     let w: u16 = widths.iter().map(|&(_, _, w)| w).sum::<u16>() + u16::from(caret_at_end);

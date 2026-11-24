@@ -126,11 +126,12 @@ fn only_a_shell_or_the_input_bar_takes_text() {
     assert!(!a.takes_text(), "no shell, no bar");
 }
 
-/// A composition begun in one shell is dropped when focus moves to another:
-/// the window's IME stays on, so no Disabled would ever clear it.
+/// A composition begun in one shell moves with focus to another: the window's IME stays on
+/// and the OS keeps the marked text, so its commit lands where focus went.
 #[cfg(unix)]
 #[test]
-fn moving_focus_drops_the_composition() {
+fn moving_focus_carries_the_composition() {
+    let _g = crate::app::theme_test_guard();
     let sink = Sink::default();
     let mut a = CrewApp {
         panes: vec![shell(&sink), shell(&sink)],
@@ -143,5 +144,6 @@ fn moving_focus_drops_the_composition() {
     assert!(a.ime.preedit.is_some(), "still its owner's");
     a.focused = 1;
     a.sync_ime();
-    assert_eq!(a.ime.preedit, None);
+    let owner = a.ime.preedit.as_ref().map(|p| p.owner);
+    assert_eq!(owner, Some(crate::imepreedit::Owner::Pane(1)));
 }
