@@ -17,6 +17,11 @@
 //! The first read of a root starts the walk and offers the folder rows alone;
 //! the walk lands within a keystroke or two, and is reused for
 //! [`FRESH_MS`] before it is walked again.
+//!
+//! The files viewers opened last ([`crate::viewrecent`]) break ties: with
+//! nothing typed every path ties, so they lead, newest first (VS Code's and
+//! Zed's quick open); typed, a recent file beats an equal match, never a
+//! better tier.
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -43,7 +48,8 @@ struct Index {
     /// The last query's rows over the current list: the picker is rebuilt
     /// every frame the bar has focus, and ranking 20,000 paths per frame for
     /// a query that has not changed is the waste this saves.
-    memo: Option<(String, Rc<Vec<Row>>)>,
+    /// Keyed by the recent list's generation too: opening a file reorders.
+    memo: Option<(String, u64, Rc<Vec<Row>>)>,
 }
 
 thread_local! {
@@ -81,39 +87,50 @@ pub(crate) fn files(root: &Path, now_ms: u64) -> Option<Rc<Vec<String>>> {
     })
 }
 
-/// [`best`] of `root`'s files for `query`, remembered until the query or
-/// the list changes. `None` while the first walk is out.
+/// [`best`] of `root`'s files for `query`, remembered until the query, the
+/// list or the recent files change. `None` while the first walk is out.
 pub(crate) fn rows(root: &Path, query: &str, now_ms: u64) -> Option<Rc<Vec<Row>>> {
     let files = files(root, now_ms)?;
+    let recent = crate::viewrecent::under_cached(root);
+    let gen = crate::viewrecent::generation();
     INDEX.with(|ix| {
         let mut ix = ix.borrow_mut();
-        if let Some((q, rows)) = &ix.memo {
-            if q == query {
+        if let Some((q, g, rows)) = &ix.memo {
+            if q == query && *g == gen {
                 return Some(Rc::clone(rows));
             }
         }
-        let rows = Rc::new(best(&files, query));
-        ix.memo = Some((query.to_string(), Rc::clone(&rows)));
+        let rows = Rc::new(best(&files, query, &recent));
+        ix.memo = Some((query.to_string(), gen, Rc::clone(&rows)));
         Some(rows)
     })
 }
 
 /// The best [`MAX_ROWS`] of `files` for `query`: tier, then span, then the
-/// shorter path, then by name; the last tier only when it is all there is.
-pub(crate) fn best(files: &[String], query: &str) -> Vec<Row> {
+/// more recently viewed (`recent`, newest first), then the shorter path, then
+/// by name; the last tier only when it is all there is.
+pub(crate) fn best(files: &[String], query: &str, recent: &[String]) -> Vec<Row> {
     let q = query.to_lowercase();
-    let mut hits: Vec<((u8, usize), &String, Vec<usize>)> = files
+    let ages: std::collections::HashMap<&str, usize> = recent
         .iter()
-        .filter_map(|f| score(f, &q).map(|(rank, at)| (rank, f, at)))
+        .enumerate()
+        .map(|(i, r)| (r.as_str(), i))
         .collect();
-    hits.sort_by(|a, b| (a.0, a.1.len(), a.1).cmp(&(b.0, b.1.len(), b.1)));
+    let age = |f: &String| ages.get(f.as_str()).copied().unwrap_or(usize::MAX);
+    let mut hits: Vec<((u8, usize), usize, &String, Vec<usize>)> = files
+        .iter()
+        .filter_map(|f| score(f, &q).map(|(rank, at)| (rank, age(f), f, at)))
+        .collect();
+    hits.sort_by(|a, b| (a.0, a.1, a.2.len(), a.2).cmp(&(b.0, b.1, b.2.len(), b.2)));
     // Letters smeared across a path are a guess worth showing only when
     // nothing better matched: under a real hit they are a dozen rows of noise.
     if hits.first().is_some_and(|h| h.0 .0 < 3) {
         hits.retain(|h| h.0 .0 < 3);
     }
     hits.truncate(MAX_ROWS);
-    hits.into_iter().map(|(_, f, at)| (f.clone(), at)).collect()
+    hits.into_iter()
+        .map(|(_, _, f, at)| (f.clone(), at))
+        .collect()
 }
 
 /// `(tier, span)` of `q` (lowercased) in `path`, with the char indices it
@@ -156,3 +173,7 @@ fn subsequence(hay: &str, q: &str) -> Option<Vec<usize>> {
 #[cfg(test)]
 #[path = "pathtree_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "pathtree_recent_tests.rs"]
+mod recent_tests;

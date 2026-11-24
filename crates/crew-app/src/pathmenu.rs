@@ -93,6 +93,14 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
             }
         })
         .collect();
+    // Nothing typed: the files viewed last lead (VS Code's and Zed's quick
+    // open), then the folder's own rows as before, none listed twice.
+    if arg.is_empty() {
+        let mut recent = tree_rows(cmd, arg, base, &[]);
+        out.retain(|r| !recent.iter().any(|t| t.label == r.label));
+        recent.extend(out);
+        return Some(recent);
+    }
     out.extend(tree_rows(cmd, arg, base, &out));
     Some(out)
 }
@@ -100,26 +108,29 @@ pub(crate) fn rows(text: &str, base: &Path) -> Option<Vec<MenuItem>> {
 /// Files anywhere under `base` that fuzzy-match `arg` ([`crate::pathtree`]),
 /// below the folder's own rows and without repeating one. Only for a partial
 /// inside the tree: one that starts at `/`, `~` or `.` names a place, not a
-/// file to look for.
+/// file to look for. With nothing typed, only the files viewed last.
 fn tree_rows(cmd: &str, arg: &str, base: &Path, shown: &[MenuItem]) -> Vec<MenuItem> {
     // Only the commands that OPEN a file: `/dump` writes one and `/batch`
     // runs one, and Enter takes the highlighted row — a fuzzy match there
     // would write over, or run, a file you never named.
     let opens = ["/view", "/md", "/doc"].contains(&cmd);
-    if !opens || arg.is_empty() || arg.starts_with(['/', '~', '.']) || !base.is_dir() {
+    if !opens || arg.starts_with(['/', '~', '.']) || !base.is_dir() {
         return Vec::new();
     }
     let Some(found) = crate::pathtree::rows(base, arg, crate::anim::now_ms()) else {
         return Vec::new();
     };
+    let recent = crate::viewrecent::under_cached(base);
     found
         .iter()
+        .filter(|(path, _)| !arg.is_empty() || recent.contains(path))
         .filter(|(path, _)| !shown.iter().any(|r| &r.label == path))
         .map(|(path, hit)| MenuItem {
             path: true,
             hit: hit.clone(),
             fill: format!("{cmd} {path}"),
             label: path.clone(),
+            desc: if recent.contains(path) { "recent" } else { "" }.into(),
             submit: true,
             ..Default::default()
         })

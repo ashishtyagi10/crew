@@ -790,6 +790,7 @@ mod usagepane;
 mod verbs;
 mod viewedit;
 mod viewpane;
+mod viewrecent;
 #[cfg(test)]
 #[path = "viewshot_tests.rs"]
 mod viewshot_tests;

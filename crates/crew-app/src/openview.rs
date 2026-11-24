@@ -4,7 +4,6 @@
 use crate::app::{CrewApp, FALLBACK_SIZE};
 use crate::pane::{Pane, PaneContent};
 use crate::spawn::PLACEHOLDER_RECT;
-use crate::viewpane::ViewPane;
 
 impl CrewApp {
     /// Open `path` in the viewer, focused, in a tab of its own: a file is
@@ -48,7 +47,7 @@ impl CrewApp {
             .unwrap_or(FALLBACK_SIZE);
         self.panes.push(Pane {
             glide: crate::glide::Glide::default(),
-            content: PaneContent::View(ViewPane::open(resolved)),
+            content: PaneContent::View(crate::viewrecent::open(resolved)),
             grid,
             rect: PLACEHOLDER_RECT,
             label: None,
@@ -109,6 +108,7 @@ impl CrewApp {
         }) = self.panes.last_mut()
         {
             v.ephemeral = true;
+            crate::viewrecent::forget(&v.path); // not a file anybody chose
         }
     }
 }
