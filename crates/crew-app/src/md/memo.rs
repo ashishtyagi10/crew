@@ -15,7 +15,7 @@ use super::MdLine;
 
 thread_local! {
     static WALK: RefCell<Option<(u64, Rc<Walk>)>> = const { RefCell::new(None) };
-    static RENDER: RefCell<Option<(u64, usize, Rc<Vec<MdLine>>)>> = const { RefCell::new(None) };
+    static RENDER: RefCell<Option<((u64, bool), usize, Rc<Vec<MdLine>>)>> = const { RefCell::new(None) };
 }
 
 /// The text's identity: its hash, length folded in.
@@ -45,7 +45,8 @@ pub(super) fn walk(text: &str) -> Rc<Walk> {
 /// [`super::render`] of `text` at `cols`, rendered once per version and width — and, on an
 /// edit, only the blocks it changed ([`super::blockmemo`]).
 pub(super) fn render(text: &str, cols: usize) -> Rc<Vec<MdLine>> {
-    let k = key(text);
+    // The icon set is drawn into the lines: a change of it is a new render, as in blockmemo.
+    let k = (key(text), crate::glyphs::on());
     RENDER.with(|c| {
         let mut c = c.borrow_mut();
         match c.as_ref() {
