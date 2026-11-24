@@ -291,6 +291,8 @@ pub struct CrewApp {
     /// Gates blocked-pane auto-focus: focus is never stolen while the user is
     /// actively driving some other pane (see [`crate::blocked`]).
     pub(crate) last_input_ms: u64,
+    /// The card that shows a cut nav row whole, and its clock (`navtip`).
+    pub(crate) nav_tip: crate::navtip::NavTip,
     /// The window's IME and the composition in flight (`imepreedit`).
     pub(crate) ime: crate::imepreedit::ImeState,
     /// Blocked-on-a-human episode tracking + check throttle (see

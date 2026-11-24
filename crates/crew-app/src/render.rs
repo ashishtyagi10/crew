@@ -222,6 +222,7 @@ impl CrewApp {
         scenes.splice(0..0, under);
 
         self.push_sidebar(&mut scenes, sh, scale, cw, ch);
+        self.push_nav_tip(&mut scenes, now); // a cut nav row, whole, under the bar and toasts
 
         let ib = chrome::inputbar_rect(content, sh, ch, self.gutter());
         let ic = (ib.w / cw).floor() as u16;

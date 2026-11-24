@@ -93,12 +93,14 @@ impl CrewApp {
             let l = self.nav_layout(section, rows);
             let mut cells = crate::navbar::bar_cells(Some(section), badges, rows);
             cells.extend(crate::navbar::divider_cells(BAR_COLS, rows));
-            let panel = match section {
+            // What the panel had to cut is what the hover card may offer whole (`navtip`).
+            let (panel, cut) = crate::navcut::record(|| match section {
                 NavSection::Explorer => self.explorer_cells(pcols, rows),
                 NavSection::Inbox => self.inbox_cells(pcols, rows),
                 NavSection::Far => self.far_cells(pcols, rows),
                 _ => sidebar.panel_cells(section, &l, pcols, rows, &input),
-            };
+            });
+            self.nav_tip.cut.replace(cut);
             for mut c in panel {
                 c.col += BAR_TAKES;
                 cells.push(c);

@@ -549,9 +549,9 @@ impl CrewApp {
         if self.parked_update.is_some() && crate::restartnote::animating() {
             any_changed = true;
         }
-        // A status, toast or find past its time, or a caret blink come due: one repaint each.
+        // A status, toast or find past its time, a caret blink or nav card due: one repaint each.
         let now = crate::anim::now_ms();
-        any_changed |= crate::cursorblink::take_due(&mut self.panes, now);
+        any_changed |= crate::cursorblink::take_due(&mut self.panes, now) | self.nav_tip_due(now);
         if self.expire_status() | self.toasts.expire(now) | self.explorer_find_expire(now) {
             any_changed = true;
         }

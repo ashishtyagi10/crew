@@ -494,6 +494,7 @@ mod navcard;
 #[cfg(test)]
 #[path = "navcontrast_tests.rs"]
 mod navcontrast_tests;
+mod navcut;
 mod navfar;
 mod navfarrow;
 mod navglance;
@@ -526,6 +527,8 @@ mod navsectionlayout;
 mod navserving;
 mod navslot;
 mod navtext;
+mod navtip;
+mod navtipdraw;
 mod navwaiting;
 mod navwaitrow;
 mod navweather;
