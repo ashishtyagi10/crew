@@ -126,11 +126,9 @@ impl TermCore {
             rows: size.rows as usize,
         };
         let events = TermEvents::default();
-        // The cursor a program never styled blinks, as xterm's does: DECSCUSR
-        // 0 ("the default") and 1 ("blinking block") are then the same thing,
-        // and a program wanting it steady says so (2/4/6, or `CSI ? 12 l`).
-        let mut config = Config::default();
-        config.default_cursor_style.blinking = true;
+        // A cursor nobody styled stays steady (crew's look before blink came, and an idle
+        // prompt then costs no frames); a program asks to blink with 1/3/5 or `?12h`.
+        let config = Config::default();
         let history_cap = config.scrolling_history;
         let term = Term::new(config, &dims, events.clone());
         let core = Self {

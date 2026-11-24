@@ -29,12 +29,11 @@ fn decscusr_odd_shapes_blink_and_even_shapes_stand_still() {
     }
 }
 
-/// A cursor nobody styled blinks, as xterm's does — so `CSI 0 SP q`, "back to
-/// the default", blinks too.
+/// A cursor nobody styled is steady — and so is `CSI 0 SP q`, "back to the default".
 #[test]
-fn the_default_cursor_and_decscusr_0_blink() {
-    assert!(term(b"").cursor_blinks());
-    assert!(term(b"\x1b[6 q\x1b[0 q").cursor_blinks());
+fn the_default_cursor_and_decscusr_0_are_steady() {
+    assert!(!term(b"").cursor_blinks());
+    assert!(!term(b"\x1b[5 q\x1b[0 q").cursor_blinks());
 }
 
 /// DECSET 12 turns the blink on and off without touching the shape.
