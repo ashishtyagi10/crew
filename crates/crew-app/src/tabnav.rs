@@ -107,7 +107,10 @@ impl NavList {
                 }
                 // The row as the flat list draws it, three columns narrower
                 // and one in, so the card's sides keep a column of air.
-                let one = pane_cells(std::slice::from_ref(r), cols.saturating_sub(3), 1, spin);
+                let one = crate::navcut::moved(
+                    |n| n + row - 1,
+                    || pane_cells(std::slice::from_ref(r), cols.saturating_sub(3), 1, spin),
+                );
                 out.extend(one.into_iter().filter(|c| c.row == 1).map(|mut c| {
                     c.col += 1;
                     c.row = row;

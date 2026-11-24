@@ -131,7 +131,7 @@ pub(crate) fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
 /// Write `s` at `col` on `row`, clipped to the panel.
 fn put(out: &mut Vec<CellView>, col: u16, row: u16, cols: u16, s: &str, fg: (u8, u8, u8)) {
     if col >= cols {
-        crate::navcut::note(s);
+        crate::navcut::note(row, s);
         return;
     }
     crate::navtext::put_at(out, s, col, row, cols, fg);

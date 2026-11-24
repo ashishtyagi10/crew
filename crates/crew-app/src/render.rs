@@ -222,6 +222,7 @@ impl CrewApp {
         scenes.splice(0..0, under);
 
         self.push_sidebar(&mut scenes, sh, scale, cw, ch);
+        self.push_nav_tip(&mut scenes, now); // a cut nav row, whole, under the bar and toasts
 
         let ib = chrome::inputbar_rect(content, sh, ch, self.gutter());
         let ic = (ib.w / cw).floor() as u16;
@@ -281,7 +282,6 @@ impl CrewApp {
         // help early-return so an open help screen doesn't swallow them.
         let cursor = self.cursor_in.then_some(self.cursor);
         crate::toast::push_toasts(&mut scenes, &mut self.toasts, content, cw, ch, now, cursor);
-        self.push_nav_tip(&mut scenes, now); // a cut nav row, whole (`navtip`)
 
         // Keybindings help overlay, centred over the panes' area: over the
         // whole window it covered the input bar and stood 4 px off the

@@ -117,7 +117,7 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         let occupied =
             plus.is_some() || count.is_some() || p.attention.is_some() || p.busy || p.activity;
         let room = rx.saturating_sub(tstart + u16::from(occupied));
-        let fit = crate::navcut::clip(&p.title, room as usize);
+        let fit = crate::navcut::clip(row, &p.title, room as usize);
         write(&mut out, &fit, tstart, row, title_fg, rx, t.page_bg);
         if let Some(x) = plus {
             write(&mut out, "+", x, row, accent(), cols, t.page_bg);

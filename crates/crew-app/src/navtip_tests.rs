@@ -5,7 +5,7 @@ use crew_render::PaneScene;
 
 /// The card on a frame, if there is one: the overlay standing right of the nav, its rows
 /// joined (a path wraps with no space to break at, so the rows join with nothing).
-fn card(scenes: &[PaneScene]) -> Option<(PaneScene, String)> {
+pub(super) fn card(scenes: &[PaneScene]) -> Option<(PaneScene, String)> {
     card_of(scenes, "path")
 }
 
@@ -50,29 +50,32 @@ fn far_with(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     (base, dir)
 }
 
+/// Where the clock tests' pointer rests.
+const P: (f32, f32) = (10.0, 10.0);
+
 #[test]
 fn the_clock_waits_then_asks_for_one_frame() {
     let key = Some((NavSection::Far, 0));
     let mut t = NavTip::default();
-    assert!(!t.observe(key, true, 0, 1000), "not before the wait");
-    assert!(!t.take_due(1200, 0), "not owed yet");
-    assert!(t.take_due(1400, 0), "owed at the deadline");
-    assert!(!t.take_due(1450, 0), "owed once");
-    assert!(t.observe(key, true, 0, 1400), "up after the wait");
+    assert!(!t.observe(key, true, (0, 1000), P), "not before the wait");
+    assert!(!t.take_due(1200, 0, P), "not owed yet");
+    assert!(t.take_due(1400, 0, P), "owed at the deadline");
+    assert!(!t.take_due(1450, 0, P), "owed once");
+    assert!(t.observe(key, true, (0, 1400), P), "up after the wait");
     assert!(
-        t.take_due(1500, 1450),
+        t.take_due(1500, 1450, P),
         "a key puts it away, and that is a frame"
     );
     assert!(
-        !t.observe(key, true, 1450, 1500),
+        !t.observe(key, true, (1450, 1500), P),
         "and it stays away on that row"
     );
-    assert!(!t.take_due(5000, 1450));
+    assert!(!t.take_due(5000, 1450, P));
     // A row drawn whole: nothing, ever.
     let mut t = NavTip::default();
-    assert!(!t.observe(Some((NavSection::Far, 1)), false, 0, 0));
-    assert!(!t.observe(Some((NavSection::Far, 1)), false, 0, 5000));
-    assert!(!t.take_due(5000, 0));
+    assert!(!t.observe(Some((NavSection::Far, 1)), false, (0, 0), P));
+    assert!(!t.observe(Some((NavSection::Far, 1)), false, (0, 5000), P));
+    assert!(!t.take_due(5000, 0, P));
 }
 
 /// The user's path: rest on a cut Far folder, the card says its full path; off the row it

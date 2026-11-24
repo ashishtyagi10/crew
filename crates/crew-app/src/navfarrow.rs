@@ -80,7 +80,7 @@ pub(crate) fn draw(out: &mut Vec<CellView>, dir: &Path, row: u16, cols: u16, loo
     if col + 4 < max {
         crate::navtext::put_at(out, &at, col, row, max, t.text_muted);
     } else if !at.is_empty() {
-        crate::navcut::note(&at);
+        crate::navcut::note(row, &at);
     }
     if look.lit {
         let fg = if look.on_x { accent } else { t.text_muted };

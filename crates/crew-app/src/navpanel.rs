@@ -100,7 +100,7 @@ fn panes_cells(
     let limit = rows.saturating_sub(top + 1) as usize;
     // A busy pane's row spins; with motion off it holds one frame.
     let spin = crate::update::spinner_frame(crate::anim::now_ms());
-    let mut out = panes.cells(cols, limit, spin);
+    let mut out = crate::navcut::moved(|r| r + top, || panes.cells(cols, limit, spin));
     for c in &mut out {
         c.row += top;
     }
