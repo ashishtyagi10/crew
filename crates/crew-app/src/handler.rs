@@ -175,6 +175,8 @@ impl CrewApp {
         self.open_pending_docs(event_loop);
         self.poll_doc_windows();
         self.tick_mail_window(event_loop);
+        // A tick can move focus (a blocked pane auto-focused) with no window event after it.
+        self.sync_ime();
     }
 
     /// Whether `id` is this canvas's own window.
