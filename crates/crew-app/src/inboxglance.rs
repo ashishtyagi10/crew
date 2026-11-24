@@ -1,8 +1,9 @@
-//! What the nav's INBOX card shows (`navinboxcard`), and the worker that
-//! keeps it: the unread count and the newest unread thread.
+//! What the nav's INBOX card (`navinboxcard`) and Inbox section (`navinbox`)
+//! show, and the worker that keeps them: the unread count and the newest
+//! [`LIST`] unread threads.
 //!
-//! Gmail charges each project's user 6,000 units a minute, so the card asks
-//! once every five minutes (labels 1 + one unread thread 50), and not at all
+//! Gmail charges each project's user 6,000 units a minute, so the worker asks
+//! once every five minutes (the count, then the threads' headers), and not at all
 //! while the inbox pane is open — the pane already asks each minute, and the
 //! card shows what the pane holds. Signed out, the card is not there and
 //! nothing is asked; whether a grant exists is re-read every 30 s.
@@ -30,7 +31,10 @@ pub(crate) enum Card {
     Problem(String),
 }
 
-type Peek = Result<(u64, Option<Thread>), String>;
+type Peek = Result<(u64, Vec<Thread>), String>;
+
+/// Unread threads the Inbox section lists (`navinbox`).
+pub(crate) const LIST: usize = 12;
 
 #[derive(Default)]
 struct Watch {
@@ -41,10 +45,40 @@ struct Watch {
 }
 
 static CARD: RwLock<Card> = RwLock::new(Card::Off);
+/// The newest unread threads, newest first — the Inbox section's rows.
+static UNREAD: RwLock<Vec<Thread>> = RwLock::new(Vec::new());
 static WATCH: Mutex<Option<Watch>> = Mutex::new(None);
 
 pub(crate) fn state() -> Card {
     CARD.read().map(|c| c.clone()).unwrap_or_default()
+}
+
+/// The newest unread threads, newest first.
+pub(crate) fn unread() -> Vec<Thread> {
+    UNREAD.read().map(|l| l.clone()).unwrap_or_default()
+}
+
+/// Unread threads, as the card last counted them (0 signed out).
+pub(crate) fn unread_count() -> u64 {
+    match state() {
+        Card::Count { unread, .. } => unread,
+        _ => 0,
+    }
+}
+
+/// Publish the unread list; true when it changed.
+fn set_unread(next: Vec<Thread>) -> bool {
+    let mut l = UNREAD.write().unwrap_or_else(|p| p.into_inner());
+    let changed = *l != next;
+    *l = next;
+    changed
+}
+
+/// Set the card and the list, for the shots.
+#[cfg(test)]
+pub(crate) fn seed(card: Card, list: Vec<Thread>) {
+    set(card);
+    set_unread(list);
 }
 
 /// Publish `next`; true when the card changed.
@@ -64,7 +98,7 @@ pub(crate) fn count(unread: u64, newest: Option<&Thread>) -> Card {
 /// The card for what a fetch brought back. An ended grant says where to go.
 pub(crate) fn landed(got: Peek) -> Card {
     match got {
-        Ok((n, t)) => count(n, t.as_ref()),
+        Ok((n, t)) => count(n, t.first()),
         Err(e) if e.starts_with("invalid_grant") => {
             Card::Problem("signed out \u{2014} /inbox".into())
         }
@@ -89,15 +123,18 @@ impl crate::app::CrewApp {
         }
         if !w.signed {
             w.fetch = None;
-            return set(Card::Off);
+            return set(Card::Off) | set_unread(Vec::new());
         }
         if let Some(p) = pane.filter(|p| p.unread.is_some()) {
             let newest = p.rows.iter().find(|t| t.unread);
-            return set(count(p.unread.unwrap_or(0), newest));
+            let list = p.rows.iter().filter(|t| t.unread).take(LIST).cloned();
+            return set(count(p.unread.unwrap_or(0), newest)) | set_unread(list.collect());
         }
         if let Some(got) = w.fetch.as_ref().and_then(|rx| rx.try_recv().ok()) {
             w.fetch = None;
-            return set(landed(got));
+            // A failed ask keeps the list it had: the card says what went wrong.
+            let list = got.as_ref().ok().map(|(_, l)| set_unread(l.clone()));
+            return set(landed(got)) | list.unwrap_or(false);
         }
         if now_ms >= w.next_ms && w.fetch.is_none() {
             w.next_ms = now_ms + EVERY_MS;
@@ -131,7 +168,7 @@ impl crate::app::CrewApp {
 fn spawn(grant: crate::inbox::grant::Grant) -> Receiver<Peek> {
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
-        let got = crate::inbox::api::Gmail::new(grant).and_then(|mut g| g.peek());
+        let got = crate::inbox::api::Gmail::new(grant).and_then(|mut g| g.peek(LIST));
         let _ = tx.send(got);
     });
     rx

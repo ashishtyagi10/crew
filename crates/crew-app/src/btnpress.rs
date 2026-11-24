@@ -41,6 +41,10 @@ impl CrewApp {
             self.want_restart = true;
             return Press::Done;
         }
+        // The Inbox and Far panels answer on every row under their rule.
+        if self.inbox_press() || self.far_press() {
+            return Press::Done;
+        }
         if let Some(i) = self.close_btn_at_cursor() {
             self.close_pane(i);
         } else if let Some(i) = self.min_btn_at_cursor() {

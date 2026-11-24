@@ -80,6 +80,7 @@ impl CrewApp {
         if self.hover_btn().is_some()
             || self.bar_at_cursor().is_some()
             || self.explorer_item_at_cursor().is_some()
+            || self.on_list_panel()
             || self.pane_at_sidebar().is_some()
             || self.tab_at_nav().is_some()
             || self.cursor_on_overflow()

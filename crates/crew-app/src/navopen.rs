@@ -50,6 +50,7 @@ impl CrewApp {
         let spin = crate::update::spinner_frame(crate::anim::now_ms());
         crate::navbar::Badges {
             panes: crate::navbar::panes_badge(rows, spin),
+            unread: crate::inboxglance::unread_count(),
             // What waits on YOU: a stopped prompt or a plan. Tasks in flight are not, and
             // the card's "all quiet" row is not anything.
             waiting: self.glance().map_or(0, |g| {
@@ -94,6 +95,8 @@ impl CrewApp {
             cells.extend(crate::navbar::divider_cells(BAR_COLS, rows));
             let panel = match section {
                 NavSection::Explorer => self.explorer_cells(pcols, rows),
+                NavSection::Inbox => self.inbox_cells(pcols, rows),
+                NavSection::Far => self.far_cells(pcols, rows),
                 _ => sidebar.panel_cells(section, &l, pcols, rows, &input),
             };
             for mut c in panel {

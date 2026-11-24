@@ -63,10 +63,9 @@ pub(crate) const VERBS: &[Verb] = &[
                 "activity",
                 "open the ACTIVITY section: the cards and the LOG",
             ),
-            (
-                "explorer",
-                "open the EXPLORER section (a file tree, coming)",
-            ),
+            ("explorer", "open the EXPLORER section: the file tree"),
+            ("inbox", "open the INBOX section: the newest unread mail"),
+            ("far", "open the FAR section: the folders Far went to last"),
             ("glance", "Activity shows the glance cards over its LOG"),
             ("log", "Activity shows the LOG alone"),
             (

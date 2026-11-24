@@ -29,19 +29,7 @@ impl CrewApp {
     /// The panel's content row under the cursor and its rows, when the open section is the
     /// Explorer.
     fn explorer_row(&self) -> Option<(u16, u16)> {
-        if self.config.nav_collapsed || self.nav_section() != NavSection::Explorer {
-            return None;
-        }
-        let (sb, ch, _) = self.nav_hit_geometry()?;
-        if !crate::chrome::point_in(sb, self.cursor.0, self.cursor.1) {
-            return None;
-        }
-        // Measured from the card's outer top edge: its border is row 0 of that.
-        let rel = ((self.cursor.1 - sb.y) / ch).floor() as i32 - 1;
-        let (_, rows) = self
-            .frame_geometry()
-            .map(|(cw, ch, ..)| crate::layout::card_inner_cells(sb.w, sb.h, cw, ch))?;
-        Some((u16::try_from(rel).ok()?, rows))
+        self.section_row(NavSection::Explorer)
     }
 
     /// The tree item under the cursor, as an index into [`crate::explorer::Explorer::items`].

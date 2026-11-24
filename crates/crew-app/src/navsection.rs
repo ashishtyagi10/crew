@@ -4,8 +4,8 @@
 //! The nav was one dashboard: clock, dials, load, host, net, git, the glance cards or the LOG,
 //! and the pane list, stacked down one column and divided by whatever the window's height
 //! allowed. Every new thing the nav could show had to fight the others for rows. Sections end
-//! that: each is a whole column of its own, picked from the bar, and the one this file names
-//! last — Explorer — is the slot a file tree will fill.
+//! that: each is a whole column of its own, picked from the bar — the pane list, the machine,
+//! the activity, the file tree, unread mail, and Far's recent folders.
 //!
 //! **One table.** Everything a section is — its name, the order the bar draws it in (its icon is
 //! drawn by [`crate::navicons`]) —
@@ -25,15 +25,21 @@ pub(crate) enum NavSection {
     Activity,
     /// The working directory as a tree — the slot, for now.
     Explorer,
+    /// Unread mail: the newest unread threads, a click opens one (`navinbox`).
+    Inbox,
+    /// The folders Far panes went to last, a click opens Far there (`navfar`).
+    Far,
 }
 
 impl NavSection {
     /// Every section, in the order the bar draws them.
-    pub(crate) const ALL: [NavSection; 4] = [
+    pub(crate) const ALL: [NavSection; 6] = [
         NavSection::Panes,
         NavSection::System,
         NavSection::Activity,
         NavSection::Explorer,
+        NavSection::Inbox,
+        NavSection::Far,
     ];
 
     pub(crate) fn as_str(self) -> &'static str {
@@ -42,6 +48,8 @@ impl NavSection {
             NavSection::System => "system",
             NavSection::Activity => "activity",
             NavSection::Explorer => "explorer",
+            NavSection::Inbox => "inbox",
+            NavSection::Far => "far",
         }
     }
 

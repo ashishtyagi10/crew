@@ -19,7 +19,9 @@ pub fn layout_for(
 ) -> NavLayout {
     match section {
         // The machine's stack is fixed rows, drawn from the top (`statspane::system_cells`).
-        NavSection::System | NavSection::Explorer => NavLayout::default(),
+        NavSection::System | NavSection::Explorer | NavSection::Inbox | NavSection::Far => {
+            NavLayout::default()
+        }
         NavSection::Panes => NavLayout {
             panes_top: (panes > 0).then_some(0),
             ..Default::default()

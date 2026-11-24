@@ -96,6 +96,7 @@ fn the_activity_badge_counts_what_waits() {
             Badges {
                 panes: None,
                 waiting: n,
+                ..Badges::default()
             },
             30,
         );

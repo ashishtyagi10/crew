@@ -5,10 +5,10 @@ use crate::app::CrewApp;
 use crate::navmode::NavCard;
 
 /// What `/nav` takes.
-const USAGE: &str = "[panes|system|activity|explorer|glance|log|weather <place>]";
+const USAGE: &str = "[panes|system|activity|explorer|inbox|far|glance|log|weather <place>]";
 
 impl CrewApp {
-    /// `/nav <section>` opens a section of the nav (panes, system, activity, explorer);
+    /// `/nav <section>` opens a section of the nav (panes, system, activity, explorer, inbox, far);
     /// `/nav [glance|log]` says what Activity shows over its LOG; `/nav weather <place>`. The
     /// whole left column under one verb (`crate::verbs`). `/weather` still answers.
     pub(crate) fn nav_command(&mut self, arg: &str) {

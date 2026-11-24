@@ -81,4 +81,17 @@ impl FarPane {
         self.left.reload();
         self.right.reload();
     }
+
+    /// Point the active panel at local folder `dir`, as `cd` does.
+    pub(crate) fn go(&mut self, dir: &std::path::Path) {
+        let panel = self.active_panel_mut();
+        panel.loc = Location::local(dir);
+        panel.sel = 0;
+        panel.reload();
+    }
+
+    /// The active panel's folder on this machine (`None`: a remote).
+    pub(crate) fn active_local_dir(&self) -> Option<std::path::PathBuf> {
+        self.panel(self.active).loc.local_path()
+    }
 }

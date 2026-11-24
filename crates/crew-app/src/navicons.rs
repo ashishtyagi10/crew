@@ -38,7 +38,7 @@ pub(crate) fn bar_paint(
     rows: u16,
     aspect: f32,
 ) -> Vec<Paint> {
-    // Five static shapes: rasterised again only when something they depend on changed — what
+    // Seven static shapes: rasterised again only when something they depend on changed — what
     // is open or hovered, the bar's height, the cell's shape and size, the theme or accent.
     let key = (
         open,
@@ -151,6 +151,8 @@ pub(crate) fn shape(hit: BarHit, p: (f32, f32), at: (f32, f32), u: f32) -> f32 {
             let front = page.max(cut);
             outline(back).max(-front).min(outline(front))
         }
+        BarHit::Section(NavSection::Inbox) => crate::naviconsmore::inbox(p, at, u, w),
+        BarHit::Section(NavSection::Far) => crate::naviconsmore::far(p, at, u, w),
         // A gear: a ring with eight teeth and a hole.
         BarHit::Settings => {
             let c = l(0.0, 0.0);

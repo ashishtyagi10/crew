@@ -35,6 +35,28 @@ fn navbar_shot() {
                         app.sidebar.explorer.toggle(&f);
                     }
                 }
+                if state == Some(NavSection::Far) {
+                    for d in ["/usr/local/bin", "/tmp", "/Users"] {
+                        crate::farrecent::note(std::path::Path::new(d));
+                    }
+                }
+                if state == Some(NavSection::Inbox) {
+                    let t = |from: &str, subject: &str, mins: i64| crate::inbox::wire::Thread {
+                        id: subject.into(),
+                        from: from.into(),
+                        subject: subject.into(),
+                        unread: true,
+                        at_ms: crate::chattime::unix_now_ms() as i64 - mins * 60_000,
+                        ..Default::default()
+                    };
+                    let list = vec![
+                        t("Ann Lee <ann@x.org>", "Q4 roadmap review", 9),
+                        t("GitHub <noreply@github.com>", "CI passed on main", 75),
+                        t("Bob Ross", "Lunch on Friday?", 60 * 30),
+                    ];
+                    let card = crate::inboxglance::count(14, list.first());
+                    crate::inboxglance::seed(card, list);
+                }
                 app.log = (0..12)
                     .map(|i| crate::applog::LogEntry {
                         level: crate::applog::LogLevel::Info,

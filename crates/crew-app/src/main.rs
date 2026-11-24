@@ -443,6 +443,7 @@ mod explorerdraw;
 mod explorergit;
 mod explorerhit;
 mod explorerkeys;
+mod farrecent;
 #[cfg(test)]
 #[path = "frameshot_tests.rs"]
 mod frameshot_tests;
@@ -484,8 +485,12 @@ mod navcard;
 #[cfg(test)]
 #[path = "navcontrast_tests.rs"]
 mod navcontrast_tests;
+mod navfar;
 mod navglance;
 mod navicons;
+mod naviconsmore;
+mod navinbox;
+mod navinboxhit;
 mod navlayout;
 mod navlog;
 mod navlogscroll;
@@ -504,6 +509,7 @@ mod navreliefactive;
 mod navreliefscene;
 mod navresize;
 mod navsection;
+mod navsectionhit;
 mod navsectionlayout;
 mod navserving;
 mod navslot;
