@@ -78,6 +78,7 @@ fn pump_until(term: &mut PtyTerm, done: impl Fn(&PtyTerm) -> bool) -> bool {
 /// A real shell: while the program that hid the cursor still runs, nothing
 /// says the shell is back (a foreground job, no prompt mark) and it stays
 /// hidden; once it is gone, the shell back shows it.
+#[cfg(unix)]
 #[test]
 fn a_running_program_keeps_its_hidden_cursor_until_the_shell_is_back() {
     let mut term = PtyTerm::spawn(SIZE, "sh").unwrap();

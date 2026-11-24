@@ -458,7 +458,9 @@ impl CrewApp {
                         let ms = crate::anim::now_ms();
                         match &cmd {
                             Some(name) => t.spans.started(name.clone(), at, ms),
-                            None => t.shell_back(at, ms),
+                            // Not on a failed name lookup of a live program.
+                            None if fg.is_none() => t.shell_back(at, ms),
+                            None => {}
                         }
                         t.cmd = cmd;
                         t.cmd_since = outcome.since;
