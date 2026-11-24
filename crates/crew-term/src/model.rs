@@ -99,6 +99,9 @@ pub(crate) struct TermCore {
     evicted: u64,
     /// How many lines of scrollback the primary screen keeps.
     history_cap: usize,
+    /// Whether a focused pane draws its cursor this frame: false only in the
+    /// dark half of a blink, which the app times (see `cursorblink`).
+    cursor_lit: bool,
 }
 
 /// A picture the program asked for, and where in the buffer it goes.
@@ -123,6 +126,8 @@ impl TermCore {
             rows: size.rows as usize,
         };
         let events = TermEvents::default();
+        // A cursor nobody styled stays steady (crew's look before blink came, and an idle
+        // prompt then costs no frames); a program asks to blink with 1/3/5 or `?12h`.
         let config = Config::default();
         let history_cap = config.scrolling_history;
         let term = Term::new(config, &dims, events.clone());
@@ -140,6 +145,7 @@ impl TermCore {
             cellq: modelsize::Queries::default(),
             evicted: 0,
             history_cap,
+            cursor_lit: true,
         };
         core.publish_size();
         core
@@ -238,6 +244,8 @@ impl TermCore {
     }
 }
 
+#[path = "cursorblink.rs"]
+mod cursorblink;
 #[path = "cursorpos.rs"]
 mod cursorpos;
 #[path = "headless.rs"]

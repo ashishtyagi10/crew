@@ -3,7 +3,7 @@
 use super::*;
 
 pub struct HeadlessTerm {
-    core: TermCore,
+    pub(super) core: TermCore,
 }
 
 impl HeadlessTerm {

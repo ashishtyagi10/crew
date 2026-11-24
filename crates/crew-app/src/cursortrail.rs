@@ -57,6 +57,8 @@ pub(crate) struct Trail {
     from: Option<(u16, u16)>,
     at: Option<(u16, u16)>,
     since: Timeline,
+    /// The same caret's blink clock (`cursorblink`), kept beside its wake.
+    pub(crate) blink: crate::cursorblink::Blink,
 }
 
 impl Trail {

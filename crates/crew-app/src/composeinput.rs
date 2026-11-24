@@ -96,6 +96,8 @@ impl CrewApp {
             None => self.ime.preedit.take().is_some(),
         };
         if held {
+            // Composing is typing: the caret holds solid through it (`cursorblink`).
+            self.last_input_ms = crate::anim::now_ms();
             self.redraw();
         }
         let Ime::Commit(text) = ime else {

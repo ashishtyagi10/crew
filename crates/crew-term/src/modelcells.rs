@@ -205,7 +205,11 @@ impl TermCore {
                 })
             })
             .collect();
-        crate::cursor::apply(&mut out, &cursor, off, focused);
+        // The dark half of a blink draws no cursor; an unfocused pane's
+        // outline never blinks, whatever the app last said.
+        if self.cursor_lit || !focused {
+            crate::cursor::apply(&mut out, &cursor, off, focused);
+        }
         out
     }
 }

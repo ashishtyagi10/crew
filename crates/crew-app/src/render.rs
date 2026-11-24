@@ -79,6 +79,14 @@ impl CrewApp {
             (!self.input.focused).then_some(self.focused),
             now,
         );
+        // And whether that caret is lit or in the dark half of its blink.
+        crate::cursorblink::step(
+            &mut self.panes,
+            (!self.input.focused).then_some(self.focused),
+            self.last_input_ms,
+            crate::cursorblink::on(self.win_focus),
+            now,
+        );
         self.theme_fade_tick(now);
         // Grid glide clock: measured between frames, clamped after idle.
         let frame_dt = crate::glide::frame_dt(now, self.glide_prev_ms);
