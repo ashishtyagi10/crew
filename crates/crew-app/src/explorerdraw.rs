@@ -49,7 +49,8 @@ pub(crate) fn cells(
     let key = find.map_or(String::new(), |(p, _)| crate::explorerfind::legend(p, cols));
     let key_fg = match find {
         Some((_, true)) => t.ink,
-        _ => t.text_muted,
+        // No match in the danger ink: muted read as ink on the light themes (porcelain shot).
+        _ => crew_theme::readable::danger(t),
     };
     let (border, bg) = (t.border_normal, t.page_bg);
     let mut out =

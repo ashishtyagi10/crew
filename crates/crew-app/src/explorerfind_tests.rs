@@ -114,7 +114,7 @@ fn backspace_shortens_then_ends_the_find() {
     assert_eq!(on(&a), "ok.md", "k is a motion again");
 }
 
-/// Nothing starts with it: the cursor stays, the prefix stays, the rule shows it muted.
+/// Nothing starts with it: the cursor stays, the prefix stays, the rule shows it in danger ink.
 #[test]
 fn no_match_keeps_the_cursor_and_shows_it_muted() {
     let _g = crate::app::theme_test_guard();
@@ -134,7 +134,7 @@ fn no_match_keeps_the_cursor_and_shows_it_muted() {
     let text: String = cells.iter().map(|c| c.c).collect();
     assert!(text.contains("EXPLORER find: aq"), "{text}");
     let q = cells.iter().rfind(|c| c.c == 'q').unwrap();
-    assert_eq!(q.fg, crew_theme::theme().text_muted);
+    assert_eq!(q.fg, crew_theme::readable::danger(crew_theme::theme()));
     press(&mut a, NamedKey::Backspace);
     let q = rule(&a).into_iter().rfind(|c| c.c == 'a').unwrap();
     assert_eq!(q.fg, crew_theme::theme().ink, "found: in ink");

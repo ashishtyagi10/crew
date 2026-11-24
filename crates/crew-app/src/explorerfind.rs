@@ -133,11 +133,20 @@ fn seek(items: &[Item], prefix: &str, from: usize) -> Option<usize> {
 /// up to `…` before its end — the end is what was just typed.
 pub(crate) fn legend(prefix: &str, cols: u16) -> String {
     let room = crate::boxdraw::title_budget(cols).saturating_sub("EXPLORER find: ".len());
-    let n = prefix.chars().count();
-    if n <= room {
+    // By display width, as the header budgets: a CJK prefix counted in chars overflowed it.
+    if crate::chatwidth::str_w(prefix) <= room {
         return format!("find: {prefix}");
     }
-    let tail: String = prefix.chars().skip(n + 1 - room.max(1)).collect();
+    let mut tail: Vec<char> = Vec::new();
+    let mut w = 1; // the ellipsis
+    for c in prefix.chars().rev() {
+        w += crate::chatwidth::char_w(c);
+        if w > room.max(1) {
+            break;
+        }
+        tail.push(c);
+    }
+    let tail: String = tail.into_iter().rev().collect();
     format!("find: \u{2026}{tail}")
 }
 

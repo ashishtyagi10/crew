@@ -76,3 +76,12 @@ fn explorer_find_shot() {
         crate::crtglassshot_tests::window_with(&name, id, opacity, &[], &prep);
     }
 }
+
+/// A wide prefix is clipped by display width, so the legend never outgrows the rule.
+#[test]
+fn a_wide_prefix_is_clipped_by_width() {
+    let room = crate::boxdraw::title_budget(30).saturating_sub("EXPLORER find: ".len());
+    let l = crate::explorerfind::legend(&"日".repeat(20), 30);
+    assert!(l.starts_with("find: \u{2026}"), "{l}");
+    assert!(crate::chatwidth::str_w(&l) - "find: ".len() <= room, "{l}");
+}
