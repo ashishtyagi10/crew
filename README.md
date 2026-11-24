@@ -310,6 +310,7 @@ way that machine presses it.
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
 | Meta (M-b, M-f, M-d, M-.) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
 | An accented letter (é, ñ, ü) in a terminal | the layout's dead key, then the letter (on a Mac: **Option+e** then **e**, while Option is not Meta) |
+| Japanese, Chinese or Korean in a terminal or the input bar | your Mac input source as usual: the text being composed shows underlined at the cursor, and the candidate list opens beside it |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |

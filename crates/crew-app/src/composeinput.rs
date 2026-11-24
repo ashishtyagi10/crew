@@ -21,7 +21,8 @@
 //! Off a Mac winit folds the accent into the key press's `text`, which
 //! `session::typed_bytes` prefers.
 //!
-//! The preedit accent is not drawn: the pane shows the letter once it lands.
+//! The preedit — a waiting accent, or kana an input method is still turning
+//! into kanji — is drawn at the caret by [`crate::imepreedit`].
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
 use winit::event::Ime;
@@ -64,23 +65,39 @@ impl CrewApp {
     /// Keep the window's IME on exactly while [`ime_wanted`] and
     /// [`Self::takes_text`] both hold. Run after every window event: winit
     /// asks the flag before crew sees a key, so it must already be right for
-    /// the next one. Told only on a change.
+    /// the next one. Told only on a change. A composition whose surface lost
+    /// focus is dropped here too.
     pub(crate) fn sync_ime(&mut self) {
         let want =
             ime_wanted(cfg!(target_os = "macos"), self.config.option_as_meta) && self.takes_text();
-        if self.ime_on == Some(want) {
+        // A composition stays with the surface it began on (`imepreedit`).
+        if self.ime.follow(self.ime_owner()) {
+            self.redraw();
+        }
+        if self.ime.on == Some(want) {
             return;
         }
         if let Some(w) = &self.window {
             w.set_ime_allowed(want);
-            self.ime_on = Some(want);
+            self.ime.on = Some(want);
+            // Turned back on, the window has forgotten where the caret is.
+            self.ime.area = None;
         }
     }
 
     /// A committed composition goes where a typed letter would: the input bar
     /// when it holds focus, else the focused terminal pane (broadcast
-    /// included). Preedit changes carry nothing to type.
+    /// included). A preedit carries nothing to type: it is kept and drawn
+    /// until it commits or is dropped (`imepreedit`).
     pub(crate) fn on_ime(&mut self, ime: Ime) {
+        // With nothing taking text there is nothing to compose for.
+        let held = match self.ime_owner() {
+            Some(owner) => self.ime.note(&ime, owner),
+            None => self.ime.preedit.take().is_some(),
+        };
+        if held {
+            self.redraw();
+        }
         let Ime::Commit(text) = ime else {
             return;
         };

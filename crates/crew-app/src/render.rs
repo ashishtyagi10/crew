@@ -235,17 +235,16 @@ impl CrewApp {
             // still a card, so it sits on the same frosted sheet.
             bordered: false,
             glass: true,
-            scan: -1.0,
             lift: crate::spotlight::composer_lift(self.input.focused),
-            glint: -1.0,
             // Its frame is its last column and row: it fills the rect, so
             // the seam above it is the gutter and nothing more.
-            pictures: Vec::new(),
             stretch: true,
-            overlay: false,
-            scroll_px: 0.0,
-            paint: Vec::new(),
+            ..Default::default()
         });
+        // What an input method is composing, over the cells it will land on
+        // (a shell's or the bar's just pushed), and the caret's place for its
+        // candidate list (`imedraw`).
+        self.draw_preedit(&mut scenes, cw, ch);
 
         // The rims' light: aimed home once the pointer has left the window,
         // glided on the grid's frame clock, handed to the glass pass.
