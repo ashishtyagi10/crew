@@ -1,4 +1,5 @@
-//! A turn the user's stop check holds open (`Tools::stop`, the Stop hook).
+//! A turn the user's stop check holds open (`Tools::stop`, the Stop hook),
+//! or the advisor does, once, when the answer stands on unchecked edits.
 //!
 //! When a reply asks for no tool it is the answer — unless the surface's stop
 //! check says "not yet". Then the reason goes back to the model as a note of
@@ -8,6 +9,10 @@
 //! answered the same thing twice has nothing more to give the reason. Either
 //! way the answer stands and a failed `hook:stop` row says why, as does a
 //! check that broke; a check that let the answer through says nothing.
+//!
+//! An answer the check lets through is then the advisor's to read
+//! (`TurnContext::advised_done`, `advisor::done`): the same door, so both
+//! loops give its advice the round a held answer gets.
 
 use std::sync::Arc;
 use std::time::Instant;
@@ -31,8 +36,22 @@ pub(super) struct Hold {
 }
 
 impl Hold {
-    /// The note to go on with when the check holds `answer`, or `None` to end.
+    /// The note to go on with when the check or the advisor holds `answer`,
+    /// or `None` to end.
     pub(super) async fn check(
+        &mut self,
+        ctx: &TurnContext,
+        tools: Option<&Arc<dyn Tools>>,
+        answer: &str,
+    ) -> Option<String> {
+        match self.hook(ctx, tools, answer).await {
+            None if tools.is_some() => ctx.advised_done(answer).await,
+            held => held,
+        }
+    }
+
+    /// The note to go on with when the user's check holds `answer`.
+    async fn hook(
         &mut self,
         ctx: &TurnContext,
         tools: Option<&Arc<dyn Tools>>,

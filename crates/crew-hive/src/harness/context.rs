@@ -23,10 +23,11 @@ impl Events for EventBus {
     }
 }
 
-/// What a turn is told about a round of tools beyond their results: the
-/// advisor, a second model reading a failed check (`crate::advisor`). What it
-/// says joins the turn after the round's results, and stands until it says
-/// something else.
+/// What a turn is told about a round of tools beyond their results, and
+/// about its answer before it stands: the advisor, a second model reading a
+/// failed check, a stall, or an answer on unchecked edits (`crate::advisor`).
+/// What it says of a round joins the turn after the round's results, and
+/// stands until it says something else.
 pub trait Advice: Send + Sync {
     /// One round's `calls` and how each came back, `(ok, text)`, in order:
     /// the section the turn carries from here on, or empty for none. Read on
@@ -39,6 +40,16 @@ pub trait Advice: Send + Sync {
         calls: &'a [ToolCall],
         ran: &'a [(bool, String)],
     ) -> std::pin::Pin<Box<dyn Future<Output = String> + Send + 'a>>;
+
+    /// Before the turn ends on `answer`, a reply that asked for no tool: a
+    /// note to go on with for one more round, or `None` to let it stand.
+    /// Defaults to none.
+    fn done<'a>(
+        &'a self,
+        _answer: &'a str,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        Box::pin(async { None })
+    }
 }
 
 /// Who a turn is, and what it answers to while it runs.
@@ -104,6 +115,15 @@ impl TurnContext {
                 .await
                 .unwrap_or_else(|| kept.to_string()),
             _ => kept.to_string(),
+        }
+    }
+
+    /// What the turn's [`Advice`] says before `answer` stands (`Advice::done`),
+    /// or `None` when it has none, says nothing or the turn was stopped.
+    pub(crate) async fn advised_done(&self, answer: &str) -> Option<String> {
+        match &self.advice {
+            Some(a) if !self.stopped() => self.unless_stopped(a.done(answer)).await.flatten(),
+            _ => None,
         }
     }
 }

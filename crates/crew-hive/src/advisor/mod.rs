@@ -11,9 +11,11 @@
 //!
 //! When: a tool round in which a `sys:run` ran and exited non-zero
 //! (`Tools::failed`), or one that told the agent nothing new (`stall`: every
-//! call a repeat with the same result), once per stall; at most [`PER_TURN`]
-//! times a turn, both counted. A stall's brief is the calls list and what it
-//! means to repeat them, with no failure to cut. For a failure it reads the request,
+//! call a repeat with the same result), once per stall, or an answer about
+//! to stand on files changed with no check passing since (`done`), once a
+//! turn; at most [`PER_TURN`] times a turn, all three counted. A stall's
+//! brief is the calls list and what it means to repeat them, with no failure
+//! to cut. For a failure it reads the request,
 //! the turn's calls one line each, and the failure cut to its useful part
 //! (`failexcerpt`), which keeps first the line a run cut for length opens
 //! with, every error by its place: the errors the cut dropped are the ones
@@ -35,6 +37,7 @@ use crate::harness::Advice;
 use crate::spent::Spent;
 use crate::tools::{ToolCall, Tools};
 
+mod done;
 mod stall;
 mod text;
 
@@ -51,8 +54,8 @@ pub type Asked = Pin<Box<dyn Future<Output = Result<(String, Spent), String>> + 
 /// One advisor call: its brief in.
 pub type Ask = Arc<dyn Fn(String) -> Asked + Send + Sync>;
 
-/// Where a turn's advisor call comes from, looked up once a check has failed
-/// (finding a provider can read a credential store), on the turn's own
+/// Where a turn's advisor call comes from, looked up the first time one is
+/// due (finding a provider can read a credential store), on the turn's own
 /// thread: `None` when none may run.
 pub type Find = Arc<dyn Fn() -> Option<Ask> + Send + Sync>;
 
@@ -75,9 +78,9 @@ pub struct Advisor {
     state: Mutex<State>,
 }
 
-/// The call, once a failure or a stall needed it (`Some(None)` when none may run), how
+/// The call, once a read needed it (`Some(None)` when none may run), how
 /// often it was asked, the turn's calls so far, and the newest advice as its
-/// section, and what the rounds came back with (`stall`).
+/// section, and what the rounds came back with (`stall`) and wrote (`done`).
 #[derive(Default)]
 struct State {
     ask: Option<Option<Ask>>,
@@ -85,6 +88,7 @@ struct State {
     calls: Vec<String>,
     advice: String,
     progress: stall::Progress,
+    done: done::Done,
 }
 
 impl Advisor {
@@ -117,6 +121,7 @@ impl Advisor {
         for (call, (ok, _)) in calls.iter().zip(ran) {
             let n = s.calls.len() + 1;
             s.calls.push(text::call_line(n, call, *ok));
+            s.done.call(call, *ok);
         }
         let stalled = s.progress.round(calls, ran);
         let failed = calls.iter().zip(ran).find(|(c, (_, out))| {
@@ -128,6 +133,7 @@ impl Advisor {
         }
         let ask = s.ask.get_or_insert_with(|| (self.find)()).clone()?;
         s.asked += 1;
+        s.done.heard = true;
         Some((
             ask,
             match failed {
@@ -135,6 +141,16 @@ impl Advisor {
                 None => text::stalled(&self.request, &s.calls),
             },
         ))
+    }
+
+    /// What `ask` makes of `brief`: its advice as a section, said in the
+    /// pane's quiet line and billed, or `None` when it errored or said nothing.
+    async fn advise(&self, ask: Ask, brief: String) -> Option<String> {
+        let (reply, spent) = ask(brief).await.ok()?;
+        (self.hooks.spent)(spent);
+        let lines = text::advice(&reply);
+        (self.hooks.say)(&text::said(lines.first()?));
+        Some(text::section(&lines))
     }
 }
 
@@ -148,18 +164,20 @@ impl Advice for Advisor {
             let Some((ask, brief)) = self.noted(calls, ran) else {
                 return self.state().advice.clone();
             };
-            let Ok((reply, spent)) = ask(brief).await else {
-                return self.state().advice.clone();
-            };
-            (self.hooks.spent)(spent);
-            let lines = text::advice(&reply);
-            let Some(first) = lines.first() else {
-                return self.state().advice.clone();
-            };
-            (self.hooks.say)(&text::said(first));
-            let section = text::section(&lines);
-            self.state().advice = section.clone();
-            section
+            if let Some(section) = self.advise(ask, brief).await {
+                self.state().advice = section;
+            }
+            self.state().advice.clone()
+        })
+    }
+
+    fn done<'a>(
+        &'a self,
+        answer: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        Box::pin(async move {
+            let (ask, brief) = self.before_done(answer)?;
+            Some(self.advise(ask, brief).await? + done::NOTE)
         })
     }
 }

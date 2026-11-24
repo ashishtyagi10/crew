@@ -63,12 +63,9 @@ pub(crate) fn enabled() -> bool {
     std::env::var("CREW_CHECK").ok().as_deref() != Some("0")
 }
 
-/// Commands crew will believe are a check. Everything here builds, tests or
-/// lints; nothing here moves files, talks to a network or installs anything.
-const RUNNERS: &[&str] = &[
-    "cargo", "npm", "pnpm", "yarn", "bun", "deno", "make", "just", "pytest", "tox", "go", "mvn",
-    "gradle", "dotnet", "swift", "zig", "rake", "bundle", "ninja", "ctest", "mix", "stack",
-];
+/// Commands crew will believe are a check: the one list, which the advisor
+/// reads too when it asks whether the agent ran one (`crew_hive::checkrun`).
+use crew_hive::checkrun::RUNNERS;
 
 /// What a line has to be about, best reason first — a file that names both a
 /// test and a build command should have its TEST command run.
