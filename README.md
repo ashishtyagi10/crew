@@ -290,6 +290,7 @@ way that machine presses it.
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
 | Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder or preview a file, ← close or go up, Home/End, Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
+| The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | `/broadcast` (by name only — **Cmd+S** saves a focused settings form) |

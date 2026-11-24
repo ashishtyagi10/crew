@@ -493,6 +493,7 @@ mod naviconsmore;
 mod navinbox;
 mod navinboxhit;
 mod navlayout;
+mod navlistkeys;
 mod navlistscroll;
 mod navlog;
 mod navlogscroll;

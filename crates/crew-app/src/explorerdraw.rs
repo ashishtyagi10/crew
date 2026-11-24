@@ -99,8 +99,9 @@ pub(crate) fn cells(
 }
 
 /// The keyboard's row as the far pane draws its cursor: the whole row a bar of the accent,
-/// deepened until white reads on it, the words on it bold white.
-fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
+/// deepened until white reads on it, the words on it bold white. The Inbox and Far lists draw
+/// their keyboard cursor with it too (`navlistkeys`).
+pub(crate) fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
     let (ink, fill) = crate::segment::inked(crate::palette::accent());
     for col in 0..cols {
         if !out.iter().any(|c| c.row == row && c.col == col) {

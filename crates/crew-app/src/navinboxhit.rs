@@ -32,15 +32,20 @@ impl CrewApp {
         if row == 0 {
             return false;
         }
-        let want = self
-            .inbox_item_at_cursor()
+        self.inbox_open_item(self.inbox_item_at_cursor());
+        self.redraw();
+        true
+    }
+
+    /// Open unread thread `k` (an index into `inboxglance::unread`) as a click on it does;
+    /// `None`: the inbox. The click and the keyboard's Enter both come here.
+    pub(crate) fn inbox_open_item(&mut self, k: Option<usize>) {
+        let want = k
             .and_then(|k| crate::inboxglance::unread().get(k).map(|t| t.id.clone()))
             .map(|id| (id, crate::anim::now_ms() + WAIT_MS));
         *WANT.lock().unwrap_or_else(|p| p.into_inner()) = want;
         self.inbox_command("");
         self.tick_inbox_want();
-        self.redraw();
-        true
     }
 
     /// Open the thread a click asked for, once the inbox pane's list holds it. `true` when
@@ -75,15 +80,25 @@ impl CrewApp {
 
     /// The Inbox section's cells for a panel `cols` × `rows`.
     pub(crate) fn inbox_cells(&self, cols: u16, rows: u16) -> Vec<crew_render::CellView> {
-        crate::navinbox::cells(
+        let win = self.list_window(NavSection::Inbox, rows);
+        let mut out = crate::navinbox::cells(
             &crate::inboxglance::state(),
             &crate::inboxglance::unread(),
-            self.list_window(NavSection::Inbox, rows),
+            win,
             self.inbox_item_at_cursor(),
             crate::chattime::unix_now_ms() as i64,
             (cols, rows),
-        )
+        );
+        self.list_bar(&mut out, NavSection::Inbox, win, cols);
+        out
     }
+}
+
+/// The thread a click or Enter asked for and the pane has not opened yet, by id; clears it.
+#[cfg(test)]
+pub(crate) fn take_want() -> Option<String> {
+    let mut want = WANT.lock().unwrap_or_else(|p| p.into_inner());
+    want.take().map(|(id, _)| id)
 }
 
 #[cfg(test)]

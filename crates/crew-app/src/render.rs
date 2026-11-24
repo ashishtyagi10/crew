@@ -34,11 +34,9 @@ impl CrewApp {
         // See `themepeek`; a no-op on every frame with nothing selected.
         // Built only while the bar has focus: unfocused, the rows were thrown
         // away — after a `read_dir` per frame for a path command's line.
-        // The tree's hold, once lost (the bar, another pane, the nav put away), is gone for
-        // good: coming back to the same pane must not hand it the keys again.
-        if self.sidebar.explorer.keys.is_some() && !self.tree_has_keys() {
-            self.sidebar.explorer.keys = None;
-        }
+        // The nav's hold on the keys (the tree's, a list's), once lost (the bar, another pane,
+        // the nav put away), is gone for good: coming back must not hand them back.
+        self.nav_keys_settle();
         let peek = match self.input.focused {
             true => crate::suggest::menu_items_in(&self.input.text, &self.input.cwd),
             false => Vec::new(),
@@ -161,7 +159,7 @@ impl CrewApp {
                 self.glide_active |= !settled;
                 relayout_one(&mut self.panes[idx], drawn, cw, ch);
             }
-            let f = (!self.input.focused && !self.tree_has_keys()).then_some(self.focused);
+            let f = (!self.input.focused && !self.nav_has_keys()).then_some(self.focused);
             full_scenes(
                 &self.panes,
                 &placed.full,

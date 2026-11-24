@@ -54,7 +54,7 @@ impl CrewApp {
     /// hints, the Explorer tree). Chat, editors, settings and inbox read key
     /// presses only, and a dead key held as preedit would never reach them.
     pub(crate) fn takes_text(&self) -> bool {
-        if self.help_open || crate::hints::active() || self.tree_has_keys() {
+        if self.help_open || crate::hints::active() || self.nav_has_keys() {
             return false;
         }
         let focused = self.panes.get(self.focused).map(|p| &p.content);

@@ -93,15 +93,19 @@ impl CrewApp {
             Some((row, _)) if row > 0 => {}
             _ => return false,
         }
-        let dir =
-            (self.far_item_at_cursor()).and_then(|k| crate::farrecent::list().get(k).cloned());
-        match dir {
+        self.far_open_item(self.far_item_at_cursor());
+        self.redraw();
+        true
+    }
+
+    /// Open recent folder `k` (an index into `farrecent::list`) as a click on it does; `None`:
+    /// Far, wherever it is. The click and the keyboard's Enter both come here.
+    pub(crate) fn far_open_item(&mut self, k: Option<usize>) {
+        match k.and_then(|k| crate::farrecent::list().get(k).cloned()) {
             Some(d) if !d.is_dir() => self.set_status(format!("far: {} is gone", d.display())),
             Some(d) => self.far_open_at(&d),
             None => self.far_open_at_none(),
         }
-        self.redraw();
-        true
     }
 
     /// The Far pane a click goes to: the focused one, else the first; `None`: no Far pane.
@@ -143,12 +147,11 @@ impl CrewApp {
 
     /// The Far section's cells for a panel `cols` × `rows`.
     pub(crate) fn far_cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        cells(
-            &crate::farrecent::list(),
-            self.list_window(NavSection::Far, rows),
-            self.far_item_at_cursor(),
-            (cols, rows),
-        )
+        let win = self.list_window(NavSection::Far, rows);
+        let hover = self.far_item_at_cursor();
+        let mut out = cells(&crate::farrecent::list(), win, hover, (cols, rows));
+        self.list_bar(&mut out, NavSection::Far, win, cols);
+        out
     }
 }
 

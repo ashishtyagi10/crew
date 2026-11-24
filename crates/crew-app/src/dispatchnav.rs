@@ -34,6 +34,12 @@ impl CrewApp {
             if s == crate::navsection::NavSection::Explorer && !self.tree_has_keys() {
                 self.explorer_keys_toggle();
             }
+            // So do the Inbox and Far lists: `/nav` is their door to the keys — when there is
+            // something to move through; an empty list would swallow the terminal's j/k.
+            let some = crate::navlistscroll::listed(s) > 0;
+            if crate::navlistkeys::LISTS.contains(&s) && some && !self.list_has_keys() {
+                self.list_keys_take(s);
+            }
             self.set_status(format!("nav: {}", s.as_str()));
             self.redraw();
             return;

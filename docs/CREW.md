@@ -426,6 +426,7 @@ way that machine presses it.
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
 | Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder or preview a file, ← close or go up, Home/End, Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
+| The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Save the settings form | **Cmd+S** |
@@ -512,7 +513,8 @@ conflict), and a folder holding changes tinted with a dot — read from the same
 at the bar's foot opens the settings.
 The **Inbox** and **Far** sections list the newest unread threads and the
 folders Far went to last; a click opens one there, and the wheel scrolls either
-list when it is longer than the panel.
+list when it is longer than the panel. `/nav inbox` and `/nav far` hand that
+list the keyboard, as `/nav explorer` does the tree (see the keys table).
 Click an icon to open its section; click the open section's icon to put the
 panel away, as VS Code does; any icon on a put-away nav opens it on that
 section. `/nav panes`, `/nav system`, `/nav activity` and `/nav explorer` open
