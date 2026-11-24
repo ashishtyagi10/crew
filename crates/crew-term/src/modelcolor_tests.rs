@@ -65,9 +65,23 @@ fn a_background_the_pane_does_not_draw_is_not_reported() {
 /// (`cursorcolor_tests` covers the floor and the reset).
 #[test]
 fn osc12_answers_the_set_cursor_it_draws() {
+    let _t = crate::testtheme::lock();
+    let want = crate::cursor::ink(&set_cursor((0x10, 0x30, 0x90)), true);
     let mut t = term();
-    t.feed(b"\x1b]12;rgb:e0/70/10\x1b\\\x1b]12;?\x1b\\");
-    assert_eq!(t.take_replies(), Some(rgb("12", (0xe0, 0x70, 0x10))));
+    t.feed(b"\x1b]12;rgb:10/30/90\x1b\\\x1b]12;?\x1b\\");
+    assert_eq!(t.take_replies(), Some(rgb("12", want)));
+    assert_ne!(
+        want,
+        crate::cursor::ink(&Default::default(), true),
+        "set, not the theme's"
+    );
+}
+
+fn set_cursor((r, g, b): (u8, u8, u8)) -> alacritty_terminal::term::color::Colors {
+    let mut c = alacritty_terminal::term::color::Colors::default();
+    c[alacritty_terminal::vte::ansi::NamedColor::Cursor] =
+        Some(alacritty_terminal::vte::ansi::Rgb { r, g, b });
+    c
 }
 
 /// Replies keep the order they were asked in: a colour query held for the

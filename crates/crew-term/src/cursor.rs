@@ -47,8 +47,9 @@ pub(crate) fn ink(palette: &Colors, focused: bool) -> (u8, u8, u8) {
 
 /// Overlay the cursor onto `out`. Only drawn when the view is at the live
 /// bottom (`off == 0`) and the cursor is not hidden — when scrolled into
-/// history there is no live cursor to show. The block is the page's own ink in
-/// the focused pane; an unfocused outline keeps the dimmer unfocused ink, but
+/// history there is no live cursor to show. The focused block is [`ink`]: the
+/// program's OSC 12 colour, or the page's own ink; an unfocused outline keeps
+/// the dimmer unfocused ink, but
 /// floored against the page, because an outline is a fraction of the ink a
 /// filled block is and the colour was chosen for the block.
 ///

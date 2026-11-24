@@ -3,8 +3,14 @@
 //! query is told.
 use crate::{GridSize, HeadlessTerm, RenderCell, TermModel};
 
-/// A saturated orange: far from every theme's page, so it draws as set.
-const ORANGE: (u8, u8, u8) = (0xe0, 0x70, 0x10);
+/// A saturated colour well clear of the page — orange on a dark one, deep
+/// blue on a light one — so it draws as set on every theme.
+fn vivid() -> (u8, u8, u8) {
+    match crate::contrast::luminance(crew_theme::theme().term_bg) < 0.5 {
+        true => (0xe0, 0x70, 0x10),
+        false => (0x10, 0x30, 0x90),
+    }
+}
 
 fn cursor_cell(seq: &[u8], focused: bool) -> RenderCell {
     let mut t = HeadlessTerm::new(GridSize { cols: 10, rows: 3 });
@@ -28,26 +34,29 @@ fn theme_block() -> (u8, u8, u8) {
 /// nvim's `guicursor` colour, a prompt's vi-mode colour: the block is it.
 #[test]
 fn the_focused_block_is_the_colour_the_program_set() {
+    let _t = crate::testtheme::lock();
     let page = crew_theme::theme().term_bg;
-    assert!(crate::contrast::ratio(ORANGE, page) >= 3.0, "fixture");
-    let cell = cursor_cell(&set(ORANGE), true);
-    assert_eq!(cell.bg, ORANGE);
+    assert!(crate::contrast::ratio(vivid(), page) >= 3.0, "fixture");
+    let cell = cursor_cell(&set(vivid()), true);
+    assert_eq!(cell.bg, vivid());
     assert_ne!(cell.bg, theme_block());
 }
 
 /// A bar or an underline is a mark, not a fill: the mark takes the colour.
 #[test]
 fn a_beam_is_ruled_in_the_set_colour() {
-    let mut seq = set(ORANGE);
+    let _t = crate::testtheme::lock();
+    let mut seq = set(vivid());
     seq.extend_from_slice(b"\x1b[6 q");
     let cell = cursor_cell(&seq, true);
-    assert_eq!(cell.cursor.color, ORANGE);
+    assert_eq!(cell.cursor.color, vivid());
 }
 
 /// The page's own colour as the cursor would hide where the keys go: it is
 /// pushed to 3:1, WCAG's floor for a mark that is not text.
 #[test]
 fn a_cursor_set_to_the_page_colour_is_floored_until_it_shows() {
+    let _t = crate::testtheme::lock();
     let page = crew_theme::theme().term_bg;
     let cell = cursor_cell(&set(page), true);
     assert!(
@@ -60,7 +69,8 @@ fn a_cursor_set_to_the_page_colour_is_floored_until_it_shows() {
 /// OSC 112 hands the cursor back to the theme.
 #[test]
 fn osc112_resets_to_the_theme_cursor() {
-    let mut seq = set(ORANGE);
+    let _t = crate::testtheme::lock();
+    let mut seq = set(vivid());
     seq.extend_from_slice(b"\x1b]112\x1b\\");
     assert_eq!(cursor_cell(&seq, true).bg, theme_block());
 }
@@ -69,17 +79,19 @@ fn osc112_resets_to_the_theme_cursor() {
 /// a program's colour does not repaint it.
 #[test]
 fn an_unfocused_outline_keeps_the_theme_ink() {
+    let _t = crate::testtheme::lock();
     let plain = cursor_cell(b"", false).cursor.color;
-    assert_eq!(cursor_cell(&set(ORANGE), false).cursor.color, plain);
+    assert_eq!(cursor_cell(&set(vivid()), false).cursor.color, plain);
 }
 
 /// Asked back, OSC 12 reports what the block is drawn in — the set colour,
 /// or the floored one, or the theme's after a reset.
 #[test]
 fn osc12_answers_the_colour_the_block_is_drawn_in() {
+    let _t = crate::testtheme::lock();
     let page = crew_theme::theme().term_bg;
     for (seq, want) in [
-        (set(ORANGE), ORANGE),
+        (set(vivid()), vivid()),
         (set(page), cursor_cell(&set(page), true).bg),
         (b"\x1b]112\x1b\\".to_vec(), theme_block()),
     ] {

@@ -185,8 +185,7 @@ pub(crate) fn paint_for(p: &Pane, now: u64) -> Vec<Paint> {
     let PaneContent::Terminal(t) = &p.content else {
         return Vec::new();
     };
-    let color = crew_theme::readable::cursor(crew_theme::theme(), true);
-    t.trail.paint(now, color)
+    t.trail.paint(now, t.pty.cursor_ink())
 }
 
 #[cfg(test)]

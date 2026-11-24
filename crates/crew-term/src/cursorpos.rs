@@ -45,4 +45,10 @@ impl crate::PtyTerm {
     pub fn ime_cell(&self) -> Option<(u16, u16)> {
         self.core.ime_cell()
     }
+
+    /// The focused cursor's colour ([`crate::cursor::ink`]): what OSC 12 set,
+    /// or the theme's — so a caret's trail is the colour of the caret.
+    pub fn cursor_ink(&self) -> (u8, u8, u8) {
+        crate::cursor::ink(self.core.term.colors(), true)
+    }
 }

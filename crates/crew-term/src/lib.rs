@@ -14,6 +14,8 @@ mod pty;
 mod ptyident;
 mod ptylocale;
 mod schemenotify;
+#[cfg(test)]
+mod testtheme;
 mod wipescan;
 pub use graphicscmd::ImageCmd;
 pub use model::{ClipboardAsk, GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel};
