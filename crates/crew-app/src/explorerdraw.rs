@@ -65,10 +65,10 @@ pub(crate) fn cells(
         }
         let lit = hover == Some(k);
         // Folders in the accent's readable ink, files in ink; the file last opened, and the row
-        // under the pointer, in the accent itself.
+        // under the pointer, in the accent itself — "… n more" too, which a click opens in Far.
         let said = git.and_then(|g| crate::explorergit::said(g, item));
         let fg = match () {
-            _ if item.more.is_some() => t.text_muted,
+            _ if item.more.is_some() && !lit => t.text_muted,
             _ if lit || picked == Some(item.path.as_path()) => accent,
             _ if said.is_some() => crate::explorergit::ink(said),
             _ if item.dir && item.depth > 0 => crate::accentink::accent_ink(),

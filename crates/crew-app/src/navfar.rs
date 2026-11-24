@@ -106,7 +106,7 @@ impl CrewApp {
     }
 
     /// Far at `dir`: the open Far pane's active panel goes there, or a Far pane opens.
-    fn far_open_at(&mut self, dir: &Path) {
+    pub(crate) fn far_open_at(&mut self, dir: &Path) {
         let i = match self.far_pane() {
             Some(i) => i,
             None => {
