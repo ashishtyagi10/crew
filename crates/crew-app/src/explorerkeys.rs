@@ -2,9 +2,9 @@
 //!
 //! The tree was mouse-only: every folder opened, every file previewed, was a reach for the
 //! pointer in an app driven from the keys. Cmd+Shift+E now opens the nav on the Explorer and
-//! hands the tree the keyboard: ↑/↓ (or k/j) move a cursor row, → or Enter opens a folder or
-//! previews a file in the tree's one viewer, ← closes a folder or steps to its parent,
-//! Home/End go to the ends, a letter jumps to the next name starting with it
+//! hands the tree the keyboard: ↑/↓ (or k/j) move a cursor row, → or Enter opens a folder,
+//! previews a file in the tree's one viewer, or on "… n more" opens that folder in Far; ←
+//! closes a folder or steps to its parent, Home/End go to the ends, a letter jumps to the next name starting with it
 //! ([`crate::explorerfind`]), Esc — or the chord again — gives the keys back.
 //!
 //! **Whose keys.** The tree holds them only while nothing else took them: the pane that had
@@ -90,7 +90,14 @@ impl CrewApp {
             Key::Named(NamedKey::End) => keys.row = last,
             _ if opens => {
                 match item {
-                    Some(i) if i.more.is_some() => {}
+                    // Browsing goes on in Far, so the keys go with it — given back here, not by
+                    // the focus change: Far may be the very pane that was focused.
+                    Some(i) if i.more.is_some() => {
+                        self.far_open_at(&i.path);
+                        self.sidebar.explorer.keys = None;
+                        self.redraw();
+                        return true;
+                    }
                     // An open folder: → steps in, as VS Code's does.
                     Some(i) if i.dir && i.open => keys.row = (row + 1).min(last),
                     Some(i) if i.dir => self.sidebar.explorer.toggle(&i),

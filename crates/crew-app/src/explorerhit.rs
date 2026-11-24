@@ -40,8 +40,8 @@ impl CrewApp {
         (k < len).then_some(k)
     }
 
-    /// A press on the tree: a folder opens or closes, a file opens in the viewer. `true` when
-    /// it was the tree's.
+    /// A press on the tree: a folder opens or closes, a file opens in the viewer, the "n more"
+    /// line opens its folder in Far. `true` when it was the tree's.
     pub(crate) fn explorer_press(&mut self) -> bool {
         let Some(k) = self.explorer_item_at_cursor() else {
             return false;
@@ -51,8 +51,14 @@ impl CrewApp {
             return false;
         };
         match (item.dir, item.more) {
-            // The "n more" line: nothing to open.
-            (_, Some(_)) => return true,
+            // The "n more" line: the tree keeps CAP entries a folder, Far lists them all — so
+            // the rest of this folder opens there, where they can be scrolled and sorted.
+            // Browsing goes on in Far, and the tree's hold on the keys ends with the click: Far
+            // may be the very pane that held them, so the focus change alone would not end it.
+            (_, Some(_)) => {
+                self.far_open_at(&item.path);
+                self.sidebar.explorer.keys = None;
+            }
             (true, None) => self.sidebar.explorer.toggle(item),
             (false, None) => {
                 let path = item.path.clone();
@@ -140,3 +146,7 @@ pub(crate) fn publish_hover(k: Option<usize>) -> bool {
 #[cfg(test)]
 #[path = "explorerhit_tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "explorermore_tests.rs"]
+mod more_tests;
