@@ -1,8 +1,9 @@
 //! Rows for the `/model` picker: the catalog grouped into provider sections,
-//! filtered as the user types, each row badged with its price (or `—`), its
-//! free/paid state, and how the active stack would serve it. Pure
-//! string-in/rows-out — both surfaces (the input bar's value picker and the
-//! composer's `Kind::Model` popup) render the same list.
+//! filtered as the user types, each row badged with its vendor's shutdown
+//! date when it has one, its price (or `—`), its free/paid state, and how
+//! the active stack would serve it. Pure string-in/rows-out — both
+//! surfaces (the input bar's value picker and the composer's `Kind::Model`
+//! popup) render the same list.
 use crew_hive::catalog::{catalog, ModelInfo, Vendor};
 
 use crate::modelroute::{route_with_signins, Route};
@@ -10,7 +11,7 @@ use crate::suggest::MenuItem;
 
 #[path = "modelbadge.rs"]
 mod modelbadge;
-use modelbadge::{context_badge, price_badge};
+use modelbadge::desc;
 
 /// Everything the query filters against: name, slug, alias, vendor, badges.
 fn haystack(m: &ModelInfo) -> String {
@@ -34,34 +35,6 @@ fn matches(m: &ModelInfo, query: &str) -> bool {
         "free" | "paid" => hay.ends_with(query),
         q => hay.contains(q) || crate::suggest::is_subsequence(q, &hay),
     }
-}
-
-/// The dim column: slug, price, context, current-mark, and route hint. Price,
-/// free, and context are passed in already enriched (see [`enrich`]) rather
-/// than read straight off `m`, so a live OpenRouter rate can fill a curated
-/// `None`/`0` without this function needing to know where its numbers came
-/// from.
-fn desc(
-    m: &ModelInfo,
-    price: Option<(u64, u64)>,
-    free: bool,
-    context: u32,
-    route: Route,
-    current: bool,
-) -> String {
-    let mut parts: Vec<String> = vec![m.slug.to_string(), price_badge(price, free)];
-    let ctx = context_badge(context);
-    if !ctx.is_empty() {
-        parts.push(ctx);
-    }
-    let hint = route.hint();
-    if !hint.is_empty() {
-        parts.push(hint);
-    }
-    if current {
-        parts.push("\u{25cf} current".to_string());
-    }
-    parts.join(" \u{b7} ")
 }
 
 #[path = "modelrecents.rs"]
@@ -181,7 +154,13 @@ fn model_row(m: &ModelInfo, route: Route, current: bool) -> MenuItem {
     let (price, context, free) = modellive::enrich(m);
     MenuItem {
         label: m.name.to_string(),
-        desc: desc(m, price, free, context, route, current),
+        desc: desc(
+            m,
+            (price, free, context),
+            route,
+            current,
+            crew_hive::catalog::sunset::today(),
+        ),
         fill: route.fill_slug(m),
         submit: true,
         dim: route.unserveable(),

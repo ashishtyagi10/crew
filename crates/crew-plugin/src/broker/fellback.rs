@@ -10,7 +10,8 @@
 //!
 //! The same row says what Claude Code's settings refused on the reply
 //! (`Usage::refused`), and the calls a final answer held that never ran
-//! (`Usage::not_run`): verdicts of smith's, filed like the others, rather
+//! (`Usage::not_run`), and — once a session — a served model's shutdown
+//! date (`Usage::retiring`, `sunsetsaid`): verdicts of smith's, filed like the others, rather
 //! than sentences appended to the agent's answer.
 use super::adapter::Usage;
 use super::relay::msg;
@@ -37,7 +38,9 @@ impl Told {
     /// Smith's line for `agent`'s reply usage `u` — `fell back to qwen-flash
     /// · qwen-max: <why>` — the first time `agent` falls back this turn,
     /// then every refusal the reply met (`Usage::refused`), each call's own,
-    /// then the calls its final answer never ran (`Usage::not_run`); `None`
+    /// then the calls its final answer never ran (`Usage::not_run`), then a
+    /// served model's shutdown date the first time this session (`Usage::
+    /// retiring`); `None`
     /// when none has anything to say.
     pub(crate) fn line(&mut self, agent: &str, u: &Usage) -> Option<PluginEvent> {
         let fell = !u.fell_back.is_empty() && !self.0.iter().any(|a| a == agent);
@@ -51,6 +54,9 @@ impl Told {
         }
         if !u.not_run.is_empty() {
             rows.push(u.not_run.clone());
+        }
+        if super::sunsetsaid::first_in_session(&u.retiring) {
+            rows.push(u.retiring.clone());
         }
         (!rows.is_empty()).then(|| msg("agent smith", rows.join("\n")))
     }

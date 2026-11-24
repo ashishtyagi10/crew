@@ -29,6 +29,11 @@ pub struct Usage {
     /// lifted out of the answer and said as smith's row under it, like
     /// `refused`, so the raw `@tool` line is not drawn as the agent's words.
     pub not_run: String,
+    /// `gpt-5 retires Dec 11 — gpt-6.1-sol next` when the model asked for
+    /// (or, failing that, the one that answered) is within
+    /// `sunset::WARN_DAYS` of its vendor's shutdown, or past it; empty
+    /// otherwise. Smith says it once a session per model (`sunsetsaid`).
+    pub retiring: String,
 }
 
 impl Usage {
@@ -48,17 +53,26 @@ impl Usage {
             context_window: 0,
             refused: String::new(),
             not_run: String::new(),
+            retiring: crate::broker::sunsetsaid::retiring(
+                requested,
+                &c.model,
+                crew_hive::catalog::sunset::today(),
+            ),
         }
     }
 
     /// `next` as the hop's usage — its prompt is the latest context fill —
-    /// still carrying a fallback or a refusal an earlier dial of the same
-    /// hop made: the chain fell through then, and the write was refused
-    /// then, whatever the dial after it did.
+    /// still carrying a fallback, a refusal or a shutdown notice an earlier
+    /// dial of the same hop made: the chain fell through then, and the
+    /// write was refused then, whatever the dial after it did.
     pub(crate) fn latest(&mut self, next: Usage) {
         let earlier = std::mem::take(&mut self.fell_back);
         let refused = std::mem::take(&mut self.refused);
+        let retiring = std::mem::take(&mut self.retiring);
         *self = next;
+        if self.retiring.is_empty() {
+            self.retiring = retiring;
+        }
         if self.fell_back.is_empty() {
             self.fell_back = earlier;
         }

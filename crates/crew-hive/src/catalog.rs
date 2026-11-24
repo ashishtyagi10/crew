@@ -6,6 +6,7 @@
 //! guess (the badge renders `—`).
 mod data;
 mod live;
+pub mod sunset;
 
 pub use live::{fetch as fetch_openrouter, parse_models};
 
