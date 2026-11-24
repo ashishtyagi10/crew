@@ -3720,7 +3720,16 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   `./.crew/mcp.json` with the familiar schema —
   `{"mcpServers": {"fs": {"command": "mcp-server-fs", "args": ["--root", "."],
   "env": {}}}}` — and connect lazily over stdio (JSON-RPC 2.0, hard
-  per-request deadlines, killed with the pane). `/doctor` lists each server's
+  per-request deadlines, killed with the pane). Both protocol eras connect:
+  crew first asks `server/discover` with MCP 2026-07-28, and a server that
+  answers is spoken to statelessly (`_meta` version + capabilities on every
+  request, no handshake); only a modern server whose version list shares
+  nothing with crew's is refused. Any other answer, or none within 3 s, gets
+  the `initialize` handshake offering 2025-11-25 and keeps whichever of
+  2025-11-25, 2025-06-18, 2025-03-26 or 2024-11-05 it answers (any other
+  answer is logged and spoken to as 2025-11-25). A server that dies of the
+  probe is launched once more and sent `initialize` straight away.
+  `/doctor` lists each server's
   tools — every page of them, when a server pages its list. A tool's answer
   reaches the agent whole: text as it is, an image or audio clip as its kind
   and size, a resource link as its name and address, an embedded resource as
