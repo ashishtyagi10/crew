@@ -12,7 +12,7 @@ const SIZE: GridSize = GridSize { cols: 40, rows: 6 };
 fn release(core: &mut TermCore) -> bool {
     let hidden = core.cursor_hidden();
     let scheme = core.scheme_notify_enabled();
-    let Some(reset) = leftover_reset(core.input_modes(), scheme, hidden) else {
+    let Some(reset) = leftover_reset(core.input_modes(), scheme, hidden, false) else {
         return false;
     };
     core.feed(reset);
@@ -22,13 +22,13 @@ fn release(core: &mut TermCore) -> bool {
 #[test]
 fn a_hidden_cursor_alone_is_a_leftover_on_the_primary_screen_only() {
     let plain = InputModes::default();
-    assert_eq!(leftover_reset(plain, false, true), Some(RESET));
+    assert_eq!(leftover_reset(plain, false, true, false), Some(RESET));
     // A full-screen program (vim, htop) hides it while it lives.
     let alt = InputModes {
         alt_screen: true,
         ..plain
     };
-    assert_eq!(leftover_reset(alt, false, true), None);
+    assert_eq!(leftover_reset(alt, false, true, false), None);
 }
 
 /// No pty: the cursor the program hid is drawn again once the reset lands,

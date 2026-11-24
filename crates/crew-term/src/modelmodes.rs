@@ -17,6 +17,7 @@ impl TermCore {
             app_cursor: m.contains(TermMode::APP_CURSOR),
             alternate_scroll: m.contains(TermMode::ALTERNATE_SCROLL),
             focus_events: m.contains(TermMode::FOCUS_IN_OUT),
+            kitty_keys: m.contains(TermMode::DISAMBIGUATE_ESC_CODES),
         }
     }
 

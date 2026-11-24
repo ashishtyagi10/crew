@@ -393,6 +393,7 @@ mod keychord;
 mod keyenc;
 mod keyentry;
 mod keyhint;
+mod keykitty;
 mod keyroute;
 mod keys;
 mod lastout;

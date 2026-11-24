@@ -58,6 +58,11 @@ pub(crate) enum Hit {
     EraseSaved,
     AltScreen(bool),
     Reset,
+    /// A kitty keyboard push (`CSI > flags u`): `modelkitty` caps the depth.
+    KittyPush,
+    /// A kitty keyboard pop (`CSI < n u`) of `n` entries (an absent or zero
+    /// count is one, as in the spec).
+    KittyPop(u32),
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -68,12 +73,18 @@ enum State {
     Csi,
 }
 
-/// A tiny CSI reader that only looks for ED 2/3, DECSET 47/1047/1049 and RIS,
+/// A tiny CSI reader that only looks for ED 2/3, DECSET 47/1047/1049, RIS
+/// and the kitty keyboard push and pop (`modelkitty`),
 /// carrying its state across reads.
 #[derive(Default)]
 pub(crate) struct WipeScan {
     state: State,
     private: bool,
+    /// The kitty keyboard lead byte (`<` or `>`) right after `CSI`, if any.
+    lead: Option<u8>,
+    /// The last byte was the `[` of a `CSI`: a lead byte counts only here,
+    /// as in the parser (`CSI 0 < u` is no pop).
+    fresh: bool,
     /// Set by an intermediate byte (`CSI 2 SP J` is not an erase).
     odd: bool,
     params: Vec<u32>,
@@ -87,12 +98,14 @@ impl WipeScan {
     pub(crate) fn feed(&mut self, bytes: &[u8]) -> Vec<(usize, Hit)> {
         let mut hits = Vec::new();
         for (i, &b) in bytes.iter().enumerate() {
+            let fresh = std::mem::take(&mut self.fresh);
             match (self.state, b) {
                 (_, 0x1b) => self.state = State::Esc,
                 (State::Ground, _) => {}
                 (State::Esc, b'[') => {
                     self.state = State::Csi;
-                    (self.private, self.odd) = (false, false);
+                    (self.private, self.odd, self.lead) = (false, false, None);
+                    self.fresh = true;
                     self.params.clear();
                     self.params.push(0);
                 }
@@ -102,6 +115,10 @@ impl WipeScan {
                 }
                 (State::Esc, _) => self.state = State::Ground,
                 (State::Csi, b'?') if self.params == [0] && !self.private => self.private = true,
+                (State::Csi, b'<' | b'>') if fresh => {
+                    self.private = true;
+                    self.lead = Some(b);
+                }
                 (State::Csi, b'0'..=b'9') => {
                     let last = self.params.last_mut().expect("never empty");
                     *last = last.saturating_mul(10).saturating_add(u32::from(b - b'0'));
@@ -122,8 +139,18 @@ impl WipeScan {
     }
 
     fn hit(&self, fin: u8) -> Option<Hit> {
+        // A push is counted however it is spelt (`CSI > 1 : u`, a long
+        // list), the parser may still take it; a pop only when plain.
+        if (self.lead, fin) == (Some(b'>'), b'u') {
+            return Some(Hit::KittyPush);
+        }
         if self.odd {
             return None;
+        }
+        match (self.lead, fin) {
+            (Some(b'<'), b'u') => return Some(Hit::KittyPop(self.params[0].max(1))),
+            (Some(_), _) => return None,
+            _ => {}
         }
         match (self.private, fin) {
             (false, b'J') => match self.params[..] {

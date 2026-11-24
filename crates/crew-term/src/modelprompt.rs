@@ -20,20 +20,35 @@
 //!
 //! Shells without OSC 133 are not helped: the once-a-second foreground poll
 //! can't tell a shell at its prompt from a program run as the pane's command.
+//!
+//! The kitty keyboard stack a dead program pushed is emptied at the same cut,
+//! the alternate screen's before it is left (else the next full-screen
+//! program would inherit nvim's flags) and the primary's after: at the first
+//! prompt after a command, in-stream, so a shell that asks for the protocol
+//! itself once its prompt is drawn keeps it (see `modelkitty`).
 use alacritty_terminal::term::TermMode;
 
+use super::modelwipe::POP_ALL;
 use super::TermCore;
 
 impl TermCore {
     /// Feed `bytes`, cut at the `prompts` offsets (just past each prompt
-    /// mark), leaving the alternate screen at each cut.
+    /// mark), leaving the alternate screen at each cut and emptying both
+    /// kitty keyboard stacks when a command ran since the last.
     pub(super) fn feed_split(&mut self, bytes: &[u8], prompts: &[usize]) {
         let mut from = 0;
         for &at in prompts {
             self.feed_part(&bytes[from..at]);
             from = at;
+            let pop = self.kitty_pop_due();
             if self.term.mode().contains(TermMode::ALT_SCREEN) {
+                if pop {
+                    self.feed_part(POP_ALL);
+                }
                 self.feed_part(b"\x1b[?1049l");
+            }
+            if pop {
+                self.feed_part(POP_ALL);
             }
         }
         self.feed_part(&bytes[from..]);

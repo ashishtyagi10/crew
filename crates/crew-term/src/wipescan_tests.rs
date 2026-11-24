@@ -48,3 +48,22 @@ fn near_misses_drop_nothing() {
         assert_eq!(hits(&[q]), [], "{:?}", String::from_utf8_lossy(q));
     }
 }
+
+#[test]
+fn kitty_keyboard_pushes_and_pops_are_seen_and_nothing_else_with_their_lead() {
+    assert_eq!(
+        hits(&[b"\x1b[>1u\x1b[>31u"]),
+        [Hit::KittyPush, Hit::KittyPush]
+    );
+    assert_eq!(
+        hits(&[b"\x1b[<u\x1b[<0u\x1b[<3u"]),
+        [Hit::KittyPop(1), Hit::KittyPop(1), Hit::KittyPop(3)]
+    );
+    assert_eq!(
+        hits(&[b"\x1b[>", b"1u"]),
+        [Hit::KittyPush],
+        "split across reads"
+    );
+    // A query, a set, and other `>`-led sequences are not stack moves.
+    assert_eq!(hits(&[b"\x1b[?u\x1b[=1;1u\x1b[>2J\x1b[>4;1m"]), []);
+}

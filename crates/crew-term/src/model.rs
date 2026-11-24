@@ -128,7 +128,11 @@ impl TermCore {
         let events = TermEvents::default();
         // A cursor nobody styled stays steady (crew's look before blink came, and an idle
         // prompt then costs no frames); a program asks to blink with 1/3/5 or `?12h`.
-        let config = Config::default();
+        // The kitty keyboard protocol is honoured (see `modelkitty`).
+        let config = Config {
+            kitty_keyboard: true,
+            ..Config::default()
+        };
         let history_cap = config.scrolling_history;
         let term = Term::new(config, &dims, events.clone());
         let core = Self {

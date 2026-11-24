@@ -24,4 +24,8 @@ pub struct InputModes {
     /// Focus reporting (DECSET 1004): the program wants `CSI I` / `CSI O`
     /// when its pane gains or loses keyboard focus (see `focusreport`).
     pub focus_events: bool,
+    /// The kitty keyboard protocol's "disambiguate escape codes" flag (0b1)
+    /// is on: Esc, Ctrl/Alt chords and modified Enter/Tab/Backspace go as
+    /// `CSI … u` (the app's `keykitty`). Its other flags are not honoured.
+    pub kitty_keys: bool,
 }
