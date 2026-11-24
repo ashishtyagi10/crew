@@ -46,7 +46,12 @@ impl StatsPane {
             ),
             NavSection::Far => {
                 let win = self.lists.window(section, rows);
-                crate::navfar::cells(&crate::farrecent::list(), win, None, (cols, rows))
+                crate::navfar::cells(
+                    &crate::farrecent::list(),
+                    win,
+                    &Default::default(),
+                    (cols, rows),
+                )
             }
         }
     }

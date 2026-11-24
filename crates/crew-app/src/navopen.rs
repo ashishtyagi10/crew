@@ -89,7 +89,7 @@ impl CrewApp {
         // `ch / cw` goes with the paint so a chart's circles stay round.
         let aspect = ch / cw;
         crate::panelcard::push_card_art(scenes, sb, cw, ch, legend, legend_fg, |cols, rows| {
-            let pcols = cols.saturating_sub(BAR_TAKES);
+            let pcols = crate::navfarrow::panel_cols(cols);
             let l = self.nav_layout(section, rows);
             let mut cells = crate::navbar::bar_cells(Some(section), badges, rows);
             cells.extend(crate::navbar::divider_cells(BAR_COLS, rows));

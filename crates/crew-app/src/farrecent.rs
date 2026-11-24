@@ -7,6 +7,10 @@
 //! last seen there ([`CrewApp::tick_far_recent`]). Remote (rclone) folders are not noted —
 //! a click could not open them without the remote.
 //!
+//! A folder leaves the list when the nav's `×` on its row is clicked, or Delete/Backspace is
+//! pressed on it with the list holding the keys ([`forget`]); which listed folders are gone
+//! from disk is checked on a throttle, not per frame (`fargone`).
+//!
 //! Persisted as `<config_dir>/crew/far-recent`, one path per line, beside `far-history`.
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -65,6 +69,13 @@ pub(crate) fn put_front(list: &mut Vec<PathBuf>, dir: &Path) -> bool {
     true
 }
 
+/// `dir` taken out of `list`. `true` when it was there.
+pub(crate) fn take_out(list: &mut Vec<PathBuf>, dir: &Path) -> bool {
+    let n = list.len();
+    list.retain(|p| p != dir);
+    list.len() != n
+}
+
 /// The recent folders, newest first.
 pub(crate) fn list() -> Vec<PathBuf> {
     let mut g = LIST.lock().unwrap_or_else(|p| p.into_inner());
@@ -75,6 +86,7 @@ pub(crate) fn list() -> Vec<PathBuf> {
 #[cfg(test)]
 pub(crate) fn clear() {
     *LIST.lock().unwrap_or_else(|p| p.into_inner()) = Some(Vec::new());
+    crate::fargone::reset();
 }
 
 /// Note `dir` as the newest; saved when the list changed. `true` when it did.
@@ -84,19 +96,39 @@ pub(crate) fn note(dir: &Path) -> bool {
     if !put_front(list, dir) {
         return false;
     }
-    if let Some(p) = path() {
-        let body: String = list.iter().map(|d| format!("{}\n", d.display())).collect();
-        if let Some(parent) = p.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let _ = std::fs::write(p, body);
-    }
+    save(list);
     true
+}
+
+/// Take `dir` off the list for good — the nav's `×`, or Delete on the keyboard's cursor. Saved
+/// as `note` saves. `true` when it was listed.
+pub(crate) fn forget(dir: &Path) -> bool {
+    let mut g = LIST.lock().unwrap_or_else(|p| p.into_inner());
+    let list = g.get_or_insert_with(load);
+    if !take_out(list, dir) {
+        return false;
+    }
+    save(list);
+    true
+}
+
+/// Write `list` to the store, one path per line.
+fn save(list: &[PathBuf]) {
+    let Some(p) = path() else {
+        return;
+    };
+    let body: String = list.iter().map(|d| format!("{}\n", d.display())).collect();
+    if let Some(parent) = p.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::fs::write(p, body);
 }
 
 impl crate::app::CrewApp {
     /// Once per tick: note the folder each Far pane's active panel now shows, when it moved
-    /// since the last look. `true` when the list changed (the Far section repaints).
+    /// since the last look, and — while the nav shows Far — which listed folders are gone
+    /// (`fargone`, throttled and off-thread: this starts a look or lands one, never waits on
+    /// a stat). `true` when either changed (the Far section repaints).
     pub(crate) fn tick_far_recent(&mut self) -> bool {
         let mut seen = SEEN.lock().unwrap_or_else(|p| p.into_inner());
         let mut changed = false;
@@ -117,7 +149,11 @@ impl crate::app::CrewApp {
         }
         // Forget panes that closed.
         seen.retain(|(born, _)| self.panes.iter().any(|p| p.born_ms == *born));
-        changed
+        drop(seen);
+        let shows = self.nav_section() == crate::navsection::NavSection::Far
+            && self.config.show_nav
+            && !self.config.nav_collapsed;
+        changed | crate::fargone::refresh(crate::anim::now_ms(), shows)
     }
 }
 

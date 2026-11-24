@@ -11,7 +11,7 @@ use crate::navsection::NavSection;
 use crate::pane::PaneContent;
 
 fn press(a: &mut CrewApp, k: NamedKey) -> bool {
-    a.list_key(&Key::Named(k), true)
+    a.list_key(&Key::Named(k), true, false)
 }
 
 fn item(a: &CrewApp) -> usize {
@@ -48,9 +48,9 @@ fn nav_far_down_down_enter_opens_far_at_the_third_folder() {
         "the list took the keys"
     );
     assert!(press(&mut a, NamedKey::ArrowDown));
-    assert!(a.list_key(&Key::Character("j".into()), true));
+    assert!(a.list_key(&Key::Character("j".into()), true, false));
     assert_eq!(item(&a), 2);
-    assert!(a.list_key(&Key::Character("k".into()), true));
+    assert!(a.list_key(&Key::Character("k".into()), true, false));
     press(&mut a, NamedKey::ArrowDown);
     assert!(press(&mut a, NamedKey::Enter));
     let want = crate::farrecent::list()[2].clone();
@@ -112,7 +112,7 @@ fn esc_or_a_focus_change_gives_the_keys_back() {
     assert!(a.sidebar.lists.keys.is_none(), "a click elsewhere");
     a.nav_command("far");
     assert!(
-        !a.list_key(&Key::Character("x".into()), true),
+        !a.list_key(&Key::Character("x".into()), true, false),
         "x goes on to the pane"
     );
     assert!(!a.list_has_keys());

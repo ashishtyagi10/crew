@@ -43,8 +43,9 @@ impl CrewApp {
             self.want_restart = true;
             return Press::Done;
         }
-        // The Inbox and Far panels answer on every row under their rule.
-        if self.inbox_press() || self.far_press() {
+        // The Inbox and Far panels answer on every row under their rule — a Far row's `×`
+        // first, the narrower target, or the row's open would claim it.
+        if self.far_forget_press() || self.inbox_press() || self.far_press() {
             return Press::Done;
         }
         if let Some(i) = self.close_btn_at_cursor() {

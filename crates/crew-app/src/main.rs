@@ -450,6 +450,7 @@ mod explorergit;
 mod explorerhit;
 mod explorerkeys;
 mod explorerreveal;
+mod fargone;
 mod farrecent;
 #[cfg(test)]
 #[path = "frameshot_tests.rs"]
@@ -493,6 +494,7 @@ mod navcard;
 #[path = "navcontrast_tests.rs"]
 mod navcontrast_tests;
 mod navfar;
+mod navfarrow;
 mod navglance;
 mod navicons;
 mod naviconsmore;
