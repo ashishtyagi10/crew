@@ -55,14 +55,18 @@ pub(crate) struct Item {
 #[derive(Default)]
 pub(crate) struct Explorer {
     /// Folders below a root that are open, by path.
-    open: HashSet<PathBuf>,
+    pub(crate) open: HashSet<PathBuf>,
     /// Roots the user closed — a root starts open.
-    shut: HashSet<PathBuf>,
+    pub(crate) shut: HashSet<PathBuf>,
     listings: RefCell<HashMap<PathBuf, Listing>>,
     /// Rows scrolled off the top.
     pub scroll: usize,
-    /// The file last opened from the tree, drawn marked.
+    /// The file drawn marked: the one last opened from the tree, or the focused viewer's
+    /// ([`crate::explorerreveal`]).
     pub picked: Option<PathBuf>,
+    /// The focused pane (`born_ms`) and its viewer's file the tree last revealed — so the
+    /// reveal runs once per change, and a scroll after it is the user's to keep.
+    pub(crate) revealed: Option<(u64, Option<PathBuf>)>,
     /// The tree's hold on the keyboard ([`crate::explorerkeys`]).
     pub keys: Option<crate::explorerkeys::TreeKeys>,
     /// The root last shown: kept while the focused pane has no directory of its own — a viewer

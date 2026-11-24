@@ -138,4 +138,4 @@ pub(crate) fn publish_hover(k: Option<usize>) -> bool {
 
 #[cfg(test)]
 #[path = "explorerhit_tests.rs"]
-mod tests;
+pub(crate) mod tests;

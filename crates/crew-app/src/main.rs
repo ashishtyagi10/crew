@@ -446,6 +446,7 @@ mod explorerdraw;
 mod explorergit;
 mod explorerhit;
 mod explorerkeys;
+mod explorerreveal;
 mod farrecent;
 #[cfg(test)]
 #[path = "frameshot_tests.rs"]

@@ -4,7 +4,7 @@ use crate::explorer::tests::tree;
 
 const CELL: (f32, f32) = (8.0, 17.0);
 
-fn app(root: &std::path::Path) -> CrewApp {
+pub(crate) fn app(root: &std::path::Path) -> CrewApp {
     let mut a = CrewApp {
         geo_override: Some((CELL.0, CELL.1, 1280.0, 720.0, 1.0)),
         cwd: root.to_path_buf(),
@@ -18,7 +18,7 @@ fn app(root: &std::path::Path) -> CrewApp {
 }
 
 /// The pixel at the middle of where `word` is drawn in the nav.
-fn at(a: &mut CrewApp, word: &str) -> (f32, f32) {
+pub(crate) fn at(a: &mut CrewApp, word: &str) -> (f32, f32) {
     let scenes = a.build_frame();
     let s = scenes
         .iter()
