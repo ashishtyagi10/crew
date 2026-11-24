@@ -10,23 +10,32 @@ impl CrewApp {
     /// read over the whole window, and the panes it was opened from are one
     /// tab away, exactly as they were. Closing it comes back to them.
     pub(crate) fn open_view(&mut self, path: &str) {
-        self.open_view_in(path, true);
+        self.open_view_in(path, true, true);
     }
 
     /// The same viewer in the tab on screen — a restore puts a saved viewer
     /// back in the tab it was in, not a new one.
     pub(crate) fn open_view_here(&mut self, path: &str) {
-        self.open_view_in(path, false);
+        self.open_view_in(path, false, true);
+    }
+
+    /// A saved viewer put back (session restore, undo-close), here and NOT
+    /// noted as viewed: reopening the grid is not reading those files again,
+    /// and noting each would reorder the recent list into pane order.
+    pub(crate) fn reopen_view(&mut self, path: &str) {
+        self.open_view_in(path, false, false);
     }
 
     /// Open `path` in the viewer, focused (a viewer is zoomed by kind). An
     /// empty path is a usage hint; a path that does not resolve to a file
     /// reports why in the status bar rather than opening an empty pane.
     ///
-    /// The `is_file` check is the one filesystem call this makes on the winit
-    /// thread — the same one `clickopen::open_path_token` already makes. Every
-    /// byte after it is read on a worker (`viewpane::load`).
-    fn open_view_in(&mut self, path: &str, own_tab: bool) {
+    /// On the winit thread this makes the `is_file` check (as
+    /// `clickopen::open_path_token` does) and, when `note`, the recent list's
+    /// canonicalize (plus its one read of the list, the first time). The
+    /// list's write and every byte of the file go to workers
+    /// (`viewrecent::save`, `viewpane::load`).
+    fn open_view_in(&mut self, path: &str, own_tab: bool, note: bool) {
         let path = path.trim();
         if path.is_empty() {
             self.set_status("usage: /view <path>");
@@ -47,7 +56,11 @@ impl CrewApp {
             .unwrap_or(FALLBACK_SIZE);
         self.panes.push(Pane {
             glide: crate::glide::Glide::default(),
-            content: PaneContent::View(crate::viewrecent::open(resolved)),
+            content: PaneContent::View(if note {
+                crate::viewrecent::open(resolved)
+            } else {
+                crate::viewpane::ViewPane::open(resolved)
+            }),
             grid,
             rect: PLACEHOLDER_RECT,
             label: None,
@@ -113,38 +126,8 @@ impl CrewApp {
     }
 }
 
-impl CrewApp {
-    /// `/about` — open the changelog that shipped with this binary, in the
-    /// file viewer, newest release first.
-    ///
-    /// It used to flash "crew v0.6.62" on the status line, which answers a
-    /// question nobody asks: the version number matters only as a way to
-    /// find out what changed. The file is compiled in
-    /// (`appregister::CHANGELOG`), so this works from an installed binary
-    /// with no source tree anywhere near it — and the release that produced
-    /// the binary is guaranteed to be its top entry, because the build fails
-    /// otherwise.
-    ///
-    /// `ViewPane::open` only reads real files off disk, so the compiled-in
-    /// text is written to a temp path first (named after the release it
-    /// documents, so re-running `/about` on the same build overwrites rather
-    /// than litters) and handed to `open_view`. That write is the same kind
-    /// of one-shot synchronous I/O every other pane spawn on this thread
-    /// already does.
-    pub(crate) fn spawn_about_pane(&mut self) {
-        let heading =
-            crate::appregister::newest_changelog_version().unwrap_or(crate::appregister::VERSION);
-        let path = std::env::temp_dir().join(format!("crew-changelog-{heading}.md"));
-        if let Err(e) = std::fs::write(&path, crate::appregister::CHANGELOG) {
-            self.set_status(format!("about: cannot open changelog: {e}"));
-            return;
-        }
-        let before = self.panes.len();
-        self.open_view(&path.to_string_lossy());
-        self.name_last_view(&format!("what's new \u{b7} {heading}"));
-        self.mark_last_view_ephemeral(before);
-    }
-}
+#[path = "openabout.rs"]
+mod about;
 
 #[cfg(test)]
 #[path = "openview_tests.rs"]

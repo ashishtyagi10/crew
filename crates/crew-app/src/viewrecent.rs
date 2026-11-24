@@ -4,23 +4,32 @@
 //! in: the one you want next is usually one of them.
 //!
 //! Every door that puts a file in a viewer — `/view`, `/md`, Cmd+P's pick, a clicked path,
-//! a session restore, the Explorer (new pane or its reused preview), the document window —
+//! the Explorer (new pane or its reused preview), the document window —
 //! goes through [`open`], so none of them can forget to note it. Synthetic files (`/about`,
-//! `/out`, `/diff`…) are taken back off when their viewer is marked ephemeral.
+//! `/out`, `/diff`…) are taken back off when their viewer is marked ephemeral. A session
+//! restore (or undo-close) puts back viewers without noting them: reopening the grid is not
+//! viewing those files again, and noting each would reorder the list into pane order.
 //!
-//! Persisted as `<config_dir>/crew/view-recent`, one path per line, beside `far-recent`.
+//! Persisted as `<config_dir>/crew/view-recent`, one path per line, beside `far-recent` —
+//! written on a worker ([`save`]), never on the winit thread. A `.env*` file is never kept:
+//! the history is a plain file on disk, and the path to a secret is a clue to it.
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
+
+#[path = "viewrecentsave.rs"]
+mod save;
+#[cfg(test)]
+pub(crate) use save::flush;
 
 /// Files kept, newest first.
 pub(crate) const MAX: usize = 50;
 
 /// `<config_dir>/crew/view-recent` — or `CREW_VIEW_RECENT_PATH` when set, the seam that keeps
 /// tests off the real profile on Windows (as `farrecent::path`).
-fn path() -> Option<PathBuf> {
+pub(super) fn path() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("CREW_VIEW_RECENT_PATH") {
         if !p.is_empty() {
             return Some(PathBuf::from(p));
@@ -36,7 +45,7 @@ fn path() -> Option<PathBuf> {
 }
 
 /// The list in memory (`None`: not read from disk yet).
-static LIST: Mutex<Option<Vec<PathBuf>>> = Mutex::new(None);
+pub(super) static LIST: Mutex<Option<Vec<PathBuf>>> = Mutex::new(None);
 /// Bumped on every change, so the picker's memo knows its order went stale.
 static GEN: AtomicU64 = AtomicU64::new(0);
 
@@ -84,10 +93,37 @@ pub(crate) fn generation() -> u64 {
 }
 
 /// Note `file` as the newest, by its canonical path (so `/tmp/x` and `/private/tmp/x` are
-/// one file, and a picker rooted at either finds it). Saved when the list changed.
+/// one file, and a picker rooted at either finds it). Saved when the list changed. The
+/// canonicalize (and the first call's read of the list) run on the caller's thread; the
+/// write does not.
 pub(crate) fn note(file: &Path) {
-    let file = std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf());
-    edit(|l| put_front(l, &file));
+    let canon = std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf());
+    if keep(file, &canon, scratch()) {
+        edit(|l| put_front(l, &canon));
+    }
+}
+
+/// Not a `.env*` file under either name (a symlink to one too), nor a scratch file under
+/// `tmp` — `/out` and `/diff` view temp files nobody will look for again.
+pub(crate) fn keep(file: &Path, canon: &Path, tmp: Option<&Path>) -> bool {
+    let secret = [file, canon].iter().any(|f| {
+        f.file_name()
+            .is_some_and(|n| n.to_string_lossy().starts_with(".env"))
+    });
+    !secret && !tmp.is_some_and(|t| canon.starts_with(t))
+}
+
+/// The temp dir, canonical (macOS: `/var/…` is `/private/var/…`); `None` under test.
+fn scratch() -> Option<&'static Path> {
+    if cfg!(test) {
+        return None;
+    }
+    static TMP: OnceLock<PathBuf> = OnceLock::new();
+    let t = TMP.get_or_init(|| {
+        let t = std::env::temp_dir();
+        std::fs::canonicalize(&t).unwrap_or(t)
+    });
+    Some(t.as_path())
 }
 
 /// Take `file` off the list — a synthetic file a viewer showed, not one anybody chose.
@@ -105,7 +141,7 @@ fn edit(f: impl FnOnce(&mut Vec<PathBuf>) -> bool) {
     let list = g.get_or_insert_with(load);
     if f(list) {
         GEN.fetch_add(1, Ordering::Relaxed);
-        save(list);
+        save::request();
     }
 }
 
@@ -152,18 +188,6 @@ fn load() -> Vec<PathBuf> {
         .and_then(|p| std::fs::read_to_string(p).ok())
         .map(|s| parse(&s))
         .unwrap_or_default()
-}
-
-/// Write `list` to the store, one path per line.
-fn save(list: &[PathBuf]) {
-    let Some(p) = path() else {
-        return;
-    };
-    let body: String = list.iter().map(|d| format!("{}\n", d.display())).collect();
-    if let Some(parent) = p.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    let _ = std::fs::write(p, body);
 }
 
 #[cfg(test)]

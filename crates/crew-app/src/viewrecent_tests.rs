@@ -42,6 +42,7 @@ fn the_list_survives_a_restart_through_the_seam() {
     note(&one);
     note(&two);
     assert!(generation() > before, "a note bumps the generation");
+    flush();
     *LIST.lock().unwrap() = None; // a new launch: read from disk
     let back = list();
     let at = |p: &Path| {
@@ -50,11 +51,54 @@ fn the_list_survives_a_restart_through_the_seam() {
     };
     assert!(at(&two).unwrap() < at(&one).unwrap(), "{back:?}");
     forget(&two);
+    flush(); // the write is on the worker
     let body = std::fs::read_to_string(&store).unwrap();
     assert!(
         !body.contains("two.rs") && body.contains("one.rs"),
         "{body}"
     );
+    // Leave no seam behind: later tests would write into the deleted dir.
+    std::env::remove_var("CREW_VIEW_RECENT_PATH");
+    *LIST.lock().unwrap() = None;
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The store's write runs on the worker, not on the thread that noted the file
+/// (the winit thread, in the app).
+#[test]
+fn the_write_is_off_the_callers_thread() {
+    let _g = crate::app::theme_test_guard();
+    let f = std::env::temp_dir().join(format!("crew_viewrecent_w_{}.rs", std::process::id()));
+    std::fs::write(&f, b"x").unwrap();
+    forget(&f);
+    note(&f);
+    flush();
+    let on = *save::WROTE_ON.lock().unwrap();
+    assert!(on.is_some() && on != Some(std::thread::current().id()));
+    let _ = std::fs::remove_file(&f);
+}
+
+/// A `.env*` file is never written into the history, under its own name or
+/// through a symlink; outside tests nothing under the temp dir is either.
+#[test]
+fn secrets_and_scratch_files_are_not_kept() {
+    let _g = crate::app::theme_test_guard();
+    let dir = std::env::temp_dir().join(format!("crew_viewrecent_env_{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let env = dir.join(".env.local");
+    std::fs::write(&env, b"K=v").unwrap();
+    note(&env);
+    let canon = std::fs::canonicalize(&env).unwrap();
+    assert!(!list().contains(&canon), "{:?}", list());
+    let (a, tmp) = (Path::new("/w/a.rs"), Some(Path::new("/tmp")));
+    assert!(keep(a, a, tmp));
+    assert!(!keep(Path::new("/w/link"), Path::new("/w/.env"), None));
+    assert!(!keep(
+        Path::new("/tmp/out.log"),
+        Path::new("/tmp/out.log"),
+        tmp
+    ));
     let _ = std::fs::remove_dir_all(&dir);
 }
 

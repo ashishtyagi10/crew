@@ -117,23 +117,31 @@ fn tree_rows(cmd: &str, arg: &str, base: &Path, shown: &[MenuItem]) -> Vec<MenuI
     if !opens || arg.starts_with(['/', '~', '.']) || !base.is_dir() {
         return Vec::new();
     }
+    let recent = crate::viewrecent::under_cached(base);
+    let row = |path: &String, hit: Vec<usize>| MenuItem {
+        path: true,
+        hit,
+        fill: format!("{cmd} {path}"),
+        label: path.clone(),
+        desc: if recent.contains(path) { "recent" } else { "" }.into(),
+        submit: true,
+        ..Default::default()
+    };
+    if arg.is_empty() {
+        // Straight from the list, not the walk: they show on the first Cmd+P,
+        // before the walk lands, and a recent file the walk never reaches (a
+        // hidden one, one under `target/`, one past its cap) shows all the
+        // same. The walk is still started, for the first letter typed.
+        let _ = crate::pathtree::files(base, crate::anim::now_ms());
+        return recent.iter().map(|p| row(p, Vec::new())).collect();
+    }
     let Some(found) = crate::pathtree::rows(base, arg, crate::anim::now_ms()) else {
         return Vec::new();
     };
-    let recent = crate::viewrecent::under_cached(base);
     found
         .iter()
-        .filter(|(path, _)| !arg.is_empty() || recent.contains(path))
         .filter(|(path, _)| !shown.iter().any(|r| &r.label == path))
-        .map(|(path, hit)| MenuItem {
-            path: true,
-            hit: hit.clone(),
-            fill: format!("{cmd} {path}"),
-            label: path.clone(),
-            desc: if recent.contains(path) { "recent" } else { "" }.into(),
-            submit: true,
-            ..Default::default()
-        })
+        .map(|(path, hit)| row(path, hit.clone()))
         .collect()
 }
 

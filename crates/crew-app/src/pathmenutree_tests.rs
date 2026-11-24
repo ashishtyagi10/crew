@@ -95,3 +95,19 @@ fn nothing_typed_leads_with_the_files_viewed_last() {
         ["readme.md", "alpha/deep/notes.md"]
     );
 }
+
+/// The first Cmd+P, before any walk of the root has landed, already leads with
+/// the files viewed last — a hidden one and one under `target/` (both of which
+/// the walk skips) included, straight from the recent list.
+#[test]
+fn recent_rows_show_before_the_walk_and_past_its_skips() {
+    let _g = crate::app::theme_test_guard();
+    let base = fixture("recentfirst");
+    std::fs::create_dir_all(base.join("target")).unwrap();
+    std::fs::write(base.join("target/out.md"), b"x").unwrap();
+    std::fs::write(base.join(".notes.md"), b"x").unwrap();
+    crate::viewrecent::note(&base.join("target/out.md"));
+    crate::viewrecent::note(&base.join(".notes.md"));
+    let got = labels("/view ", &base); // the first call: no walk yet
+    assert_eq!(got[..2], [".notes.md", "target/out.md"], "{got:?}");
+}
