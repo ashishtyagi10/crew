@@ -162,3 +162,25 @@ fn time_downs_through_the_manual() {
         t.elapsed() / 200
     );
 }
+
+/// What a keystroke costs on the frame thread, pane to rows: the insert, the walk, the render
+/// (one block of it — `md::blockmemo`), the splice and the card rows. Printed, not asserted.
+#[test]
+#[ignore = "timing; run by hand"]
+fn time_inserts_into_the_manual() {
+    let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/CREW.md"));
+    let text = text.unwrap();
+    let mut p = with(&text);
+    p.start_editing(100);
+    p.caret_at = Some(text[text.len() / 2..].find(" the ").unwrap() as u32 + text.len() as u32 / 2);
+    p.relayout_caret(100, 40);
+    let t = std::time::Instant::now();
+    for _ in 0..100 {
+        p.insert("x", 100, 40);
+    }
+    eprintln!(
+        "100 inserts: {:?} ({:?} each)",
+        t.elapsed(),
+        t.elapsed() / 100
+    );
+}
