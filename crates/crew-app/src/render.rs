@@ -281,6 +281,7 @@ impl CrewApp {
         // help early-return so an open help screen doesn't swallow them.
         let cursor = self.cursor_in.then_some(self.cursor);
         crate::toast::push_toasts(&mut scenes, &mut self.toasts, content, cw, ch, now, cursor);
+        self.push_nav_tip(&mut scenes, now); // a cut nav row, whole (`navtip`)
 
         // Keybindings help overlay, centred over the panes' area: over the
         // whole window it covered the input bar and stood 4 px off the

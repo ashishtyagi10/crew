@@ -35,6 +35,14 @@ pub(crate) fn item_at(row: u16, n: usize) -> Option<usize> {
     (k < n).then_some(k)
 }
 
+/// A thread's subject as its row writes it.
+pub(crate) fn subject(th: &Thread) -> &str {
+    match th.subject.trim() {
+        "" => "(no subject)",
+        s => s,
+    }
+}
+
 /// The section's cells for a panel `cols` × `rows`: `card` says whether there is a mailbox
 /// at all, `list` what is unread in it, `(first, shown)` the window of it the panel shows,
 /// `hover` the thread under the pointer (an index into `list`).
@@ -103,10 +111,7 @@ pub(crate) fn cells(
         }
         // The unread dot, in the gutter the indent leaves.
         crate::navtext::put_at(&mut out, "\u{25cf}", 1, row, ind, accent);
-        let subject = match th.subject.trim() {
-            "" => "(no subject)",
-            s => s,
-        };
+        let subject = subject(th);
         let sub_fg = if lit { accent } else { t.text_muted };
         say(&mut out, row + 1, subject, sub_fg);
     }

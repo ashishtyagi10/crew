@@ -79,11 +79,7 @@ pub(crate) fn cells(
             let chevron = if item.open { "\u{25be}" } else { "\u{25b8}" };
             put(&mut out, at, row, cols, chevron, t.text_muted);
         }
-        // The root reads as VS Code's workspace heading: its name in capitals.
-        let name = match item.depth {
-            0 => item.name.to_uppercase(),
-            _ => item.name.clone(),
-        };
+        let name = shown_name(item);
         // A marked row keeps its last two columns for the mark.
         let end = if said.is_some() {
             cols.saturating_sub(2)
@@ -109,6 +105,14 @@ pub(crate) fn cells(
     out
 }
 
+/// An item's name as its row writes it: the root as VS Code's workspace heading, in capitals.
+pub(crate) fn shown_name(item: &Item) -> String {
+    match item.depth {
+        0 => item.name.to_uppercase(),
+        _ => item.name.clone(),
+    }
+}
+
 /// The keyboard's row as the far pane draws its cursor: the whole row a bar of the accent,
 /// deepened until white reads on it, the words on it bold white. The Inbox and Far lists draw
 /// their keyboard cursor with it too (`navlistkeys`).
@@ -127,6 +131,7 @@ pub(crate) fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
 /// Write `s` at `col` on `row`, clipped to the panel.
 fn put(out: &mut Vec<CellView>, col: u16, row: u16, cols: u16, s: &str, fg: (u8, u8, u8)) {
     if col >= cols {
+        crate::navcut::note(s);
         return;
     }
     crate::navtext::put_at(out, s, col, row, cols, fg);
