@@ -1,4 +1,5 @@
 //! The Mac's composed text reaches the focused shell or the input bar.
+#![cfg_attr(not(unix), allow(dead_code, unused_imports))]
 use super::ime_wanted;
 use crate::app::CrewApp;
 use crate::pane::{Pane, PaneContent, TermPane};

@@ -1,5 +1,7 @@
 //! A composition reaches the frame at the caret of whatever takes text, and
 //! the window is told where that caret is.
+// The panes here run `/bin/cat`: Windows builds the helpers and runs none of them.
+#![cfg_attr(not(unix), allow(dead_code, unused_imports))]
 use super::bar_caret_col;
 use crate::app::CrewApp;
 use crate::imepreedit::cell_rect;
@@ -150,6 +152,7 @@ fn the_input_bar_draws_it_after_the_text() {
 
 /// The bar's caret column as `bar_caret_col` reads it is where the bar draws
 /// its caret: short text, a line scrolled to follow it, and one of wide glyphs.
+#[cfg(unix)]
 #[test]
 fn the_bar_caret_column_is_where_the_caret_is_drawn() {
     let _g = crate::app::theme_test_guard();
