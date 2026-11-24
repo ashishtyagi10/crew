@@ -262,6 +262,7 @@ mod crashlog;
 mod crispshot_tests;
 mod ctrlchord;
 mod ctxlimit;
+mod cursorblink;
 mod cursortrail;
 mod cwd;
 mod cwdshow;
