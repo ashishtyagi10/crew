@@ -556,10 +556,16 @@ fn provider_and_model_with(
                 Some(base) => provider.with_base_url(&base),
                 None => provider,
             };
-            Some((
-                Arc::new(provider) as Arc<dyn crew_hive::Provider>,
-                tier.model_id().to_string(),
-            ))
+            // A comma list walks as the direct vendors' does; unset, each ask
+            // steps down its own family (`AnthropicChain`). The cheap tier keeps
+            // Haiku: a list that opens on Opus must not price every quick pick.
+            let chain = parse_model_chain(std::env::var("CREW_ANTHROPIC_MODEL").ok(), Vec::new());
+            let model = match (tier, chain.first()) {
+                (crew_hive::ModelTier::Cheap, _) | (_, None) => tier.model_id().to_string(),
+                (_, Some(first)) => first.clone(),
+            };
+            let provider = provider.with_fallbacks(chain);
+            Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
     }
 }

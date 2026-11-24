@@ -3,6 +3,7 @@
 //! Anthropic client share one interface.
 mod anthropic;
 mod anthropiccache;
+mod anthropicchain;
 mod anthropicsse;
 mod claudecli;
 #[cfg(test)]
@@ -43,6 +44,7 @@ mod warm;
 mod wire;
 
 pub use anthropic::AnthropicProvider;
+pub use anthropicchain::AnthropicChain;
 pub use claudecli::ClaudeCliProvider;
 pub use completion::{Completion, CompletionRequest, ToolDef, ToolInvocation, ToolOutcome, Turn};
 pub use effort::Effort;

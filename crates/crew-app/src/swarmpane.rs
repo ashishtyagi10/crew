@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
 use crew_hive::{
-    batch_graph, AgentFactory, AnthropicProvider, ApiFactory, Budget, Fleet, GraphError, Job,
+    batch_graph, AgentFactory, AnthropicChain, ApiFactory, Budget, Fleet, GraphError, Job,
     LlmPlanner, Planner, StubPlanner,
 };
 use crew_render::CellView;
@@ -80,7 +80,7 @@ impl SwarmPane {
     /// planner + API agents when `ANTHROPIC_API_KEY` is set, else the offline
     /// stub backend. The pane shows a planning banner until the graph is ready.
     pub fn for_goal(goal: String) -> Self {
-        let provider = AnthropicProvider::from_env().ok();
+        let provider = AnthropicChain::from_env().ok();
         match backend_for(provider.is_some()) {
             Backend::Llm => {
                 // `is_some()` was just checked, so the unwrap cannot fail.

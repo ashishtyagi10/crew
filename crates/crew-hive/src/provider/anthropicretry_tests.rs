@@ -81,7 +81,7 @@ pub(crate) fn whole(status: &str, headers: &str, body: &str) -> Reply {
 
 /// A 200 event stream ending as a whole one does ([`STOP`]), one HTTP chunk
 /// per part: each is its own read, so a part boundary inside a character is a split read.
-fn events(parts: &[&[u8]]) -> Reply {
+pub(crate) fn events(parts: &[&[u8]]) -> Reply {
     let head = "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ntransfer-encoding: chunked\r\nconnection: close\r\n\r\n";
     let mut w = vec![head.as_bytes().to_vec()];
     for p in parts.iter().chain(&[STOP]) {
@@ -91,11 +91,11 @@ fn events(parts: &[&[u8]]) -> Reply {
     w
 }
 
-fn delta(text: &str) -> String {
+pub(crate) fn delta(text: &str) -> String {
     format!("event: content_block_delta\ndata: {{\"type\":\"content_block_delta\",\"delta\":{{\"type\":\"text_delta\",\"text\":\"{text}\"}}}}\n\n")
 }
 
-fn error_event() -> String {
+pub(crate) fn error_event() -> String {
     format!("event: error\ndata: {OVERLOADED}\n\n")
 }
 
