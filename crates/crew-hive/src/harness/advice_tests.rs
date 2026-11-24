@@ -100,6 +100,7 @@ async fn turn(hinted: Option<String>, stop: bool) -> (Vec<String>, Arc<Says>) {
 
 fn spec(hinted: Option<String>) -> TurnSpec {
     TurnSpec {
+        effort: None,
         ask: "read it".into(),
         prompt: "TASK: read it\n\nHOW TO REPLY: end with @done".into(),
         hinted,

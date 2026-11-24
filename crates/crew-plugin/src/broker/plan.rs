@@ -88,6 +88,17 @@ pub(crate) fn plan_cmd(
             "plan draft came back empty \u{2014} try again",
         ));
     }
+    // A draft that spent its whole ceiling thinking comes back as the
+    // cut-off marker alone; held, approval would run the marker as a swarm.
+    if plan.trim() == crew_hive::provider::cutoff::CUT_OFF {
+        *lock(&session.plan) = None;
+        emit(PluginEvent::Plan { pending: false })?;
+        return emit(msg(
+            "agent smith",
+            "plan draft was cut off at the token limit before it said anything \
+             \u{2014} nothing is pending; try again",
+        ));
+    }
     emit(msg(&format!("{author} \u{2192} user"), plan.clone()))?;
     *lock(&session.plan) = Some(PendingPlan { task, plan, verify });
     // The host turns this into the decision affordance. The message stays for
@@ -179,3 +190,7 @@ pub(crate) fn strip_control(reply: &str) -> String {
 #[cfg(test)]
 #[path = "plan_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "plancut_tests.rs"]
+mod cut_tests;

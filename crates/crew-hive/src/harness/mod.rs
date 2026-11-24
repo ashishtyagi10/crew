@@ -103,6 +103,9 @@ pub struct TurnSpec {
     /// (`cost::billed`).
     pub tier: ModelTier,
     pub max_tokens: u32,
+    /// How hard the model thinks on each of the turn's calls: what the
+    /// turn's route or agent asked for, or `None` for the model's default.
+    pub effort: Option<crate::provider::Effort>,
 }
 
 /// A prompt with what it can live without cut out, or `None` (`TurnSpec::shed`).

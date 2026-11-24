@@ -150,6 +150,9 @@ fn build_body(
     if let Some(tools) = build_tools(req) {
         body["tools"] = tools;
     }
+    if let Some(e) = super::effort::openai_field(model, req.effort, !req.tools.is_empty()) {
+        body["reasoning_effort"] = serde_json::json!(e);
+    }
     for (key, value) in think {
         body[key] = value;
     }

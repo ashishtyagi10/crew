@@ -20,9 +20,9 @@ use super::adapter::{Adapter, Engine, HopStream, Usage};
 #[path = "apicall.rs"]
 mod call;
 
-/// Output token ceiling per agent reply. 2048 was too few for real work — a
-/// long answer, a `sys:write_file` of a whole file, a `sys:edit` with a big
-/// `new` string — which stopped mid-sentence or mid-JSON. Providers bill the
+/// Base output token ceiling per agent reply (raised with effort,
+/// `routeeffort::room`). 2048 was too few for real work — a long answer, a
+/// `sys:write_file` of a whole file, a big `sys:edit` — which stopped mid-JSON. Providers bill the
 /// output actually generated, not the ceiling, so a concise hand-off costs
 /// what it did; the ceiling only bounds a runaway, and a reply that still
 /// reaches it is continued once (`crew_hive::provider::cutoff`). 4096, not 8192: some endpoints

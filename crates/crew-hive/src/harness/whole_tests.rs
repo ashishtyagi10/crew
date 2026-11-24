@@ -46,6 +46,7 @@ async fn a_reply_the_ceiling_cut_is_continued_once() {
         advice: None,
     };
     let spec = TurnSpec {
+        effort: None,
         ask: "q".into(),
         prompt: "q".into(),
         hinted: None,

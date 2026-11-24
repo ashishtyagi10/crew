@@ -132,6 +132,7 @@ pub(super) async fn turn_with(
         advice: Some(Arc::new(advisor)),
     };
     let spec = TurnSpec {
+        effort: None,
         ask: "fix a.rs".into(),
         prompt: "TASK: fix a.rs".into(),
         hinted: None,

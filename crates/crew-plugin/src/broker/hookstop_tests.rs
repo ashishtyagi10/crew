@@ -121,6 +121,7 @@ async fn turn(tag: &str, cmd: &str) -> (Ended, Vec<CompletionRequest>, Vec<(bool
         advice: None,
     };
     let spec = TurnSpec {
+        effort: None,
         ask: "fix the bug".into(),
         prompt: "fix the bug".into(),
         hinted: None,

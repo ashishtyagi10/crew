@@ -14,7 +14,8 @@ use crate::broker::cancelscope;
 impl ApiAdapter {
     /// `body` as one request to this agent's model, made whole
     /// (`crew_hive::provider::cutoff`) with `on_chunk` fed as it streams, and
-    /// raced against `timeout` and the task's /stop (`cancelscope`): Esc ends
+    /// raced against `timeout` (stretched with a raised ceiling,
+    /// `routeeffort::room`) and the task's /stop (`cancelscope`): Esc ends
     /// the wait. The reply, or why there is none in the words the error card
     /// shows.
     pub(super) fn ask(
@@ -23,11 +24,23 @@ impl ApiAdapter {
         timeout: Duration,
         on_chunk: Option<crew_hive::ChunkFn>,
     ) -> Result<Completion, String> {
+        // A plan, a review, a commit message: the agent's own level, else
+        // the route's (`routeeffort`), with the room its thinking needs.
+        let effort = crate::broker::routeeffort::for_turn(&self.name);
+        let (max_tokens, timeout) =
+            crate::broker::routeeffort::room(&self.model, effort, MAX_TOKENS, timeout);
+        // A raised ceiling streams even with nobody watching: a reply sent
+        // whole is silent until it is done, and minutes of thinking would
+        // trip the client's read bound (`CREW_HTTP_TIMEOUT_MS`) first.
+        let on_chunk = on_chunk.or_else(|| {
+            (max_tokens > MAX_TOKENS).then(|| Arc::new(|_: crew_hive::Chunk<'_>| {}) as _)
+        });
         let req = CompletionRequest {
             model: self.model.clone(),
             system: self.system.clone(),
             prompt: body.to_string(),
-            max_tokens: MAX_TOKENS,
+            max_tokens,
+            effort,
             ..Default::default()
         };
         let provider = Arc::clone(&self.provider);

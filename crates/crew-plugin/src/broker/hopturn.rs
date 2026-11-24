@@ -88,30 +88,31 @@ impl Broker {
                 }
             },
         };
-        let (provider, model, system, max_tokens): (Arc<dyn Provider>, _, _, _) = match &engine {
-            Some(e) => (
-                Arc::new(model::Bounded {
-                    inner: Arc::clone(e.provider),
-                    model: e.model.to_string(),
-                    timeout: self.timeout,
-                    tally: Arc::clone(&tally),
-                }),
-                e.model.to_string(),
-                e.system.map(str::to_string),
-                e.max_tokens,
-            ),
-            None => (
-                Arc::new(model::Spoken {
-                    agent: Arc::clone(agent),
-                    timeout: self.timeout,
-                    lane: Arc::clone(&stream.on_tool),
-                    tally: Arc::clone(&tally),
-                }),
-                agent.model().to_string(),
-                None,
-                CLI_MAX_TOKENS,
-            ),
-        };
+        // The agent's own level, else the route's (`routeeffort`), and the
+        // room an API model's thinking needs at it.
+        let effort = super::routeeffort::for_turn(&env.to);
+        let (provider, model, system, max_tokens, timeout): (Arc<dyn Provider>, _, _, _, _) =
+            match &engine {
+                Some(e) => {
+                    let (max, timeout) =
+                        super::routeeffort::room(e.model, effort, e.max_tokens, self.timeout);
+                    let bounded = model::Bounded::of(e, timeout, Arc::clone(&tally));
+                    let system = e.system.map(str::to_string);
+                    (Arc::new(bounded), e.model.to_string(), system, max, timeout)
+                }
+                None => (
+                    Arc::new(model::Spoken {
+                        agent: Arc::clone(agent),
+                        timeout: self.timeout,
+                        lane: Arc::clone(&stream.on_tool),
+                        tally: Arc::clone(&tally),
+                    }),
+                    agent.model().to_string(),
+                    None,
+                    CLI_MAX_TOKENS,
+                    self.timeout,
+                ),
+            };
         // The advisor reads a failed check (`crew_hive::advisor`); what it
         // costs joins the thread's sums.
         let billed = Arc::clone(&tally);
@@ -144,12 +145,13 @@ impl Broker {
             // restated: alone it is `@done`, with peers `@next` or `@done`.
             ending: Some("end it as HOW TO REPLY says".into()),
             // A reply's continuation and retries fit the hop's own timeout.
-            call_timeout: Some(self.timeout),
+            call_timeout: Some(timeout),
             system,
             model,
             // Billing's fallback only, and the relay bills from the model's usage.
             tier: ModelTier::Standard,
             max_tokens,
+            effort,
         };
         let steers = Steers::new(super::steer::take).with_tail(super::steer::TAIL);
         let ended = rt.block_on(harness::run(
@@ -188,6 +190,9 @@ mod kit;
 #[path = "hopturn_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "hopeffort_tests.rs"]
+mod effort_tests;
 #[cfg(test)]
 #[path = "hopfull_tests.rs"]
 mod full_tests;

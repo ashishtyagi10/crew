@@ -122,6 +122,7 @@ pub(super) async fn turn_on(holds: Option<u32>, numbered: bool, native: bool) ->
         advice: None,
     };
     let spec = TurnSpec {
+        effort: None,
         ask: "fix it".into(),
         prompt: "fix it".into(),
         hinted: None,

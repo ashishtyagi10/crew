@@ -53,6 +53,8 @@ pub(crate) fn human_gates(
     // Last, and only when nothing above held the message: it reads but
     // writes nothing (`reviewask`, `handsoff`).
     if crate::broker::reviewask::asks_review(task) {
+        // Asked for in so many words, a review thinks as a routed one does.
+        let _effort = crate::broker::routeeffort::enter(Some(crew_hive::Effort::High));
         return Some(crate::broker::review::review_cmd(session, emit));
     }
     None
