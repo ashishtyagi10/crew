@@ -83,3 +83,47 @@ async fn a_models_own_failure_still_walks_the_chain() {
     tokio::time::sleep(Duration::from_millis(50)).await;
     assert_eq!(accepted.load(Ordering::SeqCst), 3, "every rung was asked");
 }
+
+/// OpenAI's answer for a model it has shut down is the model's failure, not
+/// the account's: the `openai` chain must walk past a dead `gpt-4.1` to its
+/// last rung, `gpt-6-luna`, rather than stop there.
+#[tokio::test]
+async fn a_shut_down_model_walks_on_to_the_next_rung() {
+    let body = r#"{"error":{"message":"The model `gpt-4.1` does not exist or you do not have access to it.","type":"invalid_request_error","param":null,"code":"model_not_found"}}"#;
+    assert!(!account_wide(&api(body)));
+    let (addr, accepted) = one_shot_server(answering("404 Not Found", body), 3);
+    let _ = ask(addr).await.expect_err("no rung answers");
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(accepted.load(Ordering::SeqCst), 3, "every rung was asked");
+}
+
+/// The body this provider builds for a Luna tool turn, as OpenAI's host
+/// receives it, carries the `reasoning_effort: none` Luna's tools need. A
+/// socket fake cannot show this: the seam keys on the host `api.openai.com`,
+/// which no loopback server is, so the built body goes through the seam here.
+#[test]
+fn the_built_luna_tool_body_asks_openai_for_no_effort() {
+    let req = CompletionRequest {
+        model: "gpt-6-luna".into(),
+        prompt: "hi".into(),
+        max_tokens: 8,
+        tools: vec![crate::provider::ToolDef {
+            name: "sys_run".into(),
+            description: "run".into(),
+            input_schema: serde_json::json!({"type": "object"}),
+        }],
+        ..Default::default()
+    };
+    let built = |model: &str| {
+        let messages = super::build_messages(&req);
+        super::super::tokencap::for_endpoint(
+            "https://api.openai.com/v1/chat/completions",
+            super::build_body(model, &req, &messages, false, Vec::new()),
+        )
+    };
+    let luna = built("gpt-6-luna");
+    assert_eq!(luna["reasoning_effort"], "none", "{luna}");
+    assert!(luna["tools"].as_array().is_some_and(|t| !t.is_empty()));
+    let head = built("gpt-5.5");
+    assert!(head.get("reasoning_effort").is_none(), "{head}");
+}

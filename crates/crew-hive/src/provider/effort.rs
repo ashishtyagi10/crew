@@ -10,9 +10,9 @@
 //! and keep the model's own default.
 //!
 //! Only the Anthropic wire sends it. DashScope's one-shots already go
-//! unstreamed and are told `enable_thinking: false` (`thinking`), and crew
-//! sends OpenAI no `reasoning_effort` anywhere, so there is no shape there
-//! to map onto, only one to guess.
+//! unstreamed and are told `enable_thinking: false` (`thinking`), and the
+//! one `reasoning_effort` crew sends OpenAI is a wire requirement, not a
+//! per-call dial: `none` on a GPT-6 Luna tool request (`lunaeffort`).
 
 /// One call's effort, as the Anthropic API spells the levels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
