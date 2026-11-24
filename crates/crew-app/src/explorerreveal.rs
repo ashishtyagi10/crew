@@ -31,14 +31,16 @@ impl CrewApp {
             return;
         };
         let file = match &pane.content {
-            crate::pane::PaneContent::View(v) => Some(v.path.clone()),
+            crate::pane::PaneContent::View(v) => Some(v.path.as_path()),
             _ => None,
         };
-        let key = Some((pane.born_ms, file.clone()));
-        if self.sidebar.explorer.revealed == key {
+        // Compared by reference: this runs every frame the Explorer shows.
+        let seen = self.sidebar.explorer.revealed.as_ref();
+        if seen.is_some_and(|(b, f)| *b == pane.born_ms && f.as_deref() == file) {
             return;
         }
-        self.sidebar.explorer.revealed = key;
+        let file = file.map(Path::to_path_buf);
+        self.sidebar.explorer.revealed = Some((pane.born_ms, file.clone()));
         let Some(file) = file else {
             return;
         };
@@ -71,6 +73,11 @@ impl CrewApp {
 /// `file` relative to `root`, as written or — macOS's temp and home paths run through
 /// symlinks — once both are resolved.
 fn under(root: &Path, file: &Path) -> Option<PathBuf> {
+    // `/view ../crew/x.rs` keeps its `..`: a raw prefix match would pass `<root>/../other`.
+    let (root, file) = (
+        &crate::pathexpand::normalized(root),
+        &crate::pathexpand::normalized(file),
+    );
     if let Ok(rel) = file.strip_prefix(root) {
         return Some(rel.to_path_buf()).filter(|r| !r.as_os_str().is_empty());
     }

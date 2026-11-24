@@ -122,3 +122,19 @@ fn explorer_shot_revealed() {
         crate::crtglassshot_tests::window_with(&name, id, opacity, &[], &prep);
     }
 }
+
+/// A path written with `..` is judged where it lands: out of the root is left alone, and back
+/// into it is revealed.
+#[test]
+fn a_dotted_path_is_judged_where_it_lands() {
+    let _g = crate::app::theme_test_guard();
+    let root = crate::explorer::tests::tree("revealdots", &["a/b/c.rs"]);
+    let out = super::under(&root, &root.join("../elsewhere/y.rs"));
+    assert_eq!(out, None);
+    let name = root.file_name().unwrap().to_owned();
+    let back = super::under(
+        &root,
+        &root.join("a/..").join("..").join(name).join("a/b/c.rs"),
+    );
+    assert_eq!(back, Some(std::path::PathBuf::from("a/b/c.rs")));
+}
