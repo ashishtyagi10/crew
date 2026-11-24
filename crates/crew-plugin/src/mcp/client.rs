@@ -5,14 +5,15 @@
 //! Launch and the version handshake live in `handshake.rs`.
 use std::io::Write;
 use std::process::{Child, ChildStdin};
-use std::sync::mpsc::{self, Receiver};
-use std::time::{Duration, Instant};
+use std::sync::mpsc::Receiver;
+use std::time::Duration;
 
 use serde_json::{json, Value};
 
 // Children of the client so they reach its private pipe without widening it.
 #[path = "handshake.rs"]
 mod handshake;
+use handshake::Silence;
 #[path = "version.rs"]
 mod version;
 
@@ -39,12 +40,6 @@ pub struct McpClient {
     version: String,
 }
 
-/// Why a reply never came.
-enum Silence {
-    Timeout,
-    Closed,
-}
-
 impl McpClient {
     fn send(&mut self, v: &Value) -> Result<(), String> {
         writeln!(self.stdin, "{v}").map_err(|e| format!("mcp write failed: {e}"))?;
@@ -62,11 +57,20 @@ impl McpClient {
     /// Notifications and stray messages are skipped; an `error` member, a
     /// result that is not `complete`, or the deadline turns into `Err`.
     fn request(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        self.request_within(method, params, timeout())
+    }
+
+    fn request_within(
+        &mut self,
+        method: &str,
+        params: Value,
+        within: Duration,
+    ) -> Result<Value, String> {
         self.next_id += 1;
         let id = self.next_id;
         let params = version::stamp(params, &self.version);
         self.send(&json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}))?;
-        match self.wait(id, timeout()) {
+        match self.wait(id, within) {
             Ok(Ok(result)) => version::complete(method, result),
             Ok(Err(err)) => {
                 let m = err.get("message").and_then(Value::as_str).unwrap_or("?");
@@ -74,37 +78,17 @@ impl McpClient {
             }
             Err(Silence::Timeout) => {
                 // stdio has no stream to close: stopping work on the server
-                // takes a `notifications/cancelled` naming the request.
-                let _ = self.send(
-                    &json!({"jsonrpc": "2.0", "method": "notifications/cancelled",
-                    "params": {"requestId": id, "reason": "timed out"}}),
-                );
-                Err(format!("{method}: no response within {:?}", timeout()))
+                // takes a `notifications/cancelled` naming the request — save
+                // for `initialize`, which a client MUST NOT cancel.
+                if method != "initialize" {
+                    let _ = self.send(
+                        &json!({"jsonrpc": "2.0", "method": "notifications/cancelled",
+                        "params": {"requestId": id, "reason": "timed out"}}),
+                    );
+                }
+                Err(format!("{method}: no response within {within:?}"))
             }
             Err(Silence::Closed) => Err(format!("{method}: server closed its pipe")),
-        }
-    }
-
-    /// Wait up to `within` for the response to `id`: its `result` as `Ok`,
-    /// its `error` object as `Err`. Anything else on the pipe is skipped.
-    fn wait(&mut self, id: u64, within: Duration) -> Result<Result<Value, Value>, Silence> {
-        let deadline = Instant::now() + within;
-        loop {
-            let left = deadline.saturating_duration_since(Instant::now());
-            if left.is_zero() {
-                return Err(Silence::Timeout);
-            }
-            match self.rx.recv_timeout(left) {
-                Ok(v) if v.get("id").and_then(Value::as_u64) == Some(id) => {
-                    return Ok(match v.get("error") {
-                        Some(err) => Err(err.clone()),
-                        None => Ok(v.get("result").cloned().unwrap_or(Value::Null)),
-                    });
-                }
-                Ok(_) => {} // a notification or someone else's reply
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
-                Err(mpsc::RecvTimeoutError::Disconnected) => return Err(Silence::Closed),
-            }
         }
     }
 

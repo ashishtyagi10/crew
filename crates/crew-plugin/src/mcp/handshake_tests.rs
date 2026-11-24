@@ -169,3 +169,25 @@ fn a_silent_or_dying_probe_falls_back_to_initialize() {
     );
     assert!(sent(&log)[0].contains(r#""method":"initialize""#));
 }
+
+#[test]
+fn a_timed_out_request_is_cancelled_but_initialize_never_is() {
+    let (cfg, log) = fake("cancel", &[("server-discover", DISCOVER)]);
+    let mut c = McpClient::connect(&cfg).unwrap();
+    let short = std::time::Duration::from_millis(300);
+    let e = c
+        .request_within("tools/list", serde_json::json!({}), short)
+        .unwrap_err();
+    assert!(e.contains("no response"), "{e}");
+    let e = c
+        .request_within("initialize", serde_json::json!({}), short)
+        .unwrap_err();
+    assert!(e.contains("no response"), "{e}");
+    std::thread::sleep(short);
+    let cancels: Vec<String> = sent(&log)
+        .into_iter()
+        .filter(|l| l.contains("notifications/cancelled"))
+        .collect();
+    assert_eq!(cancels.len(), 1, "{cancels:#?}");
+    assert!(cancels[0].contains(r#""requestId":1"#), "{}", cancels[0]);
+}

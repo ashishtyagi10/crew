@@ -1,4 +1,5 @@
-//! Launching an MCP server and agreeing a protocol revision with it.
+//! Launching an MCP server, waiting on its replies, and agreeing a protocol
+//! revision with it.
 //!
 //! The order is the one the 2026-07-28 stdio binding gives a client that
 //! speaks both eras: send `server/discover` with crew's newest version in
@@ -9,12 +10,12 @@
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
 use super::version::{self, Probe};
-use super::{timeout, McpClient, Silence};
+use super::{timeout, McpClient};
 use crate::mcp::config::ServerConfig;
 use crew_hive::childproc::no_console_window;
 
@@ -24,12 +25,46 @@ const PROBE_ID: u64 = 0;
 /// How long the probe waits. Some legacy servers ignore a request that
 /// arrives before `initialize` instead of answering it, so silence has to be
 /// read as "legacy" quickly. A modern server too slow to start inside this is
-/// sent `initialize`, refuses it, and connects on the next turn's retry.
+/// sent `initialize` and refuses it; the host retries on later turns, which
+/// only helps once the start is warm (a filled npx/uvx cache, say).
 fn probe_wait() -> Duration {
     timeout().min(Duration::from_secs(3))
 }
 
+/// Why a reply never came.
+pub(super) enum Silence {
+    Timeout,
+    Closed,
+}
+
 impl McpClient {
+    /// Wait up to `within` for the response to `id`: its `result` as `Ok`,
+    /// its `error` object as `Err`. Anything else on the pipe is skipped.
+    pub(super) fn wait(
+        &mut self,
+        id: u64,
+        within: Duration,
+    ) -> Result<Result<Value, Value>, Silence> {
+        let deadline = Instant::now() + within;
+        loop {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return Err(Silence::Timeout);
+            }
+            match self.rx.recv_timeout(left) {
+                Ok(v) if v.get("id").and_then(Value::as_u64) == Some(id) => {
+                    return Ok(match v.get("error") {
+                        Some(err) => Err(err.clone()),
+                        None => Ok(v.get("result").cloned().unwrap_or(Value::Null)),
+                    });
+                }
+                Ok(_) => {} // a notification or someone else's reply
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => return Err(Silence::Closed),
+            }
+        }
+    }
+
     /// Launch the server and settle which protocol revision it speaks.
     pub fn connect(cfg: &ServerConfig) -> Result<Self, String> {
         let mut c = Self::spawn(cfg)?;
