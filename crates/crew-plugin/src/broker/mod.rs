@@ -116,6 +116,7 @@ mod standup;
 mod stdio;
 mod steer;
 mod streamhold;
+mod sunsetsaid;
 mod swarm;
 mod sysedit;
 mod sysfetch;

@@ -39,7 +39,10 @@ impl ApiAdapter {
         match self.rt.block_on(raced) {
             None => Err(cancelscope::STOPPED.to_string()),
             Some(Ok(Ok(c))) => Ok(c),
-            Some(Ok(Err(e))) => Err(e.to_string()),
+            Some(Ok(Err(e))) => Err(crate::broker::sunsetsaid::why_failed(
+                &self.model,
+                e.to_string(),
+            )),
             Some(Err(_)) => Err(format!(
                 "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",
                 self.model
