@@ -26,10 +26,12 @@ pub const UNSUPPORTED: i64 = -32022;
 pub enum Probe {
     /// A modern server, and the version both sides speak.
     Modern(String),
-    /// Not a modern server (any other error, or silence): use `initialize`.
+    /// Not a modern server (any other error, silence, or an answer with no
+    /// version list — bridges that reply `{}` to every method): `initialize`.
     Legacy,
-    /// A modern server with no version in common. Falling back to
-    /// `initialize` is forbidden here, so this ends the connection.
+    /// A modern server whose version list shares nothing with crew's.
+    /// Falling back to `initialize` is forbidden here, so this ends the
+    /// connection.
     Refused(String),
 }
 
@@ -65,9 +67,15 @@ pub fn stamp(mut params: Value, version: &str) -> Value {
 /// Read the probe's reply: `Ok(result)` or `Err(error object)`.
 pub fn classify(reply: Result<&Value, &Value>) -> Probe {
     match reply {
-        Ok(result) => match common(result.get("supportedVersions")) {
-            Some(v) => Probe::Modern(v),
-            None => Probe::Refused(mismatch(result.get("supportedVersions"))),
+        // Only a real list proves a modern server: hand-written servers and
+        // stdio bridges (mcp-remote, supergateway) answer any method with
+        // `{}` or `null`, and refusing them would break what worked before.
+        Ok(result) => match result.get("supportedVersions") {
+            Some(list) if list.is_array() => match common(Some(list)) {
+                Some(v) => Probe::Modern(v),
+                None => Probe::Refused(mismatch(Some(list))),
+            },
+            _ => Probe::Legacy,
         },
         Err(err) if err.get("code").and_then(Value::as_i64) == Some(UNSUPPORTED) => {
             let offered = err.get("data").and_then(|d| d.get("supported"));
@@ -107,20 +115,26 @@ fn mismatch(offered: Option<&Value>) -> String {
     )
 }
 
-/// The version a legacy server answered `initialize` with, if crew speaks
-/// it. The spec says a client that does not support the answer SHOULD
-/// disconnect; the error names both sides so the log says why. An answer
-/// with no version at all is taken as the one crew offered — such a server
-/// worked before and refusing it would only break it.
-pub fn accept_legacy(answer: Option<&str>) -> Result<String, String> {
+/// The wire to speak after a legacy server answered `initialize` with
+/// `answer`. One of crew's legacy versions is kept; anything else (a draft
+/// string, a modern version, nothing at all) is still accepted, as crew always
+/// has, but spoken to on the newest legacy wire — never stored verbatim, since
+/// a modern version there would stamp `_meta` on a legacy session.
+pub fn accept_legacy(answer: Option<&str>) -> String {
     match answer {
-        None => Ok(LEGACY[0].to_string()),
-        Some(v) if LEGACY.contains(&v) => Ok(v.to_string()),
-        Some(v) => Err(format!(
-            "server answered MCP {v}; crew speaks {}",
-            [MODERN, LEGACY].concat().join(", ")
-        )),
+        Some(v) if LEGACY.contains(&v) => v.to_string(),
+        _ => LEGACY[0].to_string(),
     }
+}
+
+/// The one log line for an `initialize` answer crew does not know, or `None`
+/// when the answer is one crew speaks (or absent).
+pub fn stray(answer: Option<&str>) -> Option<String> {
+    let v = answer.filter(|v| !LEGACY.contains(v))?;
+    Some(format!(
+        "crew: MCP server answered initialize with {v}; speaking {}",
+        LEGACY[0]
+    ))
 }
 
 /// A result's `resultType`: absent (every pre-2026 server) or `"complete"`

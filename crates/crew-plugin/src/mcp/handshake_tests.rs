@@ -10,8 +10,9 @@ use crate::mcp::{McpHost, ServerConfig};
 /// A server whose reply to each method is the file of that name in its
 /// directory (`/` spelled `-`, `@ID@` replaced by the request's id). A
 /// method with no file gets silence. Every line crew writes lands in `log`.
-/// With `die-first` present, the first launch exits without reading.
-fn fake(tag: &str, replies: &[(&str, &str)]) -> (ServerConfig, PathBuf) {
+/// With `die-first` present, the first launch exits without reading; with
+/// `quit-after-probe`, the first launch answers the probe and then exits.
+pub(super) fn fake(tag: &str, replies: &[(&str, &str)]) -> (ServerConfig, PathBuf) {
     let dir = std::env::temp_dir().join(format!("crew-mcp-hs-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
@@ -25,6 +26,9 @@ while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
   m=$(printf '%s' "$line" | sed -n 's/.*"method":"\([^"]*\)".*/\1/p' | tr / -)
   if [ -n "$id" ] && [ -f "$d/$m" ]; then sed "s/@ID@/$id/" "$d/$m"; fi
+  if [ "$m" = server-discover ] && [ -f "$d/quit-after-probe" ] && [ ! -f "$d/quit" ]; then
+    touch "$d/quit"; exit 0
+  fi
 done"#;
     let cfg = ServerConfig {
         command: "sh".into(),
@@ -39,7 +43,7 @@ done"#;
     (cfg, dir.join("log"))
 }
 
-fn sent(log: &PathBuf) -> Vec<String> {
+pub(super) fn sent(log: &PathBuf) -> Vec<String> {
     std::fs::read_to_string(log)
         .unwrap_or_default()
         .lines()
@@ -48,11 +52,11 @@ fn sent(log: &PathBuf) -> Vec<String> {
 }
 
 const DISCOVER: &str = r#"{"jsonrpc":"2.0","id":@ID@,"result":{"resultType":"complete","supportedVersions":["2026-07-28","2025-11-25"],"capabilities":{"tools":{}}}}"#;
-const NO_METHOD: &str =
+pub(super) const NO_METHOD: &str =
     r#"{"jsonrpc":"2.0","id":@ID@,"error":{"code":-32601,"message":"Method not found"}}"#;
-const TOOLS: &str = r#"{"jsonrpc":"2.0","id":@ID@,"result":{"resultType":"complete","tools":[{"name":"echo","inputSchema":{}}],"ttlMs":1000,"cacheScope":"private"}}"#;
+pub(super) const TOOLS: &str = r#"{"jsonrpc":"2.0","id":@ID@,"result":{"resultType":"complete","tools":[{"name":"echo","inputSchema":{}}],"ttlMs":1000,"cacheScope":"private"}}"#;
 
-fn init(version: &str) -> String {
+pub(super) fn init(version: &str) -> String {
     format!(
         r#"{{"jsonrpc":"2.0","id":@ID@,"result":{{"protocolVersion":"{version}","capabilities":{{}}}}}}"#
     )
@@ -120,20 +124,21 @@ fn a_legacy_server_gets_initialize_and_the_old_wire() {
 }
 
 #[test]
-fn a_legacy_answer_crew_does_not_speak_disconnects_and_lists_nothing() {
-    let ini = init("1999-01-01");
-    let replies = [
-        ("server-discover", NO_METHOD),
-        ("initialize", ini.as_str()),
-        ("tools-list", TOOLS),
-    ];
-    let (cfg, _) = fake("unknown", &replies);
-    let e = McpClient::connect(&cfg).unwrap_err();
-    assert!(e.contains("1999-01-01") && e.contains("2025-11-25"), "{e}");
-    let (cfg, log) = fake("unknown-host", &replies);
-    let mut host = McpHost::new(BTreeMap::from([("old".to_string(), cfg)]));
-    assert!(host.tools().is_empty());
-    assert!(sent(&log).iter().all(|l| !l.contains("tools/list")));
+fn a_legacy_answer_crew_does_not_speak_still_connects_on_the_newest_legacy_wire() {
+    for (tag, answer) in [("draft", "2026-13-01-draft"), ("modern-ini", "2026-07-28")] {
+        let ini = init(answer);
+        let replies = [
+            ("server-discover", NO_METHOD),
+            ("initialize", ini.as_str()),
+            ("tools-list", TOOLS),
+        ];
+        let (cfg, log) = fake(tag, &replies);
+        let mut host = McpHost::new(BTreeMap::from([("old".to_string(), cfg)]));
+        assert_eq!(host.tools().len(), 1, "{answer}");
+        let lines = sent(&log);
+        let list = lines.iter().find(|l| l.contains("tools/list")).unwrap();
+        assert!(!list.contains("_meta"), "{answer}: {list}");
+    }
 }
 
 #[test]

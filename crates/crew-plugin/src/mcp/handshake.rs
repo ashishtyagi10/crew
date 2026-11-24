@@ -5,8 +5,10 @@
 //! speaks both eras: send `server/discover` with crew's newest version in
 //! `_meta` before anything else. A `DiscoverResult` (or an
 //! `UnsupportedProtocolVersionError` that lists a version crew speaks) means a
-//! modern server and no handshake at all; any other error, or silence, means a
-//! legacy server, which gets the `initialize` it expects.
+//! modern server and no handshake at all; any other error, an answer with no
+//! version list, or silence means a legacy server, which gets the
+//! `initialize` it expects. A legacy server that dies of the probe is
+//! launched once more and sent `initialize` without being probed again.
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
@@ -75,15 +77,34 @@ impl McpClient {
             }
             // Dropping `c` kills the server: a version mismatch disconnects.
             Some(Probe::Refused(why)) => Err(why),
-            Some(Probe::Legacy) => c.initialize().map(|()| c),
-            // A legacy server that exits on a request before `initialize`:
-            // start it again and go straight to the handshake it wanted.
-            None => {
-                drop(c);
-                let mut c = Self::spawn(cfg)?;
-                c.initialize().map(|()| c)
-            }
+            // Some legacy servers answer the probe with an error and THEN
+            // exit (older Python SDKs, rmcp servers that insist on
+            // `initialize` first), or crash on a cold start after the probe
+            // gave up waiting: the handshake finds a dead pipe.
+            Some(Probe::Legacy) => match c.initialize() {
+                Ok(()) => Ok(c),
+                Err(e) if c.died(&e) => Self::relaunch(c, cfg),
+                Err(e) => Err(e),
+            },
+            // A legacy server that exits on the probe without answering.
+            None => Self::relaunch(c, cfg),
         }
+    }
+
+    /// Start a server the probe killed again, once, and go straight to the
+    /// handshake it wanted — no second probe to kill it again.
+    fn relaunch(dead: Self, cfg: &ServerConfig) -> Result<Self, String> {
+        drop(dead);
+        let mut c = Self::spawn(cfg)?;
+        c.initialize().map(|()| c)
+    }
+
+    /// Whether `err` came from a server that has gone, not one that refused:
+    /// only a dead server is worth launching again.
+    fn died(&mut self, err: &str) -> bool {
+        matches!(self.child.try_wait(), Ok(Some(_)))
+            || err.contains("server closed its pipe")
+            || err.contains("mcp write failed")
     }
 
     /// The protocol revision agreed with this server.
@@ -148,7 +169,8 @@ impl McpClient {
     }
 
     /// The legacy handshake, offering crew's newest legacy revision and
-    /// keeping whichever one the server answers with — if crew speaks it.
+    /// keeping whichever one the server answers with when crew speaks it; any
+    /// other answer is logged and spoken to on the newest legacy wire.
     fn initialize(&mut self) -> Result<(), String> {
         let r = self.request(
             "initialize",
@@ -158,11 +180,18 @@ impl McpClient {
                 "clientInfo": {"name": "crew", "version": env!("CARGO_PKG_VERSION")},
             }),
         )?;
-        self.version = version::accept_legacy(r.get("protocolVersion").and_then(Value::as_str))?;
+        let answer = r.get("protocolVersion").and_then(Value::as_str);
+        if let Some(line) = version::stray(answer) {
+            eprintln!("{line}");
+        }
+        self.version = version::accept_legacy(answer);
         self.notify("notifications/initialized")
     }
 }
 
+#[cfg(test)]
+#[path = "handshakefallback_tests.rs"]
+mod fallback_tests;
 #[cfg(test)]
 #[path = "handshake_tests.rs"]
 mod tests;

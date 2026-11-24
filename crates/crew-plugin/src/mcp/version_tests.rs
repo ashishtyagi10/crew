@@ -41,13 +41,31 @@ fn meta_goes_on_modern_requests_only() {
 }
 
 #[test]
-fn legacy_answers_crew_speaks_are_kept_and_others_named() {
+fn legacy_answers_crew_speaks_are_kept_and_others_spoken_to_on_the_newest() {
     for v in LEGACY {
-        assert_eq!(accept_legacy(Some(v)).unwrap(), *v);
+        assert_eq!(accept_legacy(Some(v)), *v);
+        assert_eq!(stray(Some(v)), None);
     }
-    assert_eq!(accept_legacy(None).unwrap(), "2025-11-25");
-    let e = accept_legacy(Some("2026-07-28")).unwrap_err();
-    assert!(e.contains("answered MCP 2026-07-28"), "{e}");
+    assert_eq!(accept_legacy(None), "2025-11-25");
+    assert_eq!(stray(None), None);
+    for odd in ["2026-07-28", "2026-13-01-draft"] {
+        assert_eq!(accept_legacy(Some(odd)), "2025-11-25");
+        let line = stray(Some(odd)).unwrap();
+        assert!(line.contains(odd) && line.contains("2025-11-25"), "{line}");
+    }
+}
+
+#[test]
+fn a_probe_answer_without_a_version_list_is_legacy_not_refused() {
+    for r in [
+        json!({}),
+        json!(null),
+        json!({"supportedVersions": "2026-07-28"}),
+    ] {
+        assert_eq!(classify(Ok(&r)), Probe::Legacy, "{r}");
+    }
+    let r = json!({"supportedVersions": []});
+    assert!(matches!(classify(Ok(&r)), Probe::Refused(_)));
 }
 
 #[test]
