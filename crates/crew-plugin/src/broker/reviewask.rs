@@ -17,6 +17,11 @@ use crate::broker::intent::shapeguard::says_any;
 /// Asking for a review: the verb, or the noun with its verb in it.
 const REVIEW: &[&str] = &["review", "look over", "go over", "check over", "critique"];
 
+/// The light pass's words, so "skim my diff" reaches the quick look
+/// (`reviewlevel`). Everyday English ("skim this article", "glance at the
+/// changes in iOS 27"), so they count only with a [`MINE`] phrase.
+const LIGHT: &[&str] = &["quick look", "skim", "glance over", "glance at"];
+
 /// The working changes, which is what the review path reads.
 const CHANGES: &[&str] = &[
     "diff",
@@ -26,6 +31,19 @@ const CHANGES: &[&str] = &[
     "staged",
     "uncommitted",
     "edits",
+];
+
+/// The working changes named so that nothing else is meant: "change",
+/// "patch" and "staged" alone are climate change, patch notes and a staged
+/// rollout.
+const MINE: &[&str] = &[
+    "diff",
+    "uncommitted",
+    "my changes",
+    "my change",
+    "my edits",
+    "the staged changes",
+    "staged files",
 ];
 
 /// A review of something else (the review path reads only the working tree),
@@ -47,7 +65,12 @@ const NOT: &[&str] = &[
 
 /// Whether `task` asks for a review of the working changes and nothing more.
 pub(crate) fn asks_review(task: &str) -> bool {
-    says_any(task, REVIEW) && says_any(task, CHANGES) && !says_any(task, NOT)
+    let named = if says_any(task, REVIEW) {
+        says_any(task, CHANGES)
+    } else {
+        says_any(task, LIGHT) && says_any(task, MINE)
+    };
+    named && !says_any(task, NOT)
 }
 
 #[cfg(test)]

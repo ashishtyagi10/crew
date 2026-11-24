@@ -769,7 +769,8 @@ repair pass is told the same),
 (say "commit this" and the crew drafts a Conventional Commits message for
 your diff; nothing is committed until you say "apply" — à la Aider),
 **AI code review** (ask "look over my changes" for findings on the working
-diff worst-first — à la Codex), **session resume** (the conversation
+diff worst-first — à la Codex; "a quick look at my diff" or "a deep review of my
+changes" sets its level), **session resume** (the conversation
 auto-saves to `./.crew/`, and asking to "pick up where we left off" in a
 fresh pane folds the last session into the next task — à la Claude
 Code's `--continue`), **`/doctor`** (a ✓/✗ health check of the whole AI

@@ -7,7 +7,8 @@
 //! and three kinds of shape want something other than the default:
 //!
 //! - `plan` and `review` are judgment the user acts on — a plan approved and
-//!   run, findings worst-first — so they think `high`;
+//!   run, findings worst-first — so they think `high` (a review asked for
+//!   as a quick look drops to `low` for its own call: `reviewlevel`);
 //! - `commit` and `standup` restate what is in front of the model (a diff, a
 //!   log), so they think `low`;
 //! - every other shape (`reply`, `fan`, `loop`, `goal`, `swarm`) is open
