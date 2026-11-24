@@ -7,7 +7,8 @@
 //! each finding goes back to the reviewer — one batched call, read-only as the
 //! review was (`reviewguard`) — to be kept or withdrawn against the code. A
 //! withdrawn finding is dropped and said; a second look that does not answer
-//! leaves the findings as they were, marked unverified.
+//! leaves the findings as they were, marked unverified, and one that skips
+//! some says how many were not re-checked.
 use std::path::Path;
 use std::time::Duration;
 
@@ -36,10 +37,21 @@ pub(crate) fn prompt(diff: &str, callers: &str, findings: &[&str]) -> String {
     p
 }
 
-/// Per finding, `Some(why)` when the second look withdrew it; `None` when
-/// the reply answers for none of them. An unanswered finding is kept.
-pub(crate) fn withdrawn(reply: &str, n: usize) -> Option<Vec<Option<String>>> {
-    let mut out = vec![None; n];
+/// What the second look said of one finding.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Look {
+    Kept,
+    /// Withdrawn, and why.
+    Dropped(String),
+    /// Not named in the reply: kept, but not re-checked.
+    Unanswered,
+}
+
+/// Per finding, what the second look said; `None` when the reply answers
+/// for none of them. Reads `1 keep`, `2. drop — why`, `3 — drop — why`,
+/// `**4** keep` (the prompt's own `—` is often echoed after the number).
+pub(crate) fn withdrawn(reply: &str, n: usize) -> Option<Vec<Look>> {
+    let mut out = vec![Look::Unanswered; n];
     let mut any = false;
     for line in reply.lines() {
         let t = line.trim().trim_start_matches(['-', '*', ' ']);
@@ -47,7 +59,7 @@ pub(crate) fn withdrawn(reply: &str, n: usize) -> Option<Vec<Option<String>>> {
         let Ok(i) = digits.parse::<usize>() else {
             continue;
         };
-        let rest = t[digits.len()..].trim_start_matches(|c: char| ".):` ".contains(c));
+        let rest = t[digits.len()..].trim_start_matches(|c: char| ".):` —–-*".contains(c));
         let (word, why) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
         let word = word
             .trim_matches(|c: char| !c.is_alphabetic())
@@ -56,10 +68,12 @@ pub(crate) fn withdrawn(reply: &str, n: usize) -> Option<Vec<Option<String>>> {
             continue;
         }
         any = true;
-        if word == "drop" {
+        out[i - 1] = if word == "drop" {
             let why = why.trim_start_matches(|c: char| c.is_whitespace() || "—–-:".contains(c));
-            out[i - 1] = Some(why.trim().to_string());
-        }
+            Look::Dropped(why.trim().to_string())
+        } else {
+            Look::Kept
+        };
     }
     any.then_some(out)
 }
@@ -85,6 +99,12 @@ pub(crate) fn second_look(
         notes.push("deep review: the second look did not answer — findings unverified".into());
         return (t, notes);
     };
+    let unanswered = verdicts.iter().filter(|v| **v == Look::Unanswered).count();
+    if unanswered > 0 {
+        notes.push(format!(
+            "deep review: {unanswered} not re-checked — the second look did not name them"
+        ));
+    }
     let (mut kept, mut dropped, mut i) = (Vec::new(), t.dropped, 0);
     for line in t.text.lines() {
         let Some((_, file, at)) = finding(line) else {
@@ -92,12 +112,12 @@ pub(crate) fn second_look(
             continue;
         };
         match &verdicts[i] {
-            Some(why) => {
+            Look::Dropped(why) => {
                 let cite = at.map_or(file.clone(), |n| format!("{file}:{n}"));
                 let sep = if why.is_empty() { "" } else { " — " };
                 dropped.push(format!("{cite} withdrawn on a second look{sep}{why}"));
             }
-            None => kept.push(line),
+            Look::Kept | Look::Unanswered => kept.push(line),
         }
         i += 1;
     }

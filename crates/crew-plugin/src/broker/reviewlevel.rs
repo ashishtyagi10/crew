@@ -6,8 +6,8 @@
 //! Claude Code's review takes a level, and so does this one — read like the
 //! review gate (`reviewask`), from a few plain words, never a model call:
 //!
-//! - **quick** ("quick look", "glance", "skim"): the diff alone, no callers,
-//!   effort `low`, at most [`QUICK_MAX`] findings;
+//! - **quick** ("quick look", "quickly", "glance", "skim"): the diff alone,
+//!   no callers, effort `low`, the [`QUICK_MAX`] worst findings;
 //! - **standard** (anything else): the review as it was;
 //! - **deep** ("deep", "thorough", "careful", "security review"): callers in
 //!   front, and each finding put back to the reviewer for a second look
@@ -16,6 +16,8 @@
 //! Quick and deep say so on the reply's first line ("quick look · 3
 //! findings"), so the person knows which review they got.
 use crew_hive::Effort;
+
+use super::reviewfindings::{finding, tidy, Cited, Tidied, SEVERITIES};
 
 /// The most findings a quick look reports.
 pub(crate) const QUICK_MAX: usize = 5;
@@ -27,10 +29,10 @@ pub(crate) enum Level {
     Deep,
 }
 
-/// Words asking for a light pass.
-const QUICK: &[&str] = &[
-    "quick", "quickly", "glance", "skim", "brief", "briefly", "rough", "fast",
-];
+/// Words asking for a light pass. Not "fast", "rough" or "brief": those
+/// name the code as often as the look ("the diff that speeds up the fast
+/// path"), and a quick look by mistake hides all but five findings.
+const QUICK: &[&str] = &["quick look", "quickly", "glance", "skim"];
 
 /// Words asking for a harder one. Said together with a quick word ("a quick
 /// but thorough review"), deep wins: the cost of reading too much is time,
@@ -42,7 +44,9 @@ const DEEP: &[&str] = &[
     "thoroughly",
     "careful",
     "carefully",
-    "security",
+    // As a phrase: "review my security fix" is a standard review.
+    "security review",
+    "security audit",
     "in-depth",
     "exhaustive",
     "line by line",
@@ -133,28 +137,47 @@ pub(crate) fn prompt(level: Level, diff: &str, callers: &str) -> String {
     p
 }
 
-/// `reply` with finding bullets past the first `max` dropped: the quick
-/// look's bound kept even when the model overran it.
-pub(crate) fn at_most(reply: &str, max: usize) -> String {
-    let mut seen = 0;
-    reply
-        .lines()
-        .filter(|l| {
-            if super::reviewfindings::finding(l).is_none() {
-                return true;
-            }
-            seen += 1;
-            seen <= max
+/// `t` with only its `max` most severe findings (blocker, then warn, then
+/// nit; ties as written), the verdict recounted, and one line saying how
+/// many were cut: the quick look's bound kept even when the model overran
+/// it, without a blocker written seventh being the one to go. Runs after
+/// the citation check, so a false finding never takes a true one's place.
+pub(crate) fn worst(t: Tidied, max: usize) -> Tidied {
+    let lines: Vec<&str> = t.text.lines().collect();
+    let mut found: Vec<(usize, usize)> = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(i, l)| {
+            let (sev, _, _) = finding(l)?;
+            Some((SEVERITIES.iter().position(|s| *s == sev)?, i))
         })
-        .collect::<Vec<_>>()
-        .join("\n")
+        .collect();
+    if found.len() <= max {
+        return t;
+    }
+
+    found.sort_by_key(|&(rank, _)| rank);
+    let cut: Vec<usize> = found[max..].iter().map(|&(_, i)| i).collect();
+    let text: Vec<&str> = lines
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !cut.contains(i))
+        .map(|(_, l)| *l)
+        .collect();
+    // Every citation was checked already; this only recounts the verdict.
+    let mut shown = tidy(&text.join("\n"), &|_| Cited::Unknown);
+    shown.text = format!(
+        "{}\n{} more not shown — ask for a review for all",
+        shown.text,
+        cut.len()
+    );
+    shown.dropped = t.dropped;
+    shown
 }
 
 /// The finding bullets in `text`, as the pane will draw them.
 pub(crate) fn count(text: &str) -> usize {
-    text.lines()
-        .filter(|l| super::reviewfindings::finding(l).is_some())
-        .count()
+    text.lines().filter(|l| finding(l).is_some()).count()
 }
 
 #[cfg(test)]

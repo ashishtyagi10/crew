@@ -1,98 +1,11 @@
 //! What each level costs and sends, against a real repository and a fake
 //! reviewer that counts its calls and the effort each one ran at.
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::Mutex;
-use std::time::Duration;
-
-use super::run;
-use crate::broker::adapter::Adapter;
 use crate::broker::reviewlevel::Level;
 use crew_hive::Effort;
 
-/// Answers from a script, in order, and records each prompt with the
-/// effort the turn would have asked for.
-struct Reviewer {
-    replies: Mutex<Vec<String>>,
-    seen: Mutex<Vec<(String, Option<Effort>)>>,
-    none: PathBuf,
-}
-
-impl Adapter for Reviewer {
-    fn name(&self) -> &str {
-        "reviewer"
-    }
-    fn probe(&self) -> bool {
-        true
-    }
-    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
-        let effort = crate::broker::routeeffort::for_turn_at(&self.none, "reviewer");
-        self.seen.lock().unwrap().push((body.to_string(), effort));
-        let mut r = self.replies.lock().unwrap();
-        Ok(if r.is_empty() {
-            String::new()
-        } else {
-            r.remove(0)
-        })
-    }
-}
-
-fn reviewer(dir: &Path, replies: &[&str]) -> Reviewer {
-    Reviewer {
-        replies: Mutex::new(replies.iter().map(|s| s.to_string()).collect()),
-        seen: Mutex::new(Vec::new()),
-        none: dir.join("no-specialists"),
-    }
-}
-
-fn git(dir: &Path, args: &[&str]) {
-    assert!(Command::new("git")
-        .args(args)
-        .current_dir(dir)
-        .status()
-        .unwrap()
-        .success());
-}
-
-/// `foo` defined in lib.rs (12 lines) and called from app.rs.
-fn repo(tag: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "crew-reviewrun-{tag}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0),
-    ));
-    std::fs::create_dir_all(&dir).unwrap();
-    git(&dir, &["init", "-q"]);
-    git(&dir, &["config", "user.email", "t@t"]);
-    git(&dir, &["config", "user.name", "t"]);
-    let lib = format!(
-        "pub fn foo(a: u8) -> u8 {{\n    a\n}}\n{}",
-        "//\n".repeat(9)
-    );
-    std::fs::write(dir.join("lib.rs"), lib).unwrap();
-    std::fs::write(dir.join("app.rs"), "fn run() {\n    let x = foo(1);\n}\n").unwrap();
-    git(&dir, &["add", "-A"]);
-    git(&dir, &["commit", "-q", "-m", "init"]);
-    dir
-}
-
-const DIFF: &str = "--- a/lib.rs\n+++ b/lib.rs\n@@ -1,3 +1,3 @@\n\
-     -pub fn foo(a: u8) -> u8 {\n+pub fn foo(a: u8, b: u8) -> u8 {\n     a\n }\n";
-
-const TWO: &str = "- blocker — lib.rs:1 — arity changed\n\
-                   - warn — lib.rs:2 — b unused\n\nverdict: 1 blocker, 1 warn";
-
-fn ran(level: Level, replies: &[&str]) -> (super::Ran, Vec<(String, Option<Effort>)>) {
-    let dir = repo(&format!("{level:?}"));
-    let a = reviewer(&dir, replies);
-    let _outer = crate::broker::routeeffort::enter(Some(Effort::High));
-    let r = run(level, &dir, DIFF, &a, Duration::from_secs(5));
-    let _ = std::fs::remove_dir_all(&dir);
-    (r, a.seen.into_inner().unwrap())
-}
+#[path = "reviewrun_fixture_tests.rs"]
+mod fixture;
+use fixture::{ran, TWO};
 
 #[test]
 fn a_quick_look_is_one_cheap_call_on_the_diff_alone() {
@@ -163,6 +76,17 @@ fn a_deep_review_with_nothing_found_makes_no_second_call() {
 }
 
 #[test]
+fn a_finding_the_second_look_skipped_is_said_not_re_checked() {
+    let (r, _) = ran(Level::Deep, &[TWO, "2 keep"]);
+    let t = r.reply.unwrap().unwrap();
+    assert!(t.text.starts_with("deep review · 2 findings"), "{}", t.text);
+    assert_eq!(
+        r.notes,
+        ["deep review: 1 not re-checked — the second look did not name them"]
+    );
+}
+
+#[test]
 fn a_second_look_that_does_not_answer_leaves_the_findings_unverified() {
     let (r, seen) = ran(Level::Deep, &[TWO, "sure, all good"]);
     assert_eq!(seen.len(), 2);
@@ -173,12 +97,31 @@ fn a_second_look_that_does_not_answer_leaves_the_findings_unverified() {
 }
 
 #[test]
-fn a_quick_look_that_overruns_shows_five() {
-    let seven: Vec<String> = (1..=7)
-        .map(|n| format!("- nit — lib.rs:{n} — thing {n}"))
+fn a_quick_look_that_overruns_shows_the_five_worst_true_ones() {
+    // Two cite lines past lib.rs's end; a blocker comes last.
+    let mut seven: Vec<String> = (1..=6)
+        .map(|n| {
+            format!(
+                "- nit — lib.rs:{} — thing {n}",
+                if n <= 2 { 90 + n } else { n }
+            )
+        })
         .collect();
+    seven.push("- blocker — lib.rs:9 — the bug".into());
+    seven.push("- nit — lib.rs:10 — last".into());
     let (r, _) = ran(Level::Quick, &[&seven.join("\n")]);
     let t = r.reply.unwrap().unwrap();
     assert!(t.text.starts_with("quick look · 5 findings"), "{}", t.text);
-    assert!(t.text.ends_with("verdict: 5 nit"), "{}", t.text);
+    assert!(t.text.contains("lib.rs:9 — the bug"), "{}", t.text);
+    assert!(
+        t.text
+            .ends_with("verdict: 1 blocker, 4 nit\n1 more not shown — ask for a review for all"),
+        "{}",
+        t.text
+    );
+    assert_eq!(
+        t.dropped.len(),
+        2,
+        "the false ones are dropped, not counted"
+    );
 }

@@ -3164,7 +3164,7 @@ and a typo gets a **did-you-mean** suggestion):
   findings" for a clean diff). Read-only: nothing to apply, pairs naturally
   with "commit this" before you ship. It comes in **three levels**, read from
   your own words: "give my changes a **quick** look" (or skim, glance over) reads the diff
-  alone at low effort and reports at most 5 findings; "a **deep** / thorough
+  alone at low effort and reports the 5 worst findings (saying how many more it left out); "a **deep** / thorough
   / careful / security review of my diff" also puts each finding back to the reviewer
   for a second look and drops the ones it withdraws; anything else is the
   standard review. Quick and deep say which you got on the first line

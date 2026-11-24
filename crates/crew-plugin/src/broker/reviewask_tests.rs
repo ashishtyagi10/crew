@@ -33,6 +33,11 @@ fn anything_else_is_a_task_for_an_agent() {
         "what does the review command do?",
         "why does review.rs sort the diff best-first?",
         "show me the diff",
+        // A light word with everyday "change", "patch" or "staged".
+        "skim this article on climate change",
+        "glance at the changes in the new iOS release",
+        "take a quick look at the patch notes for 1.90",
+        "skim the staged rollout plan",
     ] {
         assert!(!asks_review(task), "{task}");
     }

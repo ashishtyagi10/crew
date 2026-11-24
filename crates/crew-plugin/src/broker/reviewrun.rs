@@ -47,13 +47,13 @@ pub(crate) fn run(level: Level, dir: &Path, diff: &str, a: &dyn Adapter, timeout
         }
         Ok(r) => r,
     };
-    let r = match level {
-        Level::Quick => reviewlevel::at_most(&r, reviewlevel::QUICK_MAX),
-        _ => r,
-    };
     // Checked before shown: a finding citing a file or line that is not
-    // there is dropped and said so, the verdict recounted.
+    // there is dropped and said so, the verdict recounted. The quick look's
+    // cut comes after, so a false finding never takes a true one's place.
     let mut t = super::reviewfindings::tidy_in(dir, diff, &r);
+    if level == Level::Quick {
+        t = reviewlevel::worst(t, reviewlevel::QUICK_MAX);
+    }
     if level == Level::Deep {
         let (seen, more) = super::reviewverify::second_look(dir, diff, &callers, a, timeout, t);
         t = seen;
