@@ -7,6 +7,7 @@
 //!   yazi, fzf's previews, notcurses and the kitty-graphics probes recognise
 //!   the terminal before they turn on pictures, synchronized output or
 //!   undercurl. vte has no arm for it, so without this it went unanswered.
+//! - XTGETTCAP, `DCS + q <hex names> ST`, "what can you do" (see `modelcaps`).
 
 /// The sequences answered here. None holds an ESC past its first byte, which
 /// is what lets [`Queries::feed`] restart cleanly on any ESC.
@@ -26,6 +27,8 @@ pub(crate) fn xtversion_reply() -> String {
 #[derive(Default)]
 pub(crate) struct Queries {
     matched: Vec<u8>,
+    /// XTGETTCAP, stepped on the same bytes so replies keep the asked order.
+    caps: modelcaps::Caps,
 }
 
 impl Queries {
@@ -33,6 +36,9 @@ impl Queries {
     pub(crate) fn feed(&mut self, bytes: &[u8], (w, h): (u32, u32)) -> String {
         let mut out = String::new();
         for &b in bytes {
+            if let Some(reply) = self.caps.step(b) {
+                out.push_str(&reply);
+            }
             self.matched.push(b);
             if !ALL.iter().any(|q| q.starts_with(&self.matched)) {
                 // An ESC always starts a new sequence, whatever came before.
@@ -53,6 +59,9 @@ impl Queries {
         out
     }
 }
+
+#[path = "modelcaps.rs"]
+mod modelcaps;
 
 #[cfg(test)]
 #[path = "modelquery_tests.rs"]

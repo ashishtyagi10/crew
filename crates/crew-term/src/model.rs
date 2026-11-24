@@ -77,7 +77,7 @@ pub(crate) struct TermCore {
     osc7: crate::osc::OscScanner,
     /// Sniffs DECSET 2031 (color-scheme notifications), invisible to the parser.
     scheme: crate::schemenotify::SchemeNotify,
-    /// Answers `CSI 16 t` and XTVERSION, which the parser does not dispatch.
+    /// Answers `CSI 16 t`, XTVERSION and XTGETTCAP, which the parser does not dispatch.
     cellq: modelsize::Queries,
     /// Where the drag began, and its kind. Kept because a selection's sides
     /// depend on the drag's DIRECTION, which only the anchor can tell us, and
