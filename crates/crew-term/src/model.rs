@@ -4,7 +4,7 @@ use alacritty_terminal::grid::{Dimensions, Scroll};
 use alacritty_terminal::index::{Column, Line, Point, Side};
 use alacritty_terminal::selection::{Selection, SelectionType};
 use alacritty_terminal::term::cell::Flags;
-use alacritty_terminal::term::{Config, Term, TermMode};
+use alacritty_terminal::term::{Config, Osc52, Term, TermMode};
 use alacritty_terminal::vte::ansi::Processor;
 
 use crate::color::{default_bg, resolve_color};
@@ -128,9 +128,11 @@ impl TermCore {
         let events = TermEvents::default();
         // A cursor nobody styled stays steady (crew's look before blink came, and an idle
         // prompt then costs no frames); a program asks to blink with 1/3/5 or `?12h`.
-        // The kitty keyboard protocol is honoured (see `modelkitty`).
+        // The kitty keyboard protocol is honoured (see `modelkitty`). OSC 52 reads are
+        // parsed always and gated by the app when it answers (see `modelclip`).
         let config = Config {
             kitty_keyboard: true,
+            osc52: Osc52::CopyPaste,
             ..Config::default()
         };
         let history_cap = config.scrolling_history;
@@ -176,11 +178,6 @@ impl TermCore {
 
     pub(crate) fn take_shell(&mut self) -> Vec<crate::osc::ShellMark> {
         self.osc7.take_shell()
-    }
-
-    /// Take any pending OSC 52 clipboard-store text (clearing it).
-    pub(crate) fn take_clipboard(&self) -> Option<String> {
-        self.events.clipboard.lock().unwrap().take()
     }
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
@@ -256,6 +253,8 @@ mod cursorpos;
 mod headless;
 #[path = "modelcells.rs"]
 mod modelcells;
+#[path = "modelclip.rs"]
+mod modelclip;
 #[path = "modelcolor.rs"]
 mod modelcolor;
 #[path = "modelevict.rs"]
@@ -281,6 +280,7 @@ mod modelwipe;
 #[path = "modelwrap.rs"]
 mod modelwrap;
 pub use headless::HeadlessTerm;
+pub use modelclip::ClipboardAsk;
 
 #[cfg(test)]
 #[path = "graphicsplace_tests.rs"]

@@ -71,6 +71,10 @@ pub(crate) enum Field {
     /// Lines a terminal keeps above its screen (see `scrollback`). Beside
     /// Nav width: both are a size in the window rather than a look.
     Scrollback,
+    /// Whether a terminal program may read the clipboard (OSC 52): `deny`
+    /// or `allow` (see `clipread`). In the Window card: it is how crew sits
+    /// on this machine, a permission rather than a look.
+    ClipboardRead,
     Notify,
     NotifyAgentDone,
     NotifyBell,
@@ -87,7 +91,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 32] = [
+pub(crate) const FIELDS: [Field; 33] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -110,6 +114,7 @@ pub(crate) const FIELDS: [Field; 32] = [
     Field::Maximized,
     Field::OptionMeta,
     Field::Scrollback,
+    Field::ClipboardRead,
     Field::Notify,
     Field::NotifyAgentDone,
     Field::NotifyBell,

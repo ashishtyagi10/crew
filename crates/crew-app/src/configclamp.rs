@@ -11,6 +11,10 @@ use super::*;
 impl CrewConfig {
     /// Every value read off disk pulled back into range.
     pub fn clamped(self) -> Self {
+        let clipboard_read = match self.clipboard_read_allowed() {
+            true => "allow".to_string(),
+            false => default_clipboard_read(),
+        };
         Self {
             // MUST carry through: `load()` clamps, so dropping this made every
             // launch a first run (no version note, no config migrations).
@@ -76,6 +80,8 @@ impl CrewConfig {
             usage_budget_5h: self.usage_budget_5h.max(10_000),
             usage_budget_7d: self.usage_budget_7d.max(10_000),
             model_recents: self.model_recents,
+            // Two values, failing closed: anything but `allow` reads as `deny`.
+            clipboard_read,
         }
     }
 }

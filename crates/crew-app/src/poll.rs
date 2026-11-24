@@ -652,12 +652,8 @@ impl CrewApp {
         if any_changed || actions_ran {
             self.redraw();
         }
-        // Honour OSC 52 copy requests from terminal programs.
-        if let Some(text) = self.take_pane_clipboard() {
-            if let Ok(mut cb) = arboard::Clipboard::new() {
-                let _ = cb.set_text(text);
-            }
-        }
+        // OSC 52 from terminal programs: copies, and reads behind the gate.
+        self.serve_pane_clipboard();
         self.sync_window_title();
         self.save_window_size_if_settled();
 

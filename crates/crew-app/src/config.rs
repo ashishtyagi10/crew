@@ -191,6 +191,11 @@ pub struct CrewConfig {
     /// live to open panes (`scrollback`). 100–100 000.
     #[serde(default = "default_scrollback")]
     pub scrollback: usize,
+    /// Whether a terminal program may READ the clipboard with OSC 52:
+    /// `deny` (the default) or `allow`, and then only the focused pane's
+    /// (see `clipread`). Anything else is `deny` — reading is a privacy risk.
+    #[serde(default = "default_clipboard_read")]
+    pub clipboard_read: String,
 }
 
 impl Default for CrewConfig {
@@ -206,6 +211,7 @@ impl Default for CrewConfig {
             todo_reminders: false,
             option_as_meta: false,
             scrollback: default_scrollback(),
+            clipboard_read: default_clipboard_read(),
             accent: None,
             maximized: false,
             last_dir: None,

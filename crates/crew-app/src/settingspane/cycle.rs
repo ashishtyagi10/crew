@@ -71,6 +71,11 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.shape_cues = ALL[next].to_string();
         }
+        // Two values, so either direction is the other one.
+        Field::ClipboardRead => {
+            let allow = d.clipboard_read_allowed();
+            d.clipboard_read = crate::clipread::VALUES[usize::from(!allow)].to_string();
+        }
         Field::Gradient => {
             let all = crate::gradientlvl::GradientLevel::ALL;
             let cur = all

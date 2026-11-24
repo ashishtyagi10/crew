@@ -75,6 +75,7 @@ fn widest_value(f: Field) -> Option<usize> {
         Field::Glass => longest(&["off", "low", "medium", "high"]),
         Field::Contrast => longest(&["auto", "normal", "high"]),
         Field::ShapeCues => longest(&["auto", "off", "on"]),
+        Field::ClipboardRead => longest(&crate::clipread::VALUES),
         Field::Smooth => longest(&["off", "light", "medium", "heavy", "255"]),
         Field::FontGamma => longest(&["off", "light", "medium", "full", "255"]),
         // Palette names, the case that started all of this.
