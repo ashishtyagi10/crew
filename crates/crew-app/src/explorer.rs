@@ -69,6 +69,8 @@ pub(crate) struct Explorer {
     pub(crate) revealed: Option<(u64, Option<PathBuf>)>,
     /// The tree's hold on the keyboard ([`crate::explorerkeys`]).
     pub keys: Option<crate::explorerkeys::TreeKeys>,
+    /// The name being typed to jump to while it does ([`crate::explorerfind`]).
+    pub find: crate::explorerfind::Find,
     /// The root last shown: kept while the focused pane has no directory of its own — a viewer
     /// the tree itself just opened must not swing the tree to somewhere else.
     pub(crate) root: RefCell<Option<PathBuf>>,

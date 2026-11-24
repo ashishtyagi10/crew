@@ -115,6 +115,7 @@ impl CrewApp {
             picked: e.picked.as_deref(),
             cursor,
             git: self.git_fleet.files(&self.explorer_root()),
+            find: cursor.and(e.find.live(crate::explorerfind::now())),
         };
         crate::explorerdraw::cells(&items, scroll, marks, (cols, rows))
     }
