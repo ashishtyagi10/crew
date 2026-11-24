@@ -188,9 +188,9 @@ pub(crate) fn failure_digest(output: &str) -> String {
     repeats::digest(output)
 }
 
-/// Remember that `what` was ruled out (see `ruled`): a user's correction
-/// (`tie_last`, joined to the files of the turn it corrects) or a line a
-/// compaction wrote.
+/// Remember that `what` was ruled out (see `ruled`): a line a compaction
+/// wrote. A user's correction comes in by `proposed` instead and is written
+/// only when the user keeps it.
 pub(crate) fn ruled_out(r: &SharedRecall, what: &str, tie_last: bool) {
     lock(r).record_ruled(what, tie_last);
 }

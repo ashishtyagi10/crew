@@ -3279,8 +3279,8 @@ and a typo gets a **did-you-mean** suggestion):
   message (a signed-in CLI leads, or the router is off), a short list of
   openings decides. That correction is joined to the files of the turn it
   corrects. It is **proposed, not kept**: the pane says in one line
-  `correction noted, not kept yet: … — say "keep" to remember it for later
-  work on these files, "forget" to drop it`, and until you answer **`keep`**
+  `correction noted, not kept yet — "keep" remembers it for later work on
+  these files, "forget" drops it: …`, and until you answer **`keep`**
   (or `keep it`) it reaches no prompt; **`forget`** drops it. Nothing
   proposed is written to disk, a newer correction replaces an unanswered
   one, and a broker restart drops it — silence is not a yes. With nothing

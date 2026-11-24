@@ -31,10 +31,10 @@ pub(crate) fn is_ruled(text: &str) -> bool {
 /// under (`correction::line` keeps 160 of the user's words).
 const QUOTE_CHARS: usize = 80;
 
-/// Whether the stored correction quotes `ask`. A correction is noted as its
-/// message is routed, BEFORE that message's own recall runs, and it must not
-/// come back in front of the very message that said it as something said
-/// "before".
+/// Whether the stored correction quotes `ask`. One already kept is sighted
+/// again as its message is routed, BEFORE that message's own recall runs
+/// (a new one waits for "keep", `proposed`), and it must not come back in
+/// front of the very message that said it as something said "before".
 pub(crate) fn quotes(stored: &str, ask: &str) -> bool {
     let head: String = ask.trim().chars().take(QUOTE_CHARS).collect();
     !head.is_empty() && is_ruled(stored) && stored.contains(&head)

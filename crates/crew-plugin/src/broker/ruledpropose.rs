@@ -22,12 +22,14 @@ const FORGETS: [&str; 3] = ["forget", "forget it", "forget that"];
 const SHOWN: usize = 120;
 
 /// Propose `what` and return the one line to say, or `None` when there is
-/// nothing to ask (`Recall::propose_ruled`).
+/// nothing to ask (`Recall::propose_ruled`). The two words lead and the
+/// quote trails: the line is broker chrome, folded when it runs long, and a
+/// fold must cut the quote, never the instruction.
 pub(crate) fn propose(r: &SharedRecall, what: &str) -> Option<String> {
     recall::lock(r).propose_ruled(what).then(|| {
         format!(
-            "correction noted, not kept yet: {} \u{2014} say \u{201c}keep\u{201d} to remember it \
-             for later work on these files, \u{201c}forget\u{201d} to drop it",
+            "correction noted, not kept yet \u{2014} \u{201c}keep\u{201d} remembers it for later \
+             work on these files, \u{201c}forget\u{201d} drops it: {}",
             clip_chars(what.trim(), SHOWN)
         )
     })
