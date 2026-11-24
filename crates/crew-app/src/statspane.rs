@@ -25,6 +25,8 @@ pub struct StatsPane {
     cpu_hist: crate::spark::History, // recent CPU %, drawn as a moving sparkline
     /// The Explorer section's tree (`explorer`).
     pub(crate) explorer: crate::explorer::Explorer,
+    /// How far the Inbox and Far lists are scrolled (`navlistscroll`).
+    pub(crate) lists: crate::navlistscroll::ListScroll,
 }
 
 impl StatsPane {
@@ -35,6 +37,7 @@ impl StatsPane {
             git: GitWatch::default(),
             cpu_hist: crate::spark::History::new(64),
             explorer: Default::default(),
+            lists: Default::default(),
         }
     }
 

@@ -138,7 +138,11 @@ impl CrewApp {
         self.cell_sel = None;
         // The sidebar's LOG is a window onto a much longer buffer; a wheel
         // over it moves that window rather than a pane's scrollback.
-        if self.explorer_scroll(lines) || self.scroll_log_at_cursor(lines) {
+        // The Explorer, Inbox and Far lists scroll under the wheel the same way.
+        if self.explorer_scroll(lines)
+            || self.list_scroll(lines)
+            || self.scroll_log_at_cursor(lines)
+        {
             self.redraw();
             return;
         }
