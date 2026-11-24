@@ -48,14 +48,24 @@ fn the_openings_catch_a_correction_and_not_a_task() {
     }
 }
 
+/// What the user keeps: the proposal, answered "keep".
+fn kept(r: &SharedRecall) -> Option<String> {
+    lock(r).keep_proposed()
+}
+
 #[test]
-fn the_routers_clause_is_remembered_with_the_users_words() {
+fn the_routers_clause_is_proposed_with_the_users_words_and_kept_on_keep() {
     let r = graph();
-    note(
+    let asked = note(
         &r,
         Some(Some("editing lib.rs by hand")),
         "regenerate it, don't edit",
-    );
+    )
+    .expect("a correction is proposed in one line");
+    assert!(asked.contains("editing lib.rs by hand"), "{asked}");
+    assert!(asked.contains("\u{201c}keep\u{201d}") && asked.contains("\u{201c}forget\u{201d}"));
+    assert!(!told(&r).contains("ruled out"), "proposed is not kept");
+    kept(&r).expect("it was waiting");
     let block = told(&r);
     assert!(block.contains("ruled out before"), "{block}");
     assert!(block.contains("editing lib.rs by hand"), "{block}");
@@ -65,16 +75,16 @@ fn the_routers_clause_is_remembered_with_the_users_words() {
 #[test]
 fn a_router_that_read_the_message_and_said_nothing_is_trusted() {
     let r = graph();
-    note(&r, Some(None), "no, the other file");
-    assert!(!told(&r).contains("ruled out"));
+    assert_eq!(note(&r, Some(None), "no, the other file"), None);
+    assert_eq!(kept(&r), None);
 }
 
 #[test]
 fn with_no_router_the_openings_decide() {
     let r = graph();
-    note(&r, None, "add a docstring");
-    assert!(!told(&r).contains("ruled out"));
-    note(&r, None, "no, the other file");
+    assert_eq!(note(&r, None, "add a docstring"), None);
+    assert!(note(&r, None, "no, the other file").is_some());
+    kept(&r);
     assert!(told(&r).contains("ruled out before"), "{}", told(&r));
 }
 

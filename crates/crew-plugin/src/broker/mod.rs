@@ -99,6 +99,7 @@ mod roundloop;
 mod route;
 mod routeeffort;
 mod ruledask;
+mod ruledpropose;
 mod run;
 mod rundigest;
 mod runfit;

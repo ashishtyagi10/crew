@@ -3278,7 +3278,13 @@ and a typo gets a **did-you-mean** suggestion):
   you ruled out on an optional `CORRECTS:` line. If no router read the
   message (a signed-in CLI leads, or the router is off), a short list of
   openings decides. That correction is joined to the files of the turn it
-  corrects. When a long turn compacts, its summary's `ruled out:` lines are
+  corrects. It is **proposed, not kept**: the pane says in one line
+  `correction noted, not kept yet: … — say "keep" to remember it for later
+  work on these files, "forget" to drop it`, and until you answer **`keep`**
+  (or `keep it`) it reaches no prompt; **`forget`** drops it. Nothing
+  proposed is written to disk, a newer correction replaces an unanswered
+  one, and a broker restart drops it — silence is not a yes. With nothing
+  proposed, "keep" is an ordinary task. When a long turn compacts, its summary's `ruled out:` lines are
   kept too. The next task on those files carries them first in the block, as
   `- ruled out before (2d ago): …`. Unrelated work never sees them.
   The openings are narrow on purpose: "no," and "don't touch X" count, "no

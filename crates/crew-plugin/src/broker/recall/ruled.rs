@@ -46,11 +46,36 @@ impl Recall {
     /// about, which often names no file itself. A compaction's line is not
     /// tied: the last recorded turn is an earlier task, not the one being
     /// compacted, and its own text names the files it is about.
+    pub(crate) fn record_ruled(&mut self, what: &str, tie_last: bool) {
+        let files = match tie_last {
+            true => self.last_files(),
+            false => Vec::new(),
+        };
+        self.record_ruled_tied(what, &files);
+    }
+
+    /// The keys of the files the turn recorded last mentions. Keys, not
+    /// ids: a proposed correction (`proposed`) holds them until the user
+    /// keeps it, and by then a forget or a prune may have renumbered the ids.
+    pub(crate) fn last_files(&self) -> Vec<String> {
+        let Some(prev) = self.prev else {
+            return Vec::new();
+        };
+        self.g
+            .neighbors(prev)
+            .filter_map(|(id, _)| self.g.node(id))
+            .filter(|n| n.kind == Kind::File)
+            .map(|n| n.key.clone())
+            .collect()
+    }
+
+    /// [`Recall::record_ruled`] joined to `files` (keys from
+    /// [`Recall::last_files`]); one the graph no longer holds is skipped.
     ///
     /// The same words twice are one node with two hits (the key is the
     /// text), so a summary that carries a line forward through every
     /// compaction does not fill the graph with copies of it.
-    pub(crate) fn record_ruled(&mut self, what: &str, tie_last: bool) {
+    pub(crate) fn record_ruled_tied(&mut self, what: &str, files: &[String]) {
         let what = what.trim();
         if !self.on || what.is_empty() {
             return;
@@ -71,16 +96,11 @@ impl Recall {
             let id = w.node(self, Kind::File, &p, &p, now);
             w.edge(self, node, id, Rel::Mentions);
         }
-        let last_files: Vec<NodeId> = match (tie_last, self.prev) {
-            (true, Some(prev)) => self
-                .g
-                .neighbors(prev)
-                .filter(|(id, _)| self.g.node(*id).is_some_and(|n| n.kind == Kind::File))
-                .map(|(id, _)| id)
-                .collect(),
-            _ => Vec::new(),
-        };
-        for id in last_files {
+        let tied: Vec<NodeId> = files
+            .iter()
+            .filter_map(|k| self.g.find(Kind::File, k))
+            .collect();
+        for id in tied {
             w.edge(self, node, id, Rel::Mentions);
         }
         w.flush(self);

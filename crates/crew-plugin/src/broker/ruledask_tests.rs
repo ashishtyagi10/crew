@@ -63,3 +63,15 @@ fn a_number_that_is_not_on_the_list_says_how_many_are() {
         "nothing is ruled out in this project"
     );
 }
+
+#[test]
+fn a_correction_not_kept_yet_is_listed_apart_and_unnumbered() {
+    let s = session();
+    crate::broker::ruledpropose::propose(&s.recall, "don't touch Cargo.lock");
+    let text = answer(&s, Ask::List);
+    assert!(
+        text.contains("not kept yet: don't touch Cargo.lock"),
+        "{text}"
+    );
+    assert!(!text.contains(". (just now) don't touch"), "{text}");
+}
