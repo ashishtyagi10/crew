@@ -5,13 +5,14 @@
 //! Both closed the running command's span and nothing else, so a program
 //! that died with mouse reporting on kept it on at the prompt: every wheel
 //! tick and click typed a mouse report into the command line, and every
-//! pane switch an `ESC [ I`. Now they also drop the input modes the program
-//! left behind (`PtyTerm::release_leftover_modes`).
+//! pane switch an `ESC [ I`; one that died with the cursor hidden left the
+//! prompt with no cursor. Now they also drop the input modes the program
+//! left behind and show the cursor (`PtyTerm::release_leftover_modes`).
 use crate::pane::TermPane;
 
 impl TermPane {
-    /// Close the command's span at buffer line `at` (time `ms`), and drop
-    /// the mouse and focus reporting it left switched on.
+    /// Close the command's span at buffer line `at` (time `ms`), drop the
+    /// mouse and focus reporting it left switched on, and show the cursor it hid.
     pub(crate) fn shell_back(&mut self, at: usize, ms: u64) {
         self.spans.close_at(at, ms);
         self.pty.release_leftover_modes();

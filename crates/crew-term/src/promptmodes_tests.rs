@@ -14,28 +14,31 @@ fn modes(alt_screen: bool, mouse: bool, focus_events: bool) -> InputModes {
 
 #[test]
 fn only_left_reporting_on_the_primary_screen_is_cleared() {
-    assert_eq!(leftover_reset(modes(false, false, false), false), None);
     assert_eq!(
-        leftover_reset(modes(false, true, false), false),
+        leftover_reset(modes(false, false, false), false, false),
+        None
+    );
+    assert_eq!(
+        leftover_reset(modes(false, true, false), false, false),
         Some(RESET)
     );
     assert_eq!(
-        leftover_reset(modes(false, false, true), false),
+        leftover_reset(modes(false, false, true), false, false),
         Some(RESET)
     );
     // Scheme notifications alone are a leftover too.
     assert_eq!(
-        leftover_reset(modes(false, false, false), true),
+        leftover_reset(modes(false, false, false), true, false),
         Some(RESET)
     );
     // A full-screen program may still be the one that asked.
-    assert_eq!(leftover_reset(modes(true, true, true), true), None);
+    assert_eq!(leftover_reset(modes(true, true, true), true, false), None);
     // Keys are the shell's own business: DECCKM alone is left on.
     let keys = InputModes {
         app_cursor: true,
         ..InputModes::default()
     };
-    assert_eq!(leftover_reset(keys, false), None);
+    assert_eq!(leftover_reset(keys, false, false), None);
 }
 
 fn pump_until(term: &mut PtyTerm, done: impl Fn(&PtyTerm) -> bool) -> bool {
