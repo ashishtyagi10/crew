@@ -130,7 +130,12 @@ fn one_insert_renders_one_block() {
         "the manual takes the block path"
     );
     render(&text, 80);
-    let mid = text[text.len() / 2..].find(" the ").expect("a word") + text.len() / 2;
+    // Halfway, stepped on to a char boundary: the manual is full of em dashes, and where its
+    // middle byte lands moves with every edit and with CRLF checkouts (Windows CI).
+    let half = (text.len() / 2..)
+        .find(|&i| text.is_char_boundary(i))
+        .unwrap();
+    let mid = text[half..].find(" the ").expect("a word") + half;
     text.insert(mid + 1, 'x');
     let before = rendered();
     let got = render(&text, 80);

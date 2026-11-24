@@ -172,7 +172,10 @@ fn time_inserts_into_the_manual() {
     let text = text.unwrap();
     let mut p = with(&text);
     p.start_editing(100);
-    p.caret_at = Some(text[text.len() / 2..].find(" the ").unwrap() as u32 + text.len() as u32 / 2);
+    let half = (text.len() / 2..)
+        .find(|&i| text.is_char_boundary(i))
+        .unwrap();
+    p.caret_at = Some((text[half..].find(" the ").unwrap() + half) as u32);
     p.relayout_caret(100, 40);
     let t = std::time::Instant::now();
     for _ in 0..100 {
