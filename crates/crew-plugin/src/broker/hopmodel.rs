@@ -11,7 +11,7 @@ use crew_hive::{
 };
 
 use super::{lock, Shared};
-use crate::broker::adapter::{Adapter, HopStream, Usage};
+use crate::broker::adapter::{Adapter, Engine, HopStream, Usage};
 
 type Call = Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>>;
 
@@ -26,6 +26,18 @@ pub(super) struct Bounded {
 }
 
 impl Bounded {
+    /// The engine's provider, bounded by `timeout` (the hop's, stretched
+    /// with a raised ceiling: `routeeffort::room`), its usage kept in `tally`.
+    pub(super) fn of(e: &Engine<'_>, timeout: Duration, tally: Shared) -> Self {
+        let (inner, model) = (Arc::clone(e.provider), e.model.to_string());
+        Self {
+            inner,
+            model,
+            timeout,
+            tally,
+        }
+    }
+
     fn call(&self, req: CompletionRequest, on_chunk: Option<ChunkFn>) -> Call {
         let (inner, tally) = (Arc::clone(&self.inner), Arc::clone(&self.tally));
         let (model, timeout) = (self.model.clone(), self.timeout);

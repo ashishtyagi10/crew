@@ -48,7 +48,7 @@ pub use anthropic::AnthropicProvider;
 pub use anthropicchain::AnthropicChain;
 pub use claudecli::ClaudeCliProvider;
 pub use completion::{Completion, CompletionRequest, ToolDef, ToolInvocation, ToolOutcome, Turn};
-pub use effort::Effort;
+pub use effort::{ceiling, Effort};
 pub use error::{api_message, ProviderError};
 use error::{extract_message, one_line};
 pub use fellback::parse_model_chain;

@@ -148,13 +148,24 @@ impl Turn {
 /// One user message to `coder` alone, an `ApiAdapter` on `replies`, with
 /// [`Files`] attached; `rounds` tool rounds, `stop` its `/stop`.
 pub(super) fn hop(native: bool, replies: Vec<Reply>, rounds: u32, stop: Arc<AtomicBool>) -> Turn {
+    hop_on("m", native, replies, rounds, stop)
+}
+
+/// [`hop`] with `coder` on the model `id`.
+pub(super) fn hop_on(
+    id: &str,
+    native: bool,
+    replies: Vec<Reply>,
+    rounds: u32,
+    stop: Arc<AtomicBool>,
+) -> Turn {
     let seen: Arc<Mutex<Vec<CompletionRequest>>> = Arc::default();
     let model = Model {
         native,
         replies: Mutex::new(replies),
         seen: Arc::clone(&seen),
     };
-    let agent = ApiAdapter::new("coder", "m", "", None, Arc::new(model)).unwrap();
+    let agent = ApiAdapter::new("coder", id, "", None, Arc::new(model)).unwrap();
     let ran: Arc<Mutex<Vec<String>>> = Arc::default();
     let broker = Broker::new(
         Registry::new(vec![Box::new(agent) as Box<dyn Adapter>]),

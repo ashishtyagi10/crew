@@ -83,3 +83,22 @@ fn the_levels_are_spelled_as_the_api_spells_them() {
     let words: Vec<_> = all.iter().map(|e| e.as_str()).collect();
     assert_eq!(words, ["low", "medium", "high", "xhigh", "max"]);
 }
+
+#[test]
+fn a_raised_level_raises_the_reply_ceiling_only_where_it_is_sent() {
+    let b = 4096;
+    assert_eq!(ceiling("claude-opus-5-5", Some(Effort::High), b), 16_000);
+    assert_eq!(ceiling("claude-opus-5-5", Some(Effort::Max), b), 32_000);
+    assert_eq!(ceiling("claude-sonnet-4-6", Some(Effort::Xhigh), b), 16_000);
+    // Opus 4.5 is sent `high` for `max`: its room follows what is sent.
+    assert_eq!(ceiling("claude-opus-4-5", Some(Effort::Max), b), 16_000);
+    assert_eq!(ceiling("claude-opus-5-5", Some(Effort::Low), b), b);
+    assert_eq!(ceiling("claude-opus-5-5", None, b), b);
+    // Not sent the level, so not given the room: Haiku 4.5, NIM, GPT-6.
+    assert_eq!(ceiling("claude-haiku-4-5", Some(Effort::Max), b), b);
+    assert_eq!(
+        ceiling("meta/llama-3.3-70b-instruct", Some(Effort::High), b),
+        b
+    );
+    assert_eq!(ceiling("gpt-6-sol", Some(Effort::High), b), b);
+}

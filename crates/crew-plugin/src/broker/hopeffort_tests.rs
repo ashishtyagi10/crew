@@ -38,3 +38,24 @@ fn once_the_routed_message_ends_the_next_hop_sends_no_level() {
     let t = go(true, vec![Ok(said("hi\n@done"))]);
     assert_eq!(efforts(&t), vec![None]);
 }
+
+#[test]
+fn a_hop_routed_high_on_a_model_that_thinks_gets_the_room_for_it() {
+    let ceilings = |id: &str, e: Option<Effort>| {
+        let _route = routeeffort::enter(e);
+        let t = hop_on(
+            id,
+            true,
+            vec![Ok(said("done\n@done"))],
+            4,
+            Default::default(),
+        );
+        t.seen.iter().map(|r| r.max_tokens).collect::<Vec<_>>()
+    };
+    assert_eq!(
+        ceilings("claude-opus-5-5", Some(Effort::High)),
+        vec![16_000]
+    );
+    assert_eq!(ceilings("claude-opus-5-5", None), vec![4096]);
+    assert_eq!(ceilings("m", Some(Effort::High)), vec![4096]);
+}

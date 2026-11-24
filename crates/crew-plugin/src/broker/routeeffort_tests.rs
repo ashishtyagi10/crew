@@ -81,7 +81,10 @@ fn a_rewritten_store_keeps_the_agent_s_level() {
     let base = store("high");
     super::super::specialists::record_at(&base, &[("coder".into(), "x".into())]);
     let kept = super::super::specialists::load_at(&base);
-    assert_eq!(kept[0].effort.as_deref(), Some("high"));
+    assert_eq!(
+        kept[0].effort.as_ref().and_then(|v| v.as_str()),
+        Some("high")
+    );
 }
 
 /// One request's JSON body, answered 401 so nothing retries or falls back.

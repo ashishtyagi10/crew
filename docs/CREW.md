@@ -2971,7 +2971,10 @@ and a typo gets a **did-you-mean** suggestion):
   model's highest — Opus 4.5 stops at `high`), and `reasoning_effort` on
   `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna` and `gpt-6-astra` when the request
   carries no tools (`xhigh`/`max` sent
-  as `high`). GPT-5.x, DeepSeek and the gateways are sent nothing.
+  as `high`). GPT-5.x, DeepSeek and the gateways are sent nothing. A raised
+  effort on Claude raises the reply ceiling with it (4096 tokens → 16K at
+  `high`, 32K at `xhigh`/`max`, since thinking counts against it), streams
+  the call, and stretches `CREW_BROKER_TIMEOUT_MS` by the same factor.
 - **"keep working until …"** — relay rounds until a judge agent (elected by
   the model) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
   the next round. The router's model picks the round count (`ROUNDS:`); 5

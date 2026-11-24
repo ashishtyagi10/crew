@@ -74,8 +74,31 @@ pub(crate) fn for_turn_at(base: &std::path::Path, agent: &str) -> Option<Effort>
     let own = super::specialists::load_at(base)
         .into_iter()
         .find(|s| s.name == agent)
-        .and_then(|s| s.effort.as_deref().and_then(Effort::parse));
+        .and_then(|s| s.effort.as_ref()?.as_str().and_then(Effort::parse));
     own.or_else(|| ROUTE.with(Cell::get))
+}
+
+/// The reply ceiling and deadline a call at `effort` on `model` gets, from
+/// the caller's own `base` and `timeout`: the ceiling `effort::ceiling`
+/// raises, and the deadline stretched with it, so a reply four times as
+/// long keeps the per-token pace `CREW_BROKER_TIMEOUT_MS` was set for
+/// rather than being dropped at 180 s. A dead stream still fails fast: the
+/// HTTP client's read bound (`CREW_HTTP_TIMEOUT_MS`) times silence, not
+/// the call.
+pub(crate) fn room(
+    model: &str,
+    effort: Option<Effort>,
+    base: u32,
+    timeout: std::time::Duration,
+) -> (u32, std::time::Duration) {
+    let ceiling = crew_hive::provider::ceiling(model, effort, base);
+    if ceiling <= base || base == 0 {
+        return (ceiling, timeout);
+    }
+    (
+        ceiling,
+        timeout.mul_f64(f64::from(ceiling) / f64::from(base)),
+    )
 }
 
 #[cfg(test)]
@@ -85,3 +108,7 @@ mod tests;
 #[cfg(test)]
 #[path = "routeeffortdoor_tests.rs"]
 mod door_tests;
+
+#[cfg(test)]
+#[path = "routeeffortroom_tests.rs"]
+mod room_tests;

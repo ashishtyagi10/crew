@@ -103,6 +103,29 @@ pub(crate) fn anthropic_field(model: &str, effort: Option<Effort>) -> Option<ser
         .then(|| serde_json::json!({ "effort": anthropic_level(model, effort).as_str() }))
 }
 
+/// The reply ceiling (`max_tokens`) a call at `effort` on `model` gets, where
+/// `base` is the caller's own. Thinking counts against `max_tokens`, and
+/// Claude 5.x always thinks: a hard plan at `high` could spend all 4096 of
+/// the relay's ceiling thinking and come back as nothing but the cut-off
+/// marker. So a raised level raises the room with it — `high` 16K, `xhigh`
+/// and `max` 32K, keyed off the level actually sent (Opus 4.5 asked `max` is
+/// sent `high`) — only on a model that takes the level: every Anthropic one
+/// that does documents 64K output or more (Opus 4.5 64K, the rest 128K).
+/// Everything else keeps `base`: NIM refuses a ceiling over the model's own
+/// limit, and GPT-6's output limit is not in crew's catalog, so it is not
+/// guessed at.
+pub fn ceiling(model: &str, effort: Option<Effort>, base: u32) -> u32 {
+    let Some(effort) = effort.filter(|_| anthropic_accepts(model)) else {
+        return base;
+    };
+    let room = match anthropic_level(model, effort) {
+        Effort::Low | Effort::Medium => return base,
+        Effort::High => 16_000,
+        Effort::Xhigh | Effort::Max => 32_000,
+    };
+    base.max(room)
+}
+
 /// The GPT-6 ids in crew's catalog. A sibling OpenAI adds later is sent
 /// nothing until its page is read: its levels are not known.
 const GPT6: &[&str] = &["gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-6-astra"];

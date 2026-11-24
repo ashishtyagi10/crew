@@ -31,9 +31,12 @@ pub(crate) struct Specialist {
     pub last_used: u64,
     /// How hard this agent's model thinks (`low` … `max`), written by hand;
     /// it outranks the route's (`routeeffort`). Absent from a file that never
-    /// set it, and kept through every rewrite.
+    /// set it, and kept through every rewrite. Any JSON value, read as a
+    /// level only when it is a string: a hand-typed `"effort": 3` failing
+    /// the whole parse emptied the roster, and the next `record` wrote the
+    /// file back without every specialist in it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub effort: Option<String>,
+    pub effort: Option<serde_json::Value>,
 }
 
 fn path(base: &Path) -> PathBuf {
