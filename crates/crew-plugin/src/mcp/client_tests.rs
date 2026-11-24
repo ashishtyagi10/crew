@@ -16,7 +16,8 @@ fn canned(tag: &str, responses: &[&str]) -> ServerConfig {
     }
 }
 
-const INIT: &str = r#"{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{},"serverInfo":{"name":"fake"}}}"#;
+const INIT: &str = r#"{"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"no such method"}}
+{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{},"serverInfo":{"name":"fake"}}}"#;
 const TOOLS: &str = r#"{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"echo","description":"Echo text back.\nSecond line ignored.","inputSchema":{}}]}}"#;
 const CALL_OK: &str = r#"{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"hello"},{"type":"text","text":"world"}],"isError":false}}"#;
 const CALL_ERR: &str = r#"{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"boom"}],"isError":true}}"#;

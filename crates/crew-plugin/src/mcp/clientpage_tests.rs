@@ -17,7 +17,8 @@ fn canned(responses: &[&str]) -> ServerConfig {
 
 #[test]
 fn every_page_of_tools_is_read() {
-    let init = r#"{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{},"serverInfo":{"name":"fake"}}}"#;
+    let init = r#"{"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"no such method"}}
+{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{},"serverInfo":{"name":"fake"}}}"#;
     let one = r#"{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"search","inputSchema":{}}],"nextCursor":"p2"}}"#;
     let two = r#"{"jsonrpc":"2.0","id":3,"result":{"tools":[{"name":"fetch","inputSchema":{}}]}}"#;
     let mut c = McpClient::connect(&canned(&[init, one, two])).unwrap();

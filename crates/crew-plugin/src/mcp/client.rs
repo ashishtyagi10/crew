@@ -2,15 +2,19 @@
 //! 2.0 over stdio. A reader thread feeds parsed lines into a channel; every
 //! request waits for its own `id` under a hard deadline, so a hung server can
 //! never block the broker. The child is killed on drop, like the plugin host.
-use std::io::{BufRead, BufReader, Write};
-use std::process::{Child, ChildStdin, Command, Stdio};
+//! Launch and the version handshake live in `handshake.rs`.
+use std::io::Write;
+use std::process::{Child, ChildStdin};
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
-use super::config::ServerConfig;
-use crew_hive::childproc::no_console_window;
+// Children of the client so they reach its private pipe without widening it.
+#[path = "handshake.rs"]
+mod handshake;
+#[path = "version.rs"]
+mod version;
 
 /// `tools/list` pages read at most: a server whose cursor never ends cannot
 /// hold the broker's start.
@@ -31,50 +35,17 @@ pub struct McpClient {
     stdin: ChildStdin,
     rx: Receiver<Value>,
     next_id: u64,
+    /// The protocol revision agreed with this server (see `version.rs`).
+    version: String,
+}
+
+/// Why a reply never came.
+enum Silence {
+    Timeout,
+    Closed,
 }
 
 impl McpClient {
-    /// Launch the server and run the `initialize` handshake.
-    pub fn connect(cfg: &ServerConfig) -> Result<Self, String> {
-        let mut child = no_console_window(&mut Command::new(&cfg.command))
-            .args(&cfg.args)
-            .envs(&cfg.env)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("failed to launch {}: {e}", cfg.command))?;
-        let stdout = child.stdout.take().expect("stdout was piped");
-        let stdin = child.stdin.take().expect("stdin was piped");
-        let (tx, rx) = mpsc::channel::<Value>();
-        std::thread::spawn(move || {
-            for line in BufReader::new(stdout).lines() {
-                let Ok(line) = line else { break };
-                if let Ok(v) = serde_json::from_str::<Value>(&line) {
-                    if tx.send(v).is_err() {
-                        break;
-                    }
-                }
-            }
-        });
-        let mut c = Self {
-            child,
-            stdin,
-            rx,
-            next_id: 0,
-        };
-        c.request(
-            "initialize",
-            json!({
-                "protocolVersion": "2024-11-05",
-                "capabilities": {},
-                "clientInfo": {"name": "crew", "version": env!("CARGO_PKG_VERSION")},
-            }),
-        )?;
-        c.notify("notifications/initialized")?;
-        Ok(c)
-    }
-
     fn send(&mut self, v: &Value) -> Result<(), String> {
         writeln!(self.stdin, "{v}").map_err(|e| format!("mcp write failed: {e}"))?;
         self.stdin
@@ -87,31 +58,52 @@ impl McpClient {
     }
 
     /// Send one request and wait for the matching response's `result`.
-    /// Notifications and stray messages are skipped; an `error` member or the
-    /// deadline turns into `Err`.
+    /// A modern server gets the per-request `_meta` its revision requires.
+    /// Notifications and stray messages are skipped; an `error` member, a
+    /// result that is not `complete`, or the deadline turns into `Err`.
     fn request(&mut self, method: &str, params: Value) -> Result<Value, String> {
         self.next_id += 1;
         let id = self.next_id;
+        let params = version::stamp(params, &self.version);
         self.send(&json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}))?;
-        let deadline = Instant::now() + timeout();
+        match self.wait(id, timeout()) {
+            Ok(Ok(result)) => version::complete(method, result),
+            Ok(Err(err)) => {
+                let m = err.get("message").and_then(Value::as_str).unwrap_or("?");
+                Err(format!("{method}: {m}"))
+            }
+            Err(Silence::Timeout) => {
+                // stdio has no stream to close: stopping work on the server
+                // takes a `notifications/cancelled` naming the request.
+                let _ = self.send(
+                    &json!({"jsonrpc": "2.0", "method": "notifications/cancelled",
+                    "params": {"requestId": id, "reason": "timed out"}}),
+                );
+                Err(format!("{method}: no response within {:?}", timeout()))
+            }
+            Err(Silence::Closed) => Err(format!("{method}: server closed its pipe")),
+        }
+    }
+
+    /// Wait up to `within` for the response to `id`: its `result` as `Ok`,
+    /// its `error` object as `Err`. Anything else on the pipe is skipped.
+    fn wait(&mut self, id: u64, within: Duration) -> Result<Result<Value, Value>, Silence> {
+        let deadline = Instant::now() + within;
         loop {
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
-                return Err(format!("{method}: no response within {:?}", timeout()));
+                return Err(Silence::Timeout);
             }
             match self.rx.recv_timeout(left) {
                 Ok(v) if v.get("id").and_then(Value::as_u64) == Some(id) => {
-                    if let Some(err) = v.get("error") {
-                        let m = err.get("message").and_then(Value::as_str).unwrap_or("?");
-                        return Err(format!("{method}: {m}"));
-                    }
-                    return Ok(v.get("result").cloned().unwrap_or(Value::Null));
+                    return Ok(match v.get("error") {
+                        Some(err) => Err(err.clone()),
+                        None => Ok(v.get("result").cloned().unwrap_or(Value::Null)),
+                    });
                 }
                 Ok(_) => {} // a notification or someone else's reply
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
-                Err(mpsc::RecvTimeoutError::Disconnected) => {
-                    return Err(format!("{method}: server closed its pipe"));
-                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => return Err(Silence::Closed),
             }
         }
     }
