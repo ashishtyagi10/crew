@@ -39,11 +39,15 @@ impl StatsPane {
             NavSection::Inbox => crate::navinbox::cells(
                 &crate::inboxglance::state(),
                 &crate::inboxglance::unread(),
+                self.lists.window(section, rows),
                 None,
                 crate::chattime::unix_now_ms() as i64,
                 (cols, rows),
             ),
-            NavSection::Far => crate::navfar::cells(&crate::farrecent::list(), None, (cols, rows)),
+            NavSection::Far => {
+                let win = self.lists.window(section, rows);
+                crate::navfar::cells(&crate::farrecent::list(), win, None, (cols, rows))
+            }
         }
     }
 

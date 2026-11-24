@@ -19,9 +19,8 @@ impl CrewApp {
     /// The unread thread under the pointer, as an index into `inboxglance::unread`.
     pub(crate) fn inbox_item_at_cursor(&self) -> Option<usize> {
         let (row, rows) = self.section_row(NavSection::Inbox)?;
-        let list = crate::inboxglance::unread();
-        let n = crate::navinbox::shown(&crate::inboxglance::state(), &list, rows);
-        crate::navinbox::item_at(row, n)
+        let (first, n) = self.list_window(NavSection::Inbox, rows);
+        crate::navinbox::item_at(row, n).map(|k| first + k)
     }
 
     /// A press on the Inbox panel: a thread opens in the inbox pane, any other row below the
@@ -79,6 +78,7 @@ impl CrewApp {
         crate::navinbox::cells(
             &crate::inboxglance::state(),
             &crate::inboxglance::unread(),
+            self.list_window(NavSection::Inbox, rows),
             self.inbox_item_at_cursor(),
             crate::chattime::unix_now_ms() as i64,
             (cols, rows),

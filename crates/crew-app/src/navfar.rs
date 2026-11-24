@@ -1,7 +1,7 @@
 //! The nav's Far section: the folders Far panes went to last (`farrecent`), newest first, one
 //! row each — the folder's name, then where it is, quieter. A click opens Far there: the open
 //! Far pane's active panel goes to it, or a Far pane opens on it. Anywhere else below the rule
-//! opens Far.
+//! opens Far. More folders than the panel holds: the wheel scrolls them (`navlistscroll`).
 use std::path::{Path, PathBuf};
 
 use crew_render::CellView;
@@ -19,11 +19,13 @@ pub(crate) fn item_at(row: u16, n: usize) -> Option<usize> {
     (k < n).then_some(k)
 }
 
-/// The section's cells for a panel `cols` × `rows`.
+/// The section's cells for a panel `cols` × `rows`: `(first, shown)` is the window of `list`
+/// it shows, `hover` the folder under the pointer (an index into `list`).
 pub(crate) fn cells(
     list: &[PathBuf],
+    (first, shown): (usize, usize),
     hover: Option<usize>,
-    (cols, rows): (u16, u16),
+    (cols, _rows): (u16, u16),
 ) -> Vec<CellView> {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
@@ -44,10 +46,9 @@ pub(crate) fn cells(
         crate::navtext::put_at(&mut out, "click to open far", ind, 2, max, accent);
         return out;
     }
-    let shown = usize::from(rows.saturating_sub(TOP));
-    for (k, dir) in list.iter().take(shown).enumerate() {
+    for (k, dir) in list.iter().skip(first).take(shown).enumerate() {
         let row = TOP + k as u16;
-        let lit = hover == Some(k);
+        let lit = hover == Some(first + k);
         let (name, at) = name_and_parent(dir);
         let from = out.len();
         let fg = if lit { accent } else { t.ink };
@@ -82,8 +83,8 @@ impl CrewApp {
     /// The recent folder under the pointer, as an index into `farrecent::list`.
     pub(crate) fn far_item_at_cursor(&self) -> Option<usize> {
         let (row, rows) = self.section_row(NavSection::Far)?;
-        let n = crate::farrecent::list().len().min(usize::from(rows - TOP));
-        item_at(row, n)
+        let (first, n) = self.list_window(NavSection::Far, rows);
+        item_at(row, n).map(|k| first + k)
     }
 
     /// A press on the Far panel. `true` when it was the panel's.
@@ -144,6 +145,7 @@ impl CrewApp {
     pub(crate) fn far_cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         cells(
             &crate::farrecent::list(),
+            self.list_window(NavSection::Far, rows),
             self.far_item_at_cursor(),
             (cols, rows),
         )

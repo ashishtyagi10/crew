@@ -71,6 +71,12 @@ pub(crate) fn list() -> Vec<PathBuf> {
     g.get_or_insert_with(load).clone()
 }
 
+/// Empty the list in memory — tests that filled it with temp folders they then delete.
+#[cfg(test)]
+pub(crate) fn clear() {
+    *LIST.lock().unwrap_or_else(|p| p.into_inner()) = Some(Vec::new());
+}
+
 /// Note `dir` as the newest; saved when the list changed. `true` when it did.
 pub(crate) fn note(dir: &Path) -> bool {
     let mut g = LIST.lock().unwrap_or_else(|p| p.into_inner());

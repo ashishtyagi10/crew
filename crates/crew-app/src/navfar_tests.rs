@@ -19,7 +19,7 @@ fn a_folder_reads_as_its_name_then_its_place() {
 fn each_row_is_one_folder_newest_first() {
     let _g = crate::app::theme_test_guard();
     let list = [PathBuf::from("/srv/one"), PathBuf::from("/srv/two")];
-    let cells = cells(&list, None, (30, 10));
+    let cells = cells(&list, (0, 2), None, (30, 10));
     assert!(text(&cells, 1).contains("one"));
     assert!(text(&cells, 1).contains("/srv"));
     assert!(text(&cells, 2).contains("two"));
@@ -31,34 +31,35 @@ fn each_row_is_one_folder_newest_first() {
 #[test]
 fn no_folders_yet_says_how_to_start() {
     let _g = crate::app::theme_test_guard();
-    let cells = cells(&[], None, (30, 10));
+    let cells = cells(&[], (0, 0), None, (30, 10));
     assert!(text(&cells, 1).contains("no folders yet"));
     assert!(text(&cells, 2).contains("open far"));
 }
 
 /// The pixel at the middle of where `word` is drawn in the nav, in a real frame.
 pub(crate) fn drawn_at(a: &mut CrewApp, word: &str) -> (f32, f32) {
+    find_drawn(a, word).unwrap_or_else(|| panic!("{word} drawn"))
+}
+
+/// Where `word` is drawn in the nav, if it is.
+pub(crate) fn find_drawn(a: &mut CrewApp, word: &str) -> Option<(f32, f32)> {
     let scenes = a.build_frame();
     let s = scenes
         .iter()
         .find(|s| s.x < 30.0 && s.h > 60.0)
         .expect("the nav");
     let w: Vec<char> = word.chars().collect();
-    let c = s
-        .cells
-        .iter()
-        .find(|c| {
-            w.iter().enumerate().all(|(i, ch)| {
-                s.cells
-                    .iter()
-                    .any(|d| d.row == c.row && d.col == c.col + i as u16 && d.c == *ch)
-            })
+    let c = s.cells.iter().find(|c| {
+        w.iter().enumerate().all(|(i, ch)| {
+            s.cells
+                .iter()
+                .any(|d| d.row == c.row && d.col == c.col + i as u16 && d.c == *ch)
         })
-        .unwrap_or_else(|| panic!("{word} drawn"));
-    (
+    })?;
+    Some((
         s.x + (f32::from(c.col) + 0.5) * 8.0,
         s.y + (f32::from(c.row) + 0.5) * 17.0,
-    )
+    ))
 }
 
 pub(crate) fn nav_app(section: &str) -> CrewApp {
@@ -100,5 +101,6 @@ fn a_click_on_a_folder_opens_far_there() {
     // …and the move is what the list learns next tick.
     a.tick_far_recent();
     assert_eq!(crate::farrecent::list().first(), Some(&two));
+    crate::farrecent::clear();
     let _ = std::fs::remove_dir_all(&base);
 }

@@ -38,7 +38,7 @@ fn each_thread_says_who_then_what() {
         thread("a", "Ann Lee <ann@x.org>", "Q4 plan"),
         thread("b", "bob@y.org", ""),
     ];
-    let cells = cells(&card, &list, None, 0, (30, 20));
+    let cells = cells(&card, &list, (0, 2), None, 0, (30, 20));
     assert!(text(&cells, 0).contains("2 unread"));
     assert!(text(&cells, 1).contains("Ann Lee"));
     assert!(text(&cells, 2).contains("Q4 plan"));
@@ -54,14 +54,14 @@ fn more_unread_than_rows_says_how_many_more() {
     };
     let list: Vec<_> = (0..12).map(|i| thread(&i.to_string(), "a", "s")).collect();
     // Room for 3 threads (rows 1..=6) and the note on row 7.
-    let cells = cells(&card, &list, None, 0, (30, 8));
+    let cells = cells(&card, &list, (0, 3), None, 0, (30, 8));
     assert!(text(&cells, 7).contains("37 more"), "{}", text(&cells, 7));
 }
 
 #[test]
 fn signed_out_says_so_instead_of_a_blank_panel() {
     let _g = crate::app::theme_test_guard();
-    let cells = cells(&Card::Off, &[], None, 0, (30, 10));
+    let cells = cells(&Card::Off, &[], (0, 0), None, 0, (30, 10));
     assert!(text(&cells, 1).contains("not signed in"));
     let none = Card::Count {
         unread: 0,
@@ -71,5 +71,5 @@ fn signed_out_says_so_instead_of_a_blank_panel() {
 }
 
 fn cells_of(card: &Card) -> Vec<CellView> {
-    cells(card, &[], None, 0, (30, 10))
+    cells(card, &[], (0, 0), None, 0, (30, 10))
 }

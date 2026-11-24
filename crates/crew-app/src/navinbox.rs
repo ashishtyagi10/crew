@@ -2,7 +2,8 @@
 //! long ago, then the subject — under an INBOX rule that carries the count. A click on a
 //! thread opens it in the inbox pane; anywhere else on the panel opens the inbox
 //! (`navinboxhit`). The rows come from the glance worker (`inboxglance`), which asks Gmail
-//! every five minutes and mirrors the pane while it is open.
+//! every five minutes and mirrors the pane while it is open. More threads than the panel
+//! holds: the wheel scrolls them (`navlistscroll`).
 use crew_render::CellView;
 
 use crate::inbox::wire::{sender_name, Thread};
@@ -18,26 +19,29 @@ pub(crate) fn fits(rows: u16) -> usize {
     usize::from(rows.saturating_sub(TOP) / PER)
 }
 
-/// The threads drawn for `card` and `list` in a panel `rows` tall: none when the panel says
-/// something else instead (signed out, nothing unread, the first count still coming).
-pub(crate) fn shown(card: &Card, list: &[Thread], rows: u16) -> usize {
+/// The threads `card` and `list` list, scrolled or not: none when the panel says something
+/// else instead (signed out, nothing unread). The panel shows a window of them
+/// ([`crate::navlistscroll::window`]).
+pub(crate) fn listed(card: &Card, list: &[Thread]) -> usize {
     match card {
         Card::Off | Card::Count { unread: 0, .. } => 0,
-        _ => list.len().min(fits(rows)),
+        _ => list.len(),
     }
 }
 
-/// The thread on content row `row`, of `n` shown.
+/// The thread on content row `row`, of `n` shown, counted from the window's first.
 pub(crate) fn item_at(row: u16, n: usize) -> Option<usize> {
     let k = usize::from(row.checked_sub(TOP)? / PER);
     (k < n).then_some(k)
 }
 
 /// The section's cells for a panel `cols` × `rows`: `card` says whether there is a mailbox
-/// at all, `list` what is unread in it, `hover` the thread under the pointer.
+/// at all, `list` what is unread in it, `(first, shown)` the window of it the panel shows,
+/// `hover` the thread under the pointer (an index into `list`).
 pub(crate) fn cells(
     card: &Card,
     list: &[Thread],
+    (first, shown): (usize, usize),
     hover: Option<usize>,
     now_ms: i64,
     (cols, rows): (u16, u16),
@@ -83,10 +87,9 @@ pub(crate) fn cells(
         }
         _ => {}
     }
-    let shown = shown(card, list, rows);
-    for (k, th) in list.iter().take(shown).enumerate() {
+    for (k, th) in list.iter().skip(first).take(shown).enumerate() {
         let row = TOP + k as u16 * PER;
-        let lit = hover == Some(k);
+        let lit = hover == Some(first + k);
         let age = crate::inbox::age::short(th.at_ms, now_ms);
         // The age stands at the right edge; the sender takes what is left of the row.
         let age_col = max.saturating_sub(crate::chatwidth::str_w(&age) as u16);
@@ -107,14 +110,15 @@ pub(crate) fn cells(
         let sub_fg = if lit { accent } else { t.text_muted };
         say(&mut out, row + 1, subject, sub_fg);
     }
-    // More unread than the panel shows: say how many the pane holds.
+    // More unread below the window: say how many the pane holds past it.
     let total = match card {
         Card::Count { unread, .. } => *unread as usize,
         _ => list.len(),
     };
     let row = TOP + shown as u16 * PER;
-    if total > shown && row < rows {
-        let more = format!("{} more in the inbox", total - shown);
+    let below = total.saturating_sub(first + shown);
+    if below > 0 && row < rows {
+        let more = format!("{below} more in the inbox");
         say(&mut out, row, &more, t.text_muted);
     }
     out

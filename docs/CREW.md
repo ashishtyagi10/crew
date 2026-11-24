@@ -509,6 +509,9 @@ conflict), and a folder holding changes tinted with a dot — read from the same
 `git status` the nav already asks every few seconds, so it costs no extra git.
 **Cmd+Shift+E** hands the tree the keyboard (see the keys table). The **gear**
 at the bar's foot opens the settings.
+The **Inbox** and **Far** sections list the newest unread threads and the
+folders Far went to last; a click opens one there, and the wheel scrolls either
+list when it is longer than the panel.
 Click an icon to open its section; click the open section's icon to put the
 panel away, as VS Code does; any icon on a put-away nav opens it on that
 section. `/nav panes`, `/nav system`, `/nav activity` and `/nav explorer` open
