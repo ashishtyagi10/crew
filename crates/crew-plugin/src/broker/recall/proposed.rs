@@ -16,7 +16,7 @@
 //! a yes. A broker restart drops it for the same reason — nothing proposed
 //! is ever kept unless the user said so.
 use super::node::Kind;
-use super::ruled::RULED;
+use super::ruled::ruled_key;
 use super::Recall;
 
 /// What waits for the user's word: the correction, and the keys of the
@@ -38,8 +38,7 @@ impl Recall {
         if !self.on || what.is_empty() || self.proposed() == Some(what) {
             return false;
         }
-        let key = format!("{RULED}{what}");
-        if self.g.find(Kind::Turn, &key).is_some() {
+        if self.g.find(Kind::Turn, &ruled_key(what)).is_some() {
             self.record_ruled(what, true);
             return false;
         }

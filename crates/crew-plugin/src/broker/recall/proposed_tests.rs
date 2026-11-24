@@ -43,6 +43,20 @@ fn kept_after_its_own_turn_is_recorded_it_reaches_the_corrected_file() {
     );
 }
 
+/// The control for the trap above: the same turns and words, but proposed
+/// before the parser turn existed, so no file is tied. It must NOT reach
+/// the parser's task — proof that the tie, not the shared word "parser",
+/// carried it there.
+#[test]
+fn kept_with_no_file_tie_the_shared_word_alone_does_not_carry_it() {
+    let mut r = Recall::default();
+    assert!(r.propose_ruled(NO));
+    r.record(FIX, "added Span to Token in crates/lang/src/parser.rs");
+    r.record(NO, "moved Span to crates/lang/src/lexer.rs instead");
+    assert_eq!(r.keep_proposed().as_deref(), Some(NO));
+    assert!(!told(&r).contains("ruled out before"), "{}", told(&r));
+}
+
 #[test]
 fn forgotten_it_writes_nothing() {
     let mut r = proposed();
@@ -79,4 +93,16 @@ fn with_recall_off_nothing_is_proposed() {
     let mut r = Recall::disabled();
     assert!(!r.propose_ruled(NO));
     assert_eq!(r.proposed(), None);
+}
+
+/// Longer than a stored correction keeps: found under the same clip, so it
+/// is sighted again, not proposed again as if new.
+#[test]
+fn a_long_correction_already_kept_is_not_asked_again() {
+    let long = format!("no, {}", "keep the lexer apart from the parser ".repeat(20));
+    let mut r = Recall::default();
+    assert!(r.propose_ruled(&long));
+    r.keep_proposed();
+    assert!(!r.propose_ruled(&long), "asked again");
+    assert_eq!(r.ruled().len(), 1);
 }

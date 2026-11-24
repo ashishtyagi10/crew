@@ -65,6 +65,23 @@ pub(crate) fn gate(
     Some(emit(smith_answer(said)))
 }
 
+/// A message typed while a task runs, offered to it (`steer::deliver`) —
+/// unless it is the answer to a waiting proposal. WHY: a "keep" typed while
+/// the correcting turn still runs would join its next tool round as words
+/// to the model, and [`gate`] would never see it. Not offered, nothing
+/// announces it taken, so the pane keeps its queued copy and sends it when
+/// the turn settles — to the gate, as if typed then.
+pub(crate) fn steer(r: &SharedRecall, channel: String, text: String) {
+    if !answers(r, &text) {
+        crate::broker::steer::deliver(channel, text);
+    }
+}
+
+/// Whether `text` is a word for the correction waiting now.
+pub(crate) fn answers(r: &SharedRecall, text: &str) -> bool {
+    word(text).is_some() && recall::lock(r).proposed().is_some()
+}
+
 pub(crate) fn answer(r: &SharedRecall, w: Word) -> Option<String> {
     let mut g = recall::lock(r);
     Some(match w {

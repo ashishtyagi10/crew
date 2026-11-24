@@ -21,6 +21,16 @@ pub(crate) const RULED: &str = "ruled out: ";
 /// Chars of one correction kept. It is a reminder, not the conversation.
 const RULED_KEPT: usize = 360;
 
+/// The text, and so the key, `what` is stored under: one function for the
+/// write and for `proposed`'s "already kept?" lookup, so a long correction
+/// is found under the clip it was kept with.
+pub(crate) fn ruled_key(what: &str) -> String {
+    format!(
+        "{RULED}{}",
+        crate::broker::thread::clip_chars(what.trim(), RULED_KEPT)
+    )
+}
+
 /// Whether a stored turn's text is a correction.
 pub(crate) fn is_ruled(text: &str) -> bool {
     text.starts_with(RULED)
@@ -81,10 +91,7 @@ impl Recall {
             return;
         }
         let now = now_ms();
-        let text = format!(
-            "{RULED}{}",
-            crate::broker::thread::clip_chars(what, RULED_KEPT)
-        );
+        let text = ruled_key(what);
         let mut w = Writer::default();
         let node = w.node(self, Kind::Turn, &text, &text, now);
         for t in extract::topics(what) {

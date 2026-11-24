@@ -38,6 +38,9 @@ fn the_proposal_line_names_it_and_both_words_once() {
     let s = Session::default();
     let line = propose(&s.recall, "don't touch Cargo.lock").expect("asked");
     assert!(line.contains("don't touch Cargo.lock"), "{line}");
+    for w in ["\u{201c}keep\u{201d}", "\u{201c}forget\u{201d}"] {
+        assert_eq!(line.matches(w).count(), 1, "{w} in {line}");
+    }
     assert!(!line.contains('\n'), "one line: {line}");
     assert_eq!(propose(&s.recall, "don't touch Cargo.lock"), None);
     assert_eq!(
@@ -45,4 +48,31 @@ fn the_proposal_line_names_it_and_both_words_once() {
         Some("forgot: don't touch Cargo.lock")
     );
     assert_eq!(answer(&s.recall, Word::Keep), None);
+}
+
+/// "keep" typed while the correcting turn still runs is held back from its
+/// tool rounds, so it reaches `gate` as a message; any other steer, and
+/// "keep" with nothing waiting, still joins the run.
+#[test]
+fn a_word_for_a_waiting_correction_is_not_steered_into_the_run() {
+    use crate::broker::steer::{take, tests as st};
+    let _t = st::turn();
+    let log = st::Log::default();
+    let _task = st::taking(&log);
+    let s = Session::default();
+    steer(&s.recall, "crew".into(), "keep".into());
+    assert_eq!(take(), ["keep"], "nothing waits: a steer like any other");
+    propose(&s.recall, "don't touch Cargo.lock").expect("asked");
+    steer(&s.recall, "crew".into(), "keep it".into());
+    steer(&s.recall, "crew".into(), "keep going".into());
+    assert_eq!(take(), ["keep going"]);
+    assert_eq!(
+        log.lock().unwrap().len(),
+        2,
+        "the held word is never announced"
+    );
+    assert_eq!(
+        recall::lock(&s.recall).proposed(),
+        Some("don't touch Cargo.lock")
+    );
 }

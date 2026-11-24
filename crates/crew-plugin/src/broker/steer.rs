@@ -180,7 +180,7 @@ pub(crate) fn told_in_test(said: &[&str]) {
 
 #[cfg(test)]
 #[path = "steer_tests.rs"]
-mod tests;
+pub(crate) mod tests;
 
 #[cfg(test)]
 #[path = "swarmsteer_tests.rs"]

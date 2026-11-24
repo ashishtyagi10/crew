@@ -100,11 +100,13 @@ fn a_router_that_says_no_correction_writes_none() {
     let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     seed_repo();
     let mut session = Session::new();
-    routed(
+    let said = routed(
         &mut session,
         "don't stop at src/gen.rs, also do src/api.rs",
         "SHAPE: reply",
     );
+    assert_eq!(proposals(&said), 0, "the router read it: {said:?}");
+    assert_eq!(lock(&session.recall).proposed(), None);
     assert!(!told(&session, "edit src/gen.rs").contains("ruled out"));
 }
 
