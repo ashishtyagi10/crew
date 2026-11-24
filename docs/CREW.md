@@ -4957,6 +4957,12 @@ Where those variables cannot reach (over ssh, inside tmux), a program can ask
 the terminal itself: **XTVERSION** (`CSI > q` or `CSI > 0 q`) answers
 `DCS > | crew <version> ST`, which is how neovim, yazi and notcurses tell
 which terminal they are drawing on.
+A program can also ask what crew can do by terminfo name: **XTGETTCAP**
+(`DCS + q <hex names> ST`) answers one `DCS 1 + r <name>=<value> ST` per name
+crew has (`TN`, `Co`/`colors`, `RGB`, `Tc`, `setrgbf`/`setrgbb`, `Ms` for
+OSC 52, `Ss`/`Se` for the cursor shape, `Smulx` for curly and other
+underlines) and `DCS 0 + r <name> ST` for the rest, so neovim over ssh or
+inside tmux turns on 24-bit colour without waiting out its one-second probe.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
