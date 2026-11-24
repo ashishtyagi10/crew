@@ -27,6 +27,8 @@ impl CrewApp {
         if self.explorer_item_at_cursor().is_none() {
             self.sidebar.explorer.keys = None;
         }
+        // …and from the Inbox or Far list: a click on one of its rows opens it as Enter would.
+        self.sidebar.lists.keys = None;
         // The nav's chevron first: it sits on the card's legend row, above
         // every row the sidebar answers for.
         if self.nav_chevron_at_cursor() {

@@ -12,6 +12,8 @@ use crate::navsection::NavSection;
 pub(crate) struct ListScroll {
     inbox: usize,
     far: usize,
+    /// The keyboard's hold on a list, when one has it (`navlistkeys`).
+    pub(crate) keys: Option<crate::navlistkeys::ListKeys>,
 }
 
 impl ListScroll {
@@ -34,6 +36,23 @@ impl ListScroll {
         let (len, fits) = extent(s, rows);
         window(off, len, fits)
     }
+
+    /// Scroll section `s`'s list so item `k` is in the window a panel `rows` tall shows: the
+    /// keyboard's cursor never walks off the panel. Through the same [`window`] the draw reads.
+    pub(crate) fn follow(&mut self, s: NavSection, k: usize, rows: u16) {
+        let (len, fits) = extent(s, rows);
+        let Some(off) = self.slot(s) else {
+            return;
+        };
+        let cur = window(*off, len, fits).0;
+        let wanted = cur.max((k + 1).saturating_sub(fits.max(1))).min(k);
+        *off = window(wanted, len, fits).0;
+    }
+}
+
+/// How many items section `s` lists, scrolled or not.
+pub(crate) fn listed(s: NavSection) -> usize {
+    extent(s, 0).0
 }
 
 /// The items a list of `len` shows from scroll `off` with room for `fits`: the first one and

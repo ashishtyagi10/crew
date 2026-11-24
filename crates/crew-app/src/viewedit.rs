@@ -32,7 +32,7 @@ impl CrewApp {
     /// A key for a viewer pane being edited. `true` when it was the editor's.
     pub(crate) fn view_edit_key(&mut self, event: &KeyEvent, mstate: ModifiersState) -> bool {
         // The Explorer holding the keys outranks an editing viewer behind it.
-        !self.tree_has_keys()
+        !self.nav_has_keys()
             && self.view_edit_input(&event.logical_key, event.state.is_pressed(), mstate)
     }
 
