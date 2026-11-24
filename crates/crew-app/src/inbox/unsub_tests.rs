@@ -173,12 +173,10 @@ fn one_click_is_one_form_post_and_a_mail_is_sent_through_gmail() {
         body: "unsubscribe".into(),
     };
     g.unsubscribe(&how).unwrap();
-    let sent: Vec<String> = seen.try_iter().collect();
-    assert!(
-        sent.iter()
-            .any(|r| r.starts_with("POST /gmail/messages/send")),
-        "{sent:?}"
-    );
+    // The stub records on its own thread: wait for the send, not what is queued now (CI flake).
+    let wait = || seen.recv_timeout(std::time::Duration::from_secs(5)).ok();
+    let send = std::iter::from_fn(wait).find(|r| r.starts_with("POST /gmail/messages/send"));
+    assert!(send.is_some(), "no send reached the stub");
     let (refused, _) = stub(404);
     let err = gmail(&refused).unsubscribe(&How::OneClick(format!("{refused}/u")));
     assert!(err.unwrap_err().contains("refused the unsubscribe"));

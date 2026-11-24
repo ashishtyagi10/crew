@@ -33,7 +33,13 @@ fn a_luna_tool_request_to_openai_asks_for_no_effort() {
 /// default effort, Luna answering without tools, and any gateway host.
 #[test]
 fn nothing_else_gets_an_effort() {
-    for model in ["gpt-5.5", "gpt-4.1", "gpt-6.1-sol", "gpt-6-lunar"] {
+    for model in [
+        "gpt-5.5",
+        "gpt-4.1",
+        "gpt-6.1-sol",
+        "gpt-6-lunar",
+        "gpt-6-luna-mini",
+    ] {
         let b = sent(OPENAI, tool_body(model));
         assert!(b.get("reasoning_effort").is_none(), "{model}: {b}");
     }

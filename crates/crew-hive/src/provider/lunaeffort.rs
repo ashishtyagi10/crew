@@ -18,7 +18,7 @@ pub(super) fn tools_at_no_effort(openai: bool, body: &mut Value) {
     let luna = body
         .get("model")
         .and_then(Value::as_str)
-        .is_some_and(|m| m == "gpt-6-luna" || m.starts_with("gpt-6-luna-"));
+        .is_some_and(is_luna);
     let tools = body
         .get("tools")
         .and_then(Value::as_array)
@@ -28,6 +28,18 @@ pub(super) fn tools_at_no_effort(openai: bool, body: &mut Value) {
     }
     if let Some(obj) = body.as_object_mut() {
         obj.insert("reasoning_effort".into(), json!("none"));
+    }
+}
+
+/// `gpt-6-luna` or a dated snapshot (`gpt-6-luna-2026-07-01`) — not a sibling such as a
+/// future `gpt-6-luna-mini`, whose tool rules the docs do not state.
+fn is_luna(m: &str) -> bool {
+    match m.strip_prefix("gpt-6-luna") {
+        Some("") => true,
+        Some(rest) => {
+            rest.starts_with('-') && rest[1..].chars().all(|c| c.is_ascii_digit() || c == '-')
+        }
+        None => false,
     }
 }
 
