@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
 use crew_hive::{
-    AgentFactory, AnthropicProvider, ApiFactory, Budget, Fleet, Job, ModelTier, TaskGraph,
+    AgentFactory, AnthropicChain, ApiFactory, Budget, Fleet, Job, ModelTier, TaskGraph,
 };
 use crew_render::CellView;
 
@@ -60,7 +60,7 @@ pub(crate) fn running(
 /// budget-capped API agents when `ANTHROPIC_API_KEY` is set, else free stub
 /// agents. (`/goal` selects its own backend because it also needs a planner.)
 pub(crate) fn executor() -> (Arc<dyn AgentFactory>, Option<Budget>) {
-    let provider = AnthropicProvider::from_env().ok();
+    let provider = AnthropicChain::from_env().ok();
     match backend_for(provider.is_some()) {
         Backend::Llm => {
             let provider = provider.expect("Llm backend implies a provider");

@@ -84,12 +84,23 @@ fn resolve(
                 ..Default::default()
             };
             match tokio::time::timeout(ONESHOT_TIMEOUT, provider.complete(req)).await {
-                Ok(Ok(c)) => Ok((c.text.clone(), Spent::billed(&model, TIER, &c))),
+                Ok(Ok(c)) => Ok((noted(&c), Spent::billed(&model, TIER, &c))),
                 Ok(Err(e)) => Err(e.to_string()),
                 Err(_) => Err(format!("timed out after {ONESHOT_TIMEOUT:?}")),
             }
         })
     }))
+}
+
+/// `c`'s advice, its first line opening on whose it is when the chain fell
+/// back (`fell back to <served> · <skipped>: <why>`, smith's wording): the
+/// agent would otherwise weigh Haiku's read as the Opus it asked for. At the
+/// head, because only the first lines are kept and the first is what smith says.
+fn noted(c: &crew_hive::Completion) -> String {
+    match crate::broker::fellback::detail(c) {
+        d if d.is_empty() => c.text.clone(),
+        d => format!("(fell back to {d}) {}", c.text.trim_start()),
+    }
 }
 
 #[cfg(test)]

@@ -59,3 +59,7 @@ fn bounded_shell_output(shell: &str, args: &[&str], timeout: Duration) -> Option
         }
     }
 }
+
+#[cfg(test)]
+#[path = "shellprobe_shell_tests.rs"]
+mod tests;

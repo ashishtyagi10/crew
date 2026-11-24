@@ -29,6 +29,23 @@ pub(super) fn attempt_chain(primary: &str, fallbacks: &[String]) -> Vec<String> 
     chain
 }
 
+/// A comma-separated model chain (`CREW_*_MODEL="a, b"`) as an ordered
+/// list, `default` when unset or blank. One parser for every chain knob, so
+/// the broker and the swarm read the same variable the same way.
+pub fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -> Vec<String> {
+    let parsed: Vec<String> = env_val
+        .unwrap_or_default()
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    if parsed.is_empty() {
+        default
+    } else {
+        parsed
+    }
+}
+
 /// One request's walk down its chain: each model that failed, as
 /// `model: why`, and the last error, which is the answer when none answers.
 #[derive(Default)]

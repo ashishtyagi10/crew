@@ -90,3 +90,34 @@ fn the_model_knob_names_the_model_and_a_blank_one_does_not() {
     answer(&ask, "b").unwrap();
     assert_eq!(asked.lock().unwrap()[0].model, "qwen-max");
 }
+
+/// A provider whose chain walked past the model asked for.
+struct Fell;
+
+impl Provider for Fell {
+    fn complete(
+        &self,
+        _: CompletionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        Box::pin(async {
+            Ok(Completion {
+                text: "read the E0308\nthen fix a.rs:3\nrebuild".into(),
+                model: "claude-sonnet-5-5".into(),
+                fell_back: "claude-opus-5-5: Overloaded".into(),
+                ..Default::default()
+            })
+        })
+    }
+}
+
+#[test]
+fn advice_from_a_fallback_says_whose_it_is() {
+    let found = || -> Found { Some((Arc::new(Fell), "claude-opus-5-5".into())) };
+    let (reply, _) = answer(&resolve(None, None, found).unwrap(), "b").unwrap();
+    let first = reply.lines().next().unwrap();
+    assert_eq!(
+        first,
+        "(fell back to claude-sonnet-5-5 \u{b7} claude-opus-5-5: Overloaded) read the E0308"
+    );
+    assert_eq!(reply.lines().count(), 3, "no line of advice pushed out");
+}

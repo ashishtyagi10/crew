@@ -3797,6 +3797,24 @@ per agent a turn, so a first model that is gone for good (a typo in
 `CREW_DASHSCOPE_MODEL`, a slug the region does not serve) cannot hide behind
 the one answering for it. The reply is billed at the model that answered.
 
+**The Anthropic key walks a chain too.** A request whose model, after its
+retries, is still overloaded (529 `overloaded_error`), rate-limited (429
+`rate_limit_error`: Anthropic limits each model separately, so another can
+still answer), failing on Anthropic's side (5xx `api_error`), or no longer
+served (404 `not_found_error`) steps down the family —
+`claude-opus-5-5` → `claude-sonnet-5-5` → `claude-haiku-5-5`, never up — and
+says so in the same `fell back to …` line. Only those three ids step; any other
+model you pin (`claude-opus-4-1`, a dated snapshot) is asked alone. Each step's
+request is built for that model (effort only where it is accepted). Any other
+error — a refused key, a permission or billing refusal, a bad request — ends
+the walk at once: every model on the key would meet it. Set your own order with
+`CREW_ANTHROPIC_MODEL="claude-opus-5-5,claude-sonnet-5-5"`; its first model
+answers every ask but the quick cheap-tier ones, which stay on Haiku. With a
+list set, the list replaces the built-in steps: an ask it does not hold (the
+swarm's per-task tier model, the advisor's) walks the list after it, skipping
+any model of a pricier family than the one asked. The swarm reads the same
+variable.
+
 **Direct vendor keys.** If you hold a key from the vendor itself, Crew talks to
 that vendor directly rather than routing you through OpenRouter. Each of these
 speaks the OpenAI chat-completions wire, so they share one client — only the

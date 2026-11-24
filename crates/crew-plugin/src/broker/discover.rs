@@ -64,21 +64,8 @@ pub(crate) fn dashscope_cheap(env: Option<String>) -> String {
 const DASHSCOPE_ENDPOINT: &str =
     "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
 
-/// Parse a comma-separated model chain into an ordered list, falling back to
-/// `default` when unset or empty.
-pub(crate) fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -> Vec<String> {
-    let parsed: Vec<String> = env_val
-        .unwrap_or_default()
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
-    if parsed.is_empty() {
-        default
-    } else {
-        parsed
-    }
-}
+/// The one chain parser, shared with the swarm's `AnthropicChain::from_env`.
+pub(crate) use crew_hive::provider::parse_model_chain;
 
 /// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -556,10 +543,16 @@ fn provider_and_model_with(
                 Some(base) => provider.with_base_url(&base),
                 None => provider,
             };
-            Some((
-                Arc::new(provider) as Arc<dyn crew_hive::Provider>,
-                tier.model_id().to_string(),
-            ))
+            // A comma list walks as the direct vendors' does; unset, an ask for
+            // a built-in tier id steps down the tiers (`anthropicrungs`). The cheap tier keeps
+            // Haiku: a list that opens on Opus must not price every quick pick.
+            let chain = parse_model_chain(std::env::var("CREW_ANTHROPIC_MODEL").ok(), Vec::new());
+            let model = match (tier, chain.first()) {
+                (crew_hive::ModelTier::Cheap, _) | (_, None) => tier.model_id().to_string(),
+                (_, Some(first)) => first.clone(),
+            };
+            let provider = provider.with_fallbacks(chain);
+            Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
     }
 }
