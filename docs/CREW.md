@@ -424,7 +424,7 @@ way that machine presses it.
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
-| Go to file — `/view`, its picker matching every file under the folder (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
+| Go to file — `/view`, its picker matching every file under the folder, the files viewed last first (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
 | Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder or preview a file, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
 | The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete (Fn+Backspace on a Mac; not its key repeat) forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
@@ -1521,7 +1521,12 @@ longer aim at.
   `src/explorerhit.rs`). The tree is walked on a worker, never on the frame
   thread (2,000 files, 8 deep, `target`/`node_modules`/`.git` and hidden
   entries skipped), and one walk answers for 30 seconds. A partial starting
-  at `/`, `~` or `.` names a place, so it lists only that place.
+  at `/`, `~` or `.` names a place, so it lists only that place. With
+  **nothing typed** the files you viewed last under the folder lead, newest
+  first and marked `recent` (VS Code's and Zed's quick open), then the
+  folder's rows; typed, a recently viewed file wins a tie with an equally
+  good match. The last 50 files any viewer opened are kept in
+  `<config_dir>/crew/view-recent`.
 
   This is one `read_dir` of one directory per keystroke, never a walk: it runs
   on the thread every pane is drawn from, and a stall there freezes the whole

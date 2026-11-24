@@ -54,3 +54,60 @@ fn writing_and_running_commands_offer_no_file_to_write_over() {
     );
     assert_eq!(labels("/batch read", &base), ["readme.md"], "no tree rows");
 }
+
+/// Cmd+P with nothing typed: the files viewed last lead, newest first and
+/// marked `recent`, then the folder's own rows as before — the recent one
+/// at the top not listed again among them. `/dump` gets none.
+#[test]
+fn nothing_typed_leads_with_the_files_viewed_last() {
+    let _g = crate::app::theme_test_guard();
+    let base = fixture("recent");
+    std::fs::create_dir_all(base.join("alpha/deep")).unwrap();
+    std::fs::write(base.join("alpha/deep/notes.md"), b"x").unwrap();
+    crate::viewrecent::note(&base.join("readme.md"));
+    crate::viewrecent::note(&base.join("alpha/deep/notes.md"));
+    let mut got = Vec::new();
+    for _ in 0..200 {
+        got = labels("/view ", &base);
+        if got.len() > 4 {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert_eq!(
+        got,
+        [
+            "alpha/deep/notes.md",
+            "readme.md",
+            "alpha/",
+            "beta/",
+            "agenda.txt"
+        ]
+    );
+    let top = rows("/view ", &base).unwrap().remove(0);
+    assert_eq!(top.desc, "recent");
+    assert_eq!(top.fill, "/view alpha/deep/notes.md");
+    assert!(labels("/dump ", &base).iter().all(|l| l.ends_with('/')));
+    // Viewing one again reorders a picker already built for this query.
+    crate::viewrecent::note(&base.join("readme.md"));
+    assert_eq!(
+        labels("/view ", &base)[..2],
+        ["readme.md", "alpha/deep/notes.md"]
+    );
+}
+
+/// The first Cmd+P, before any walk of the root has landed, already leads with
+/// the files viewed last — a hidden one and one under `target/` (both of which
+/// the walk skips) included, straight from the recent list.
+#[test]
+fn recent_rows_show_before_the_walk_and_past_its_skips() {
+    let _g = crate::app::theme_test_guard();
+    let base = fixture("recentfirst");
+    std::fs::create_dir_all(base.join("target")).unwrap();
+    std::fs::write(base.join("target/out.md"), b"x").unwrap();
+    std::fs::write(base.join(".notes.md"), b"x").unwrap();
+    crate::viewrecent::note(&base.join("target/out.md"));
+    crate::viewrecent::note(&base.join(".notes.md"));
+    let got = labels("/view ", &base); // the first call: no walk yet
+    assert_eq!(got[..2], [".notes.md", "target/out.md"], "{got:?}");
+}

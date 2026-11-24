@@ -75,7 +75,7 @@ impl CrewApp {
         });
         if let Some(i) = reuse {
             if let crate::pane::PaneContent::View(v) = &mut self.panes[i].content {
-                *v = crate::viewpane::ViewPane::open(path);
+                *v = crate::viewrecent::open(path);
             }
             self.focused = i;
             self.input.focused = false;

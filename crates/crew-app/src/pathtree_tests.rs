@@ -15,7 +15,7 @@ fn name_prefix_then_substring_then_subsequence() {
         "src/deep/nested/hit.rs",
         "src/ex_plorer_h_i_t.rs",
     ]);
-    let got: Vec<String> = best(&f, "hit").into_iter().map(|(p, _)| p).collect();
+    let got: Vec<String> = best(&f, "hit", &[]).into_iter().map(|(p, _)| p).collect();
     assert_eq!(
         got,
         [
@@ -26,7 +26,7 @@ fn name_prefix_then_substring_then_subsequence() {
             "src/ex_plorer_h_i_t.rs",
         ]
     );
-    let got: Vec<String> = best(&f, "exhit").into_iter().map(|(p, _)| p).collect();
+    let got: Vec<String> = best(&f, "exhit", &[]).into_iter().map(|(p, _)| p).collect();
     assert_eq!(got, ["src/explorerhit.rs", "src/ex_plorer_h_i_t.rs"]);
 }
 
@@ -50,7 +50,7 @@ fn letters_in_the_name_beat_letters_across_the_path() {
         "crates/crew-app/src/inbox/html/corpus/github.md",
         "zz/explorerhit.rs",
     ]);
-    let got: Vec<String> = best(&f, "exhit").into_iter().map(|(p, _)| p).collect();
+    let got: Vec<String> = best(&f, "exhit", &[]).into_iter().map(|(p, _)| p).collect();
     assert_eq!(
         got,
         ["zz/explorerhit.rs"],
@@ -58,20 +58,20 @@ fn letters_in_the_name_beat_letters_across_the_path() {
     );
     let alone = list(&["crates/crew-app/src/inbox/html/corpus/github.md"]);
     assert_eq!(
-        best(&alone, "exhit").len(),
+        best(&alone, "exhit", &[]).len(),
         1,
         "a guess when it is all there is"
     );
     // Inside a tier the tighter match leads, whatever the length.
     let f = list(&["e_x_h_i_t.rs", "a/much/longer/path/exhibit.rs"]);
-    let got: Vec<String> = best(&f, "exht").into_iter().map(|(p, _)| p).collect();
+    let got: Vec<String> = best(&f, "exht", &[]).into_iter().map(|(p, _)| p).collect();
     assert_eq!(got[0], "a/much/longer/path/exhibit.rs");
 }
 
 #[test]
 fn rows_are_capped() {
     let many: Vec<String> = (0..100).map(|i| format!("f{i}.rs")).collect();
-    assert_eq!(best(&many, "f").len(), MAX_ROWS);
+    assert_eq!(best(&many, "f", &[]).len(), MAX_ROWS);
 }
 
 /// The first read starts a walk and answers nothing; once it lands the same
@@ -120,7 +120,7 @@ fn go_to_file_shot() {
     let walked = t0.elapsed();
     let files = files(&root, 0).expect("walked");
     let t1 = std::time::Instant::now();
-    let _ = best(&files, "exhit");
+    let _ = best(&files, "exhit", &[]);
     eprintln!(
         "walk {walked:?} for {} files; rank {:?}",
         files.len(),

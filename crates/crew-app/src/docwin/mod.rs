@@ -92,7 +92,7 @@ impl DocWindow {
         let mut me = Self {
             window,
             renderer,
-            view: ViewPane::open(path),
+            view: crate::viewrecent::open(path),
             mods: Default::default(),
             warned: false,
             pointer: (0.0, 0.0),
