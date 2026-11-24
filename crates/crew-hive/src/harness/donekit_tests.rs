@@ -97,11 +97,21 @@ impl Tools for Shop {
 /// What a turn playing `steps` did: the requests the model saw, the briefs
 /// the advisor got, and smith's lines.
 pub(super) async fn turn(native: bool, steps: &[Step]) -> (Vec<String>, Vec<String>, Vec<String>) {
+    turn_with(native, steps, true).await
+}
+
+/// [`turn`], with an advisor to find only when `configured`.
+pub(super) async fn turn_with(
+    native: bool,
+    steps: &[Step],
+    configured: bool,
+) -> (Vec<String>, Vec<String>, Vec<String>) {
     let shown: Arc<Mutex<Vec<String>>> = Arc::default();
     let (briefs, said): (Arc<Mutex<Vec<String>>>, Arc<Mutex<Vec<String>>>) = Default::default();
     let keep = Arc::clone(&briefs);
     let find: Find = Arc::new(move || {
         let keep = Arc::clone(&keep);
+        configured.then_some(())?;
         Some(Arc::new(move |brief: String| -> Asked {
             keep.lock().unwrap().push(brief);
             Box::pin(async { Ok((ADVICE.to_string(), Spent::default())) })

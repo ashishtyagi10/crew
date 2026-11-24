@@ -63,13 +63,10 @@ pub(crate) fn enabled() -> bool {
     std::env::var("CREW_CHECK").ok().as_deref() != Some("0")
 }
 
-/// Commands crew will believe are a check: the one list, which the advisor
-/// reads too when it asks whether the agent ran one (`crew_hive::checkrun`).
-use crew_hive::checkrun::RUNNERS;
-
-/// What a line has to be about, best reason first — a file that names both a
-/// test and a build command should have its TEST command run.
-const REASONS: &[&str] = &["test", "check", "verify", "lint", "build"];
+/// Commands crew will believe are a check, and what a line naming one has to
+/// be about: the lists the advisor reads too when it asks whether the agent
+/// ran a check (`crew_hive::checkrun`).
+use crew_hive::checkrun::{REASONS, RUNNERS};
 
 /// Shell syntax that turns one command into several. Refused rather than
 /// escaped: the point is that crew runs a build tool, not a script.

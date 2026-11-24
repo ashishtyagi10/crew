@@ -3,7 +3,7 @@
 //! answers again with the advice in front of it; one whose check passed after
 //! its edit, or that edited nothing, or whose reads are spent, is not.
 use crate::advisor::HEAD;
-use kit::{turn, Step, ADVICE};
+use kit::{turn, turn_with, Step, ADVICE};
 
 #[path = "donekit_tests.rs"]
 mod kit;
@@ -80,4 +80,13 @@ async fn a_turn_whose_reads_are_spent_answers_unread() {
     assert_eq!(briefs.len(), crate::advisor::PER_TURN as usize);
     assert!(briefs.iter().all(|b| b.contains("THE COMMAND THAT FAILED")));
     assert_eq!(shown.len(), 4, "the answer stood");
+}
+
+#[tokio::test]
+async fn with_no_advisor_configured_the_answer_stands() {
+    for native in [false, true] {
+        let (shown, briefs, said) = turn_with(native, &[EDIT_A], false).await;
+        assert!(briefs.is_empty() && said.is_empty(), "native {native}");
+        assert_eq!(shown.len(), 2, "native {native}");
+    }
 }

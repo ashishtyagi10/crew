@@ -47,7 +47,7 @@ impl Done {
         let field = |k: &str| args[k].as_str().map(str::to_string);
         match (call.server.as_str(), call.tool.as_str()) {
             ("sys", "edit" | "write_file") if ok => {
-                let path = field("path").unwrap_or_else(|| call.args.clone());
+                let path = field("path").unwrap_or_else(|| clip_middle(&call.args, 80));
                 if !self.edited.contains(&path) {
                     self.edited.push(path);
                 }

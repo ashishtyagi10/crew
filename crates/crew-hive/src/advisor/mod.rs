@@ -43,8 +43,9 @@ mod text;
 
 pub use text::HEAD;
 
-/// Most advisor calls in one turn. A turn that keeps failing past two reads
-/// has a problem a third read of the same output will not name.
+/// Most advisor calls in one turn, failures, stalls and answers together. A
+/// turn that keeps failing past two reads has a problem a third read of the
+/// same output will not name.
 pub const PER_TURN: u32 = 2;
 
 /// What one advisor call comes back with: its reply and what it cost, or why
