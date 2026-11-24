@@ -19,7 +19,7 @@ fn a_folder_reads_as_its_name_then_its_place() {
 fn each_row_is_one_folder_newest_first() {
     let _g = crate::app::theme_test_guard();
     let list = [PathBuf::from("/srv/one"), PathBuf::from("/srv/two")];
-    let cells = cells(&list, (0, 2), None, (30, 10));
+    let cells = cells(&list, (0, 2), &Default::default(), (30, 10));
     assert!(text(&cells, 1).contains("one"));
     assert!(text(&cells, 1).contains("/srv"));
     assert!(text(&cells, 2).contains("two"));
@@ -31,7 +31,7 @@ fn each_row_is_one_folder_newest_first() {
 #[test]
 fn no_folders_yet_says_how_to_start() {
     let _g = crate::app::theme_test_guard();
-    let cells = cells(&[], (0, 0), None, (30, 10));
+    let cells = cells(&[], (0, 0), &Default::default(), (30, 10));
     assert!(text(&cells, 1).contains("no folders yet"));
     assert!(text(&cells, 2).contains("open far"));
 }

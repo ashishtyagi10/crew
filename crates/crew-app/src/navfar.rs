@@ -2,6 +2,7 @@
 //! row each — the folder's name, then where it is, quieter. A click opens Far there: the open
 //! Far pane's active panel goes to it, or a Far pane opens on it. Anywhere else below the rule
 //! opens Far. More folders than the panel holds: the wheel scrolls them (`navlistscroll`).
+//! A row's `×`, a gone folder and the open Far pane's folder are drawn in `navfarrow`.
 use std::path::{Path, PathBuf};
 
 use crew_render::CellView;
@@ -20,11 +21,12 @@ pub(crate) fn item_at(row: u16, n: usize) -> Option<usize> {
 }
 
 /// The section's cells for a panel `cols` × `rows`: `(first, shown)` is the window of `list`
-/// it shows, `hover` the folder under the pointer (an index into `list`).
+/// it shows, `marks` the hover, the `×`, the open Far pane's folder and the gone ones
+/// (`navfarrow`).
 pub(crate) fn cells(
     list: &[PathBuf],
     (first, shown): (usize, usize),
-    hover: Option<usize>,
+    marks: &crate::navfarrow::Marks,
     (cols, _rows): (u16, u16),
 ) -> Vec<CellView> {
     let t = crew_theme::theme();
@@ -47,21 +49,8 @@ pub(crate) fn cells(
         return out;
     }
     for (k, dir) in list.iter().skip(first).take(shown).enumerate() {
-        let row = TOP + k as u16;
-        let lit = hover == Some(first + k);
-        let (name, at) = name_and_parent(dir);
-        let from = out.len();
-        let fg = if lit { accent } else { t.ink };
-        crate::navtext::put_at(&mut out, &name, ind, row, max, fg);
-        for c in &mut out[from..] {
-            c.bold = true;
-        }
-        crate::navtext::put_at(&mut out, "\u{25b8}", 1, row, ind, t.text_muted);
-        // Where it is, after the name, when the row has room for a few letters of it.
-        let col = ind + crate::chatwidth::str_w(&name) as u16 + 2;
-        if col + 4 < max {
-            crate::navtext::put_at(&mut out, &at, col, row, max, t.text_muted);
-        }
+        let look = marks.look(first + k, dir);
+        crate::navfarrow::draw(&mut out, dir, TOP + k as u16, cols, look);
     }
     out
 }
@@ -109,7 +98,7 @@ impl CrewApp {
     }
 
     /// The Far pane a click goes to: the focused one, else the first; `None`: no Far pane.
-    fn far_pane(&self) -> Option<usize> {
+    pub(crate) fn far_pane(&self) -> Option<usize> {
         let far = |i: &usize| matches!(self.panes[*i].content, PaneContent::Far(_));
         Some(self.focused)
             .filter(|i| *i < self.panes.len() && far(i))
@@ -148,8 +137,8 @@ impl CrewApp {
     /// The Far section's cells for a panel `cols` × `rows`.
     pub(crate) fn far_cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         let win = self.list_window(NavSection::Far, rows);
-        let hover = self.far_item_at_cursor();
-        let mut out = cells(&crate::farrecent::list(), win, hover, (cols, rows));
+        let marks = self.far_marks();
+        let mut out = cells(&crate::farrecent::list(), win, &marks, (cols, rows));
         self.list_bar(&mut out, NavSection::Far, win, cols);
         out
     }

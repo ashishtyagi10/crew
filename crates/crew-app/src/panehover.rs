@@ -113,7 +113,8 @@ impl CrewApp {
         let nav = publish_nav(self.pane_at_sidebar())
             | crate::navbar::publish_hover(self.bar_at_cursor())
             | crate::explorerhit::publish_hover(self.explorer_item_at_cursor())
-            | crate::navsectionhit::publish_hover(self.list_hover());
+            | crate::navsectionhit::publish_hover(self.list_hover())
+            | crate::navfarrow::publish_x(self.far_x_at_cursor());
         // The rims' light follows the pointer: a whole step of travel is a
         // frame owed to it (the glide itself is stepped in `build_frame`).
         let size = self.frame_geometry().map_or((0.0, 0.0), |g| (g.2, g.3));

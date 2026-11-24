@@ -27,3 +27,11 @@ fn a_file_with_repeats_and_blanks_reads_clean() {
         [PathBuf::from("/a"), PathBuf::from(" /b")]
     );
 }
+
+#[test]
+fn a_forgotten_folder_leaves_the_list_once() {
+    let mut l = parse("/a\n/b\n/c\n");
+    assert!(take_out(&mut l, Path::new("/b")));
+    assert_eq!(l, [PathBuf::from("/a"), PathBuf::from("/c")]);
+    assert!(!take_out(&mut l, Path::new("/b")), "not listed any more");
+}

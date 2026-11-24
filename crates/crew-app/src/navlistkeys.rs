@@ -3,7 +3,8 @@
 //! Both lists answered the pointer only: every unread thread, every recent folder, was a reach
 //! for the mouse in an app driven from the keys. `/nav inbox` and `/nav far` now hand that list
 //! the keyboard: ↑/↓ (or k/j) move a cursor bar, Home/End go to the ends, Enter opens the item
-//! exactly as a click on it does, Esc gives the keys back.
+//! exactly as a click on it does, Esc gives the keys back. In Far, Delete or Backspace forgets
+//! the cursor's folder, as the `×` on its row does (`navfarrow`).
 //!
 //! **Whose keys.** As with the tree: the list holds them only while the pane focused when it
 //! took them is still focused, the bar is not, and the nav still shows that list. Any other
@@ -104,6 +105,15 @@ impl CrewApp {
                 }
                 self.redraw();
                 return true;
+            }
+            // Far's Delete: the cursor's folder forgotten, as its `×` does; the cursor stays put.
+            Key::Named(NamedKey::Delete | NamedKey::Backspace)
+                if keys.section == NavSection::Far =>
+            {
+                if len > 0 {
+                    self.far_forget_item(item);
+                }
+                keys.item = item.min(len.saturating_sub(2));
             }
             Key::Named(NamedKey::Escape) => {
                 self.sidebar.lists.keys = None;
