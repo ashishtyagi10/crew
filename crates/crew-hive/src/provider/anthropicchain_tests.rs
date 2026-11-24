@@ -114,8 +114,8 @@ async fn a_retired_model_404_walks_on() {
         .unwrap();
     assert_eq!(c.model, "claude-haiku-5-5");
     assert!(
-        c.fell_back.contains("model: claude-opus-5-5"),
-        "{}",
+        c.fell_back.starts_with("claude-sonnet-5-5: "),
+        "the model asked first is the one skipped: {}",
         c.fell_back
     );
     assert_eq!(models(&bodies), ["claude-sonnet-5-5", "claude-haiku-5-5"]);

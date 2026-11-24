@@ -4,6 +4,7 @@
 mod anthropic;
 mod anthropiccache;
 mod anthropicchain;
+mod anthropicrungs;
 mod anthropicsse;
 mod claudecli;
 #[cfg(test)]
@@ -50,6 +51,7 @@ pub use completion::{Completion, CompletionRequest, ToolDef, ToolInvocation, Too
 pub use effort::Effort;
 pub use error::{api_message, ProviderError};
 use error::{extract_message, one_line};
+pub use fellback::parse_model_chain;
 pub use mock::MockProvider;
 pub use openrouter::OpenRouterProvider;
 pub use overflow::says_context_overflow;

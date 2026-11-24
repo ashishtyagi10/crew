@@ -6,7 +6,9 @@
 //! while Sonnet stood idle on the same key, and a retired model id 404ed on
 //! every call with nothing to step to. [`AnthropicChain`] walks down the
 //! family instead, with the same [`Walk`] that puts "fell back to …" under
-//! the reply, and the same [`account_wide`] stop.
+//! the reply, and the same `account_wide` stop.
+//!
+//! Which rungs follow an ask, and which failures walk: `anthropicrungs`.
 //!
 //! Each rung is asked through the plain provider with the request's `model`
 //! swapped, so its body is BUILT for that model (`AnthropicProvider::body`:
@@ -16,9 +18,9 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use super::fellback::{account_wide, attempt_chain, Walk};
+use super::anthropicrungs::{tail, walks_on};
+use super::fellback::{attempt_chain, parse_model_chain, Walk};
 use super::{AnthropicProvider, ChunkFn, Completion, CompletionRequest, Provider, ProviderError};
-use crate::ModelTier;
 
 /// [`AnthropicProvider`] that steps down a model chain when a model, not
 /// the request or the account, is what failed.
@@ -26,69 +28,30 @@ use crate::ModelTier;
 pub struct AnthropicChain {
     inner: AnthropicProvider,
     /// The configured chain (`CREW_ANTHROPIC_MODEL="a,b"`); empty = the
-    /// family ladder below whatever each request asks for ([`tail`]).
+    /// built-in ladder below a request that asks for one of its ids ([`tail`]).
     chain: Vec<String>,
 }
 
 impl AnthropicProvider {
     /// This provider behind a model chain: `chain` in order, or with an
-    /// empty one, each request's model and then the cheaper families below it.
+    /// empty one, each request's model and then the ladder's rungs below it.
     pub fn with_fallbacks(self, chain: Vec<String>) -> AnthropicChain {
         AnthropicChain { inner: self, chain }
     }
 }
 
 impl AnthropicChain {
-    /// [`AnthropicProvider::from_env`], walking each ask's family ladder.
+    /// [`AnthropicProvider::from_env`], walking `CREW_ANTHROPIC_MODEL` as the
+    /// broker does, so the swarm and a relay turn fall back the same way.
     pub fn from_env() -> Result<Self, ProviderError> {
-        AnthropicProvider::from_env().map(|p| p.with_fallbacks(Vec::new()))
+        let knob = std::env::var("CREW_ANTHROPIC_MODEL").ok();
+        AnthropicProvider::from_env().map(|p| configured(p, knob))
     }
 }
 
-/// The rungs after `model`. In a configured chain that holds it, the ones
-/// after it; otherwise the families below it — opus → sonnet → haiku — and
-/// never ABOVE: one provider serves every tier, and a cheap ask that fell up
-/// to Opus would be billed at Opus without anyone choosing it.
-pub(super) fn tail(model: &str, chain: &[String]) -> Vec<String> {
-    if let Some(at) = chain.iter().position(|m| m == model) {
-        return chain[at + 1..].to_vec();
-    }
-    let below: &[ModelTier] = if model.contains("opus") {
-        &[ModelTier::Standard, ModelTier::Cheap]
-    } else if model.contains("sonnet") {
-        &[ModelTier::Cheap]
-    } else {
-        &[]
-    };
-    below.iter().map(|t| t.model_id().to_string()).collect()
-}
-
-/// Whether `e` is the MODEL's failure, one the next rung may not share:
-/// overloaded or rate-limited (Anthropic limits each model on its own), gone
-/// (a retired or mistyped id is a 404 `not_found_error`), or a host error
-/// that outlived its retries. A bad request, a refused key, a permission or
-/// billing refusal, an unreachable host: every rung would meet it again.
-pub(super) fn walks_on(e: &ProviderError) -> bool {
-    if account_wide(e) {
-        return false;
-    }
-    match e {
-        ProviderError::Api(body) => {
-            let v: serde_json::Value = serde_json::from_str(body).unwrap_or_default();
-            let kind = v["error"]["type"].as_str().unwrap_or_default();
-            [
-                "overloaded_error",
-                "not_found_error",
-                "rate_limit_error",
-                "api_error",
-            ]
-            .contains(&kind)
-        }
-        ProviderError::Status(s) => {
-            super::status::code(s).is_some_and(|c| c == 404 || c == 429 || c >= 500)
-        }
-        _ => false,
-    }
+/// `p` behind the chain the `CREW_ANTHROPIC_MODEL` value `knob` names.
+pub(super) fn configured(p: AnthropicProvider, knob: Option<String>) -> AnthropicChain {
+    p.with_fallbacks(parse_model_chain(knob, Vec::new()))
 }
 
 /// `req`, asking `model`.
