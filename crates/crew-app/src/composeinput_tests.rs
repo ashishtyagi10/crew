@@ -125,3 +125,23 @@ fn only_a_shell_or_the_input_bar_takes_text() {
     a.panes.clear();
     assert!(!a.takes_text(), "no shell, no bar");
 }
+
+/// A composition begun in one shell is dropped when focus moves to another:
+/// the window's IME stays on, so no Disabled would ever clear it.
+#[cfg(unix)]
+#[test]
+fn moving_focus_drops_the_composition() {
+    let sink = Sink::default();
+    let mut a = CrewApp {
+        panes: vec![shell(&sink), shell(&sink)],
+        focused: 0,
+        ..Default::default()
+    };
+    a.input.focused = false;
+    a.on_ime(Ime::Preedit("か".into(), None));
+    a.sync_ime();
+    assert!(a.ime.preedit.is_some(), "still its owner's");
+    a.focused = 1;
+    a.sync_ime();
+    assert_eq!(a.ime.preedit, None);
+}

@@ -65,7 +65,8 @@ impl CrewApp {
     /// Keep the window's IME on exactly while [`ime_wanted`] and
     /// [`Self::takes_text`] both hold. Run after every window event: winit
     /// asks the flag before crew sees a key, so it must already be right for
-    /// the next one. Told only on a change.
+    /// the next one. Told only on a change. A composition whose surface lost
+    /// focus is dropped here too.
     pub(crate) fn sync_ime(&mut self) {
         let want =
             ime_wanted(cfg!(target_os = "macos"), self.config.option_as_meta) && self.takes_text();

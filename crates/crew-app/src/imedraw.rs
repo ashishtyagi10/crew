@@ -92,7 +92,7 @@ impl CrewApp {
                     at,
                     end: p.grid.cols,
                     tail: false,
-                    origin: (x, y - scenes[scene].scroll_px),
+                    origin: (x, y + scenes[scene].scroll_px),
                 })
             }
         }

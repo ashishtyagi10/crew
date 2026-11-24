@@ -148,32 +148,39 @@ fn the_input_bar_draws_it_after_the_text() {
     );
 }
 
-/// Off-screen: a shell mid-composition, on a dark and a light theme.
-///
-/// `CREW_SHOT_DIR=<dir> CREW_SHOT_FONT="JetBrainsMono Nerd Font Mono" \
-///  cargo test -p crew-app --bin crew ime_preedit_shot -- --ignored`
-#[cfg(unix)]
+/// The bar's caret column as `bar_caret_col` reads it is where the bar draws
+/// its caret: short text, a line scrolled to follow it, and one of wide glyphs.
 #[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn ime_preedit_shot() {
-    use crew_theme::ThemeId;
-    use std::io::Write;
+fn the_bar_caret_column_is_where_the_caret_is_drawn() {
     let _g = crate::app::theme_test_guard();
-    for id in [ThemeId::TokyoNight, ThemeId::Porcelain] {
-        let prep = |a: &mut CrewApp| {
-            let mut p = shell();
-            if let PaneContent::Terminal(t) = &mut p.content {
-                t.input.write_all("echo 日本語 ".as_bytes()).unwrap();
-                std::thread::sleep(std::time::Duration::from_millis(200));
-                t.pty.try_read();
-            }
-            a.panes = vec![p];
-            a.focused = 0;
-            a.input.focused = false;
-            a.on_ime(Ime::Preedit("にほんご".into(), Some((12, 12))));
-        };
-        let name = format!("ime-preedit-{id:?}").to_lowercase();
-        let opacity = crate::tubesheer::sheer(id.theme());
-        crate::crtglassshot_tests::window_with(&name, id, opacity, &[], &prep);
+    let mut a = app();
+    a.input.focused = true;
+    for text in [
+        "ab".to_string(),
+        "x".repeat(400),
+        "日".repeat(200),
+        "a日".repeat(150),
+    ] {
+        a.input.text = text.clone();
+        let scenes = a.build_frame();
+        let bar = scenes
+            .iter()
+            .find(|s| s.cells.iter().any(|c| c.c == crate::inputbar_render::CARET))
+            .unwrap();
+        let caret = bar
+            .cells
+            .iter()
+            .find(|c| c.c == crate::inputbar_render::CARET);
+        let cols = (bar.w / 8.0).floor() as u16;
+        assert_eq!(
+            caret.unwrap().col,
+            bar_caret_col(&text, cols),
+            "{}",
+            text.len()
+        );
     }
 }
+
+#[cfg(unix)]
+#[path = "imeshot_tests.rs"]
+mod shot;
