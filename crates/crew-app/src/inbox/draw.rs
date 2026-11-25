@@ -110,6 +110,9 @@ impl InboxPane {
                     let mut read = Canvas::new(inner.w, inner.h);
                     super::reader::draw(&mut read, r, &self.pics);
                     put(&mut cv, read, inner);
+                    let total = super::reader::height(r, inner.w);
+                    let room = usize::from(inner.h);
+                    super::thumb::draw(&mut cv, b, total, room, r.scroll, 1);
                 }
                 if let Some(b) = k.reply {
                     let mut reply = Canvas::new(b.w + 1, b.h);

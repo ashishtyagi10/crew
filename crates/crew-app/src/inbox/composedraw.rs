@@ -2,9 +2,10 @@
 //! Lee` (or `forward`) on its top edge as every crew card wears its name.
 //! Inside, the `to` and `cc` lines (`composehead`), the words with a caret
 //! where they go, the row of files (`composefiles`), and for a forward the
-//! mail it carries. It grows with the words to a third of the pane, never
-//! as tall as the mail's card (the user: "mail panel should have tallest
-//! height").
+//! mail it carries. It takes 40% of the pane's cards from the first key
+//! (the user, 2026-11-25: "reply panel should take 40% of the space"), so
+//! the mail's card stays the taller ("mail panel should have tallest
+//! height"); words past its rows scroll, a thumb on its edge saying where.
 use super::compose::{Kind, On};
 use super::composegeo::geo;
 use super::draw::{wrap, Canvas};
@@ -20,21 +21,19 @@ pub(crate) const X: u16 = 3;
 
 impl InboxPane {
     /// The rows the reply box takes in a pane `cols` by `rows`, its edges
-    /// included: none when there is no reply being written. It grows with
-    /// the words to a third of the pane, and never to the mail's height.
+    /// included: none when there is no reply being written. Two fifths of
+    /// the cards' rows whatever the words, and never the mail's height.
     pub(crate) fn compose_h(&self, cols: u16, rows: u16) -> u16 {
         let Some(c) = &self.compose else {
             return self.todo_h(cols, rows);
         };
         let w = text_w(self.compose_cols(cols).1);
-        let lines = wrap(&c.body.text, w).len() as u16;
         let carried = u16::from(c.forward.is_some()) + u16::from(c.kind == Kind::New);
         let rest = HEAD + super::composefiles::rows(c, w as u16) + carried + 2;
         let body = self.body_rows(cols, rows);
-        let most = (body / 3)
+        (body * 2 / 5)
             .max(MIN_ROWS + rest)
-            .min(body.saturating_sub(1) / 2);
-        (lines.max(MIN_ROWS) + rest).min(most)
+            .min(body.saturating_sub(1) / 2)
     }
 
     /// The box's first column and width, its edges included: under the
@@ -100,6 +99,7 @@ impl InboxPane {
             let at = (g.words + (row - first) as u16, X + col as u16);
             super::composehead::caret(cv, c, at, end);
         }
+        super::thumb::draw(cv, b, lines.len(), room, first, g.words);
         if let Some(top) = g.files {
             super::composefiles::draw(cv, c, top, tw);
         }

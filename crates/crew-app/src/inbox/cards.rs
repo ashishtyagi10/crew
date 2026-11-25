@@ -2,8 +2,8 @@
 //! choosing the list, the mail and the reply box): each a crew card with
 //! its edge and its name on the top edge. The list fills the pane, or the
 //! left of a wide one beside an open thread (`split`); the open mail and the
-//! reply box under it share the rest, and the mail's card is always the
-//! taller ("mail panel should have tallest height", `composedraw`).
+//! reply box under it share the rest (the box two fifths), and the mail's
+//! card is always the taller ("mail panel should have tallest height", `composedraw`).
 //!
 //! Everything that draws or finds a thing in a card (the list's rows, the
 //! mail's links and pictures, the box's lines) asks [`InboxPane::cards`]
