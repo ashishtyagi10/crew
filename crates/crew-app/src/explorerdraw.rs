@@ -1,6 +1,7 @@
 //! Drawing the Explorer's tree: its rule, then one row per [`Item`] — indent guides down each
-//! open folder, a chevron on a folder, the name. Row 0 of the panel is the rule; item `k` of the
-//! scrolled list is on row `k + 1`, which is the mapping a click reads back
+//! open folder, `+` on a closed folder and `−` on an open one, the name — and, when two roots
+//! share a name, each one's parent folder after it, muted. Row 0 of the panel is the rule; item
+//! `k` of the scrolled list is on row `k + 1`, which is the mapping a click reads back
 //! ([`crate::explorerhit`]).
 use std::path::Path;
 
@@ -10,6 +11,11 @@ use crate::explorer::Item;
 
 /// Rows above the first item: the section's rule.
 pub(crate) const TOP: u16 = 1;
+
+/// A closed folder's sign, and an open one's: plus and a true minus (U+2212), the same width
+/// and height, where a hyphen sat low and short beside the plus.
+pub(crate) const SHUT: &str = "+";
+pub(crate) const OPEN: &str = "\u{2212}";
 
 /// The column an item at `depth` starts on: one in, two more per level.
 fn x(depth: u16) -> u16 {
@@ -59,6 +65,15 @@ pub(crate) fn cells(
     let mut out =
         crate::boxdraw::section_header_key("EXPLORER", &key, cols, border, accent, key_fg, bg);
     let shown = usize::from(rows.saturating_sub(TOP));
+    // Every root's name, scrolled off or not, so a twin below the fold still marks this one.
+    let roots: Vec<&str> = (items.iter().filter(|i| i.depth == 0 && i.more.is_none()))
+        .map(|i| i.name.as_str())
+        .collect();
+    // Compared as drawn: in capitals, so `Conf` and `conf` read as the same name.
+    let twin = |i: &Item| {
+        let twins = roots.iter().filter(|n| n.eq_ignore_ascii_case(&i.name));
+        i.depth == 0 && i.more.is_none() && twins.count() > 1
+    };
     for (k, item) in items.iter().enumerate().skip(scroll).take(shown) {
         let row = TOP + (k - scroll) as u16;
         // A guide under every open folder this item sits inside — the root's excepted, as VS
@@ -79,8 +94,8 @@ pub(crate) fn cells(
         };
         let at = x(item.depth);
         if item.dir && item.more.is_none() {
-            let chevron = if item.open { "\u{25be}" } else { "\u{25b8}" };
-            put(&mut out, at, row, cols, chevron, t.text_muted);
+            let sign = if item.open { OPEN } else { SHUT };
+            put(&mut out, at, row, cols, sign, t.text_muted);
         }
         let name = shown_name(item);
         // A marked row keeps its last two columns for the mark; a pinned root (every root
@@ -91,6 +106,18 @@ pub(crate) fn cells(
             _ => cols,
         };
         put(&mut out, at + 2, row, end, &name, fg);
+        // Two roots of one name (a pinned `config` beside another) say where each one is.
+        if twin(item) {
+            let (_, parent) = crate::navfar::name_and_parent(&item.path);
+            let col = at + 2 + crate::chatwidth::str_w(&name) as u16 + 2;
+            match col + 4 < end {
+                true => {
+                    let fit = tail(&parent, usize::from(end - col));
+                    put(&mut out, col, row, end, &fit, t.text_muted);
+                }
+                false => crate::navcut::note(row, &parent),
+            }
+        }
         if let Some(s) = said {
             let letter = crate::explorergit::letter(s);
             put(
@@ -135,6 +162,26 @@ pub(crate) fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
     for c in out.iter_mut().filter(|c| c.row == row) {
         (c.fg, c.bg, c.bold) = (ink, fill, true);
     }
+}
+
+/// `s` in `room` columns: whole, or its END after `…` — two folders' paths differ at the end,
+/// so a cut from the end left both twins reading `/var/folders…`.
+pub(crate) fn tail(s: &str, room: usize) -> String {
+    if crate::chatwidth::str_w(s) <= room {
+        return s.to_string();
+    }
+    let mut kept: Vec<char> = Vec::new();
+    let mut w = 1; // the ellipsis
+    for c in s.chars().rev() {
+        w += crate::chatwidth::char_w(c);
+        if w > room {
+            break;
+        }
+        kept.push(c);
+    }
+    std::iter::once('\u{2026}')
+        .chain(kept.into_iter().rev())
+        .collect()
 }
 
 /// Write `s` at `col` on `row`, clipped to the panel.

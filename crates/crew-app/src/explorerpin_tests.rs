@@ -155,15 +155,21 @@ fn remove_unpins_by_path_and_a_missing_path_says_so() {
 fn explorer_shot_pinned() {
     use crew_theme::ThemeId;
     let _g = crate::app::theme_test_guard();
-    let conf = tree("shotpin", &["conf/app.properties", "conf/db.properties"]);
+    let conf = tree(
+        "shotpin",
+        &["conf/app.properties", "conf/db.properties", "conf/old/"],
+    );
+    // A second `conf` elsewhere: the two roots say where each one is.
+    let twin = tree("shottwin", &["conf/prod.properties"]).join("conf");
     for id in [ThemeId::TokyoNight, ThemeId::Porcelain] {
         let name = format!("explorer-pinned-{id:?}").to_lowercase();
-        let conf = conf.join("conf");
+        let (conf, twin) = (conf.join("conf"), twin.clone());
         let prep = move |a: &mut CrewApp| {
             a.config.show_nav = true;
             a.config.nav_collapsed = false;
             a.config.nav_section = "explorer".into();
             a.sidebar.explorer.pin(&conf);
+            a.sidebar.explorer.pin(&twin);
             a.open_view_here(&conf.join("app.properties").to_string_lossy());
             a.input.focused = false;
         };

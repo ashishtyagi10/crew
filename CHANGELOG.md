@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.28
+
+**Explorer folders show + and −; same-named roots show where.**
+
+Explorer:
+- A closed folder now shows `+` and an open one `−`, in place of the small triangles. The minus is a true minus sign, the same width and height as the plus.
+- When two roots share a name, such as a pinned `conf` beside another `conf`, each one shows its parent folder after its name in a muted colour. Names that differ only in capitals count as the same name.
+- A parent folder too long to fit is cut from the front with `…`, so the end of the path, where the two differ, stays in view. If there is no room for it at all, resting the pointer on the row shows it.
+
 ## 0.30.27
 
 **Pin more folders to the Explorer beside the pane's own.**

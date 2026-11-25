@@ -500,7 +500,8 @@ open. **Panes** holds the tabs and the pane list; **System** the clock, dials,
 load, host, net and git; **Activity** the glance cards with the LOG under them
 (`/nav log` shows the LOG alone); **Explorer** is the working directory as a
 tree — the focused pane's directory, or crew's own when that pane has none:
-folders first, then files, `.git` and `.DS_Store` left out. Click a folder to
+folders first, then files, `.git` and `.DS_Store` left out; a closed folder wears
+`+` and an open one `−`. Click a folder to
 open or close it (an open folder stays open by path, so walking between panes
 and back finds the tree as you left it); click a file to open it in a viewer
 pane, where `i` edits a markdown one. A folder of more than 2000 entries ends in
@@ -524,7 +525,8 @@ folder is pinned and the file opens in the viewer. `~`, `$VAR` and relative path
 work, and the path completes, as `/view`'s do. A hovered
 pinned root shows a `×` at its end that unpins it, as Delete does on it with the
 tree holding the keys, or `/nav explorer remove <path>`. A pinned folder that is
-the pane's own folder just now is drawn once.
+the pane's own folder just now is drawn once; two roots of the same name each show
+their parent folder after it, muted (its end, when it is too long to fit).
 **Cmd+Shift+E** hands the tree the keyboard (see the keys table). The **gear**
 at the bar's foot opens the settings.
 The **Inbox** and **Far** sections list the newest unread threads and the
