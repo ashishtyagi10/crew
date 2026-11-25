@@ -832,6 +832,10 @@ mod winresize;
 // Windows program lookup (pwsh, oh-my-posh); the tests run everywhere.
 #[cfg(any(windows, test))]
 mod winexe;
+// Windows keys: Alt is crew's key (docs/plan/window-keys.md). Not wired yet
+// — step 2 of the plan routes key presses through it.
+#[allow(dead_code)]
+mod winkeys;
 mod wording;
 mod wrapidx;
 
