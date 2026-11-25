@@ -21,7 +21,7 @@ fn rows_of(cells: &[CellView]) -> Vec<String> {
 }
 
 #[test]
-fn a_tree_draws_with_chevrons_guides_and_a_capitalised_root() {
+fn a_tree_draws_with_signs_guides_and_a_capitalised_root() {
     let _g = crate::app::theme_test_guard();
     let root = crate::explorer::tests::tree("draw", &["src/a.rs", "src/deep/b.rs", "x.md"]);
     let mut e = Explorer::default();
@@ -33,11 +33,11 @@ fn a_tree_draws_with_chevrons_guides_and_a_capitalised_root() {
     let drawn = rows_of(&cells(&items, 0, Marks::default(), (30, 20)));
     assert!(drawn[0].contains("EXPLORER"), "{drawn:?}");
     assert!(
-        drawn[1].starts_with(" \u{25be} CREW-EXPLORER-DRAW"),
+        drawn[1].starts_with(" \u{2212} CREW-EXPLORER-DRAW"),
         "{drawn:?}"
     );
-    assert_eq!(drawn[2], "   \u{25be} src");
-    assert_eq!(drawn[3], "   \u{2502} \u{25be} deep");
+    assert_eq!(drawn[2], "   \u{2212} src");
+    assert_eq!(drawn[3], "   \u{2502} \u{2212} deep");
     assert_eq!(drawn[4], "   \u{2502} \u{2502}   b.rs");
     assert_eq!(drawn[5], "   \u{2502}   a.rs");
     assert_eq!(drawn[6], "     x.md");
@@ -84,4 +84,52 @@ fn a_wide_prefix_is_clipped_by_width() {
     let l = crate::explorerfind::legend(&"日".repeat(20), 30);
     assert!(l.starts_with("find: \u{2026}"), "{l}");
     assert!(crate::chatwidth::str_w(&l) - "find: ".len() <= room, "{l}");
+}
+
+/// Two roots of one name — a pinned `conf` beside another — each say where they are, muted;
+/// a root whose name is its own says nothing more. A closed folder wears `+`.
+#[test]
+fn same_named_roots_show_their_parent_folders() {
+    let _g = crate::app::theme_test_guard();
+    let a = crate::explorer::tests::tree("twina", &["conf/x/k.properties"]);
+    let b = crate::explorer::tests::tree("twinb", &["conf/y.properties"]);
+    let solo = crate::explorer::tests::tree("twinsolo", &["z.txt"]);
+    let e = Explorer::default();
+    let items: Vec<_> = [a.join("conf"), b.join("conf"), solo.clone()]
+        .iter()
+        .flat_map(|r| e.items(r))
+        .collect();
+    let cells = cells(&items, 0, Marks::default(), (200, 20));
+    let drawn = rows_of(&cells);
+    let short = |p: &std::path::Path| crate::disktile::short_path(p);
+    assert_eq!(
+        drawn[1],
+        format!(" \u{2212} CONF  {}", short(&a)),
+        "{drawn:?}"
+    );
+    assert_eq!(drawn[2], "   + x", "a closed folder: {drawn:?}");
+    assert_eq!(
+        drawn[3],
+        format!(" \u{2212} CONF  {}", short(&b)),
+        "{drawn:?}"
+    );
+    let solo_row = drawn
+        .iter()
+        .find(|r| r.contains("CREW-EXPLORER-TWINSOLO"))
+        .unwrap();
+    assert!(
+        !solo_row.contains(&short(solo.parent().unwrap())),
+        "{solo_row}"
+    );
+    let muted = crew_theme::theme().text_muted;
+    let first = short(&a).chars().next().unwrap();
+    let at = cells.iter().find(|c| c.row == 1 && c.col == 9).unwrap();
+    assert_eq!((at.c, at.fg), (first, muted), "the parent is muted");
+}
+
+#[test]
+fn a_parent_too_long_keeps_its_end() {
+    assert_eq!(tail("~/work/app", 20), "~/work/app");
+    assert_eq!(tail("/var/folders/x/T/crew-a", 10), "\u{2026}/T/crew-a");
+    assert_eq!(crate::chatwidth::str_w(&tail("/a/very/long/path", 6)), 6);
 }
