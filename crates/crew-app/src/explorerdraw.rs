@@ -23,8 +23,10 @@ pub(crate) struct Marks<'a> {
     pub hover: Option<usize>,
     pub picked: Option<&'a Path>,
     pub cursor: Option<usize>,
-    /// What git says of the tree's files, when the root is in a repository.
-    pub git: Option<&'a crate::gitfiles::Files>,
+    /// What git says of the tree's files: one answer per root in a repository.
+    pub git: &'a [&'a crate::gitfiles::Files],
+    /// The hovered pinned root's row, which draws its `×` — lit when the pointer is on it.
+    pub x: Option<(usize, bool)>,
     /// The name being typed to find, and whether it matched ([`crate::explorerfind`]).
     pub find: Option<(&'a str, bool)>,
 }
@@ -42,6 +44,7 @@ pub(crate) fn cells(
         cursor,
         git,
         find,
+        x: close,
     } = marks;
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
@@ -66,7 +69,7 @@ pub(crate) fn cells(
         let lit = hover == Some(k);
         // Folders in the accent's readable ink, files in ink; the file last opened, and the row
         // under the pointer, in the accent itself — "… n more" too, which a click opens in Far.
-        let said = git.and_then(|g| crate::explorergit::said(g, item));
+        let said = git.iter().find_map(|g| crate::explorergit::said(g, item));
         let fg = match () {
             _ if item.more.is_some() && !lit => t.text_muted,
             _ if lit || picked == Some(item.path.as_path()) => accent,
@@ -80,11 +83,12 @@ pub(crate) fn cells(
             put(&mut out, at, row, cols, chevron, t.text_muted);
         }
         let name = shown_name(item);
-        // A marked row keeps its last two columns for the mark.
-        let end = if said.is_some() {
-            cols.saturating_sub(2)
-        } else {
-            cols
+        // A marked row keeps its last two columns for the mark; a pinned root (every root
+        // after the first) keeps its `×`'s, hovered or not, so nothing shifts under the pointer.
+        let end = match () {
+            _ if said.is_some() => cols.saturating_sub(2),
+            _ if item.depth == 0 && k > 0 => crate::navfarrow::x_col(cols),
+            _ => cols,
         };
         put(&mut out, at + 2, row, end, &name, fg);
         if let Some(s) = said {
@@ -97,6 +101,11 @@ pub(crate) fn cells(
                 letter,
                 crate::explorergit::ink(said),
             );
+        }
+        if let Some((_, on)) = close.filter(|(xk, _)| *xk == k) {
+            let c = crate::navfarrow::x_col(cols);
+            let ink = if on { accent } else { t.text_muted };
+            put(&mut out, c, row, c + 1, "\u{00d7}", ink);
         }
         if cursor == Some(k) {
             bar(&mut out, row, cols);

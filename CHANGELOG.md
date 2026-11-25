@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.27
+
+**Pin more folders to the Explorer beside the pane's own.**
+
+Explorer:
+- `/nav explorer add <path>` pins a folder to the Explorer, such as `~/.aws` or wherever your credentials or properties files live, so you no longer have to type a file's whole path into `/view`.
+- A pinned folder is drawn as a root of its own under the focused pane's tree. It opens, closes and is walked by the keys like the pane's tree, the tree opens down to a file you view from it, and changed files get the same git marks.
+- The pane's root still follows focus; pinned folders stay put, and they are kept across restarts. A pinned folder that is the focused pane's own folder is drawn only once.
+- Give a file instead of a folder and its folder is pinned and the file opens in the viewer.
+- `~`, `$VAR` and relative paths work, and the path completes as you type, just as `/view`'s does.
+- To unpin, rest the pointer on a pinned root and click the × at its end, press Delete on it while the tree holds the keys, or type `/nav explorer remove <path>`.
+
+Commands:
+- The `/nav` entry in the command palette now lists `inbox` and `far` with the other sections, and `explorer add|remove <path>`.
+
 ## 0.30.26
 
 **Each pane gets a two-line card in the side panel's PANES list.**

@@ -79,7 +79,18 @@ fn the_left_column_is_one_verb_with_the_weather_under_it() {
         .map(|s| s.as_str())
         .to_vec();
     assert_eq!(labels[..sections.len()], sections[..]);
-    assert_eq!(labels[sections.len()..], ["glance", "log", "weather"]);
+    let rest = [
+        "explorer add",
+        "explorer remove",
+        "glance",
+        "log",
+        "weather",
+    ];
+    assert_eq!(labels[sections.len()..], rest);
+    // A subject of two words waits for its path instead of running bare.
+    let add = rows.iter().find(|r| r.label == "explorer add").unwrap();
+    assert_eq!(add.fill, "/nav explorer add ");
+    assert!(!add.submit);
     assert!(
         crate::cmddefs::answered("/weather"),
         "the old spelling runs on"

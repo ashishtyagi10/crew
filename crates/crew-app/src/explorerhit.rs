@@ -35,7 +35,7 @@ impl CrewApp {
     /// The tree item under the cursor, as an index into [`crate::explorer::Explorer::items`].
     pub(crate) fn explorer_item_at_cursor(&self) -> Option<usize> {
         let (row, _) = self.explorer_row()?;
-        let len = self.sidebar.explorer.items(&self.explorer_root()).len();
+        let len = self.explorer_items().len();
         let k = usize::from(row.checked_sub(crate::explorerdraw::TOP)?) + scrolled(self, len);
         (k < len).then_some(k)
     }
@@ -43,10 +43,14 @@ impl CrewApp {
     /// A press on the tree: a folder opens or closes, a file opens in the viewer, the "n more"
     /// line opens its folder in Far. `true` when it was the tree's.
     pub(crate) fn explorer_press(&mut self) -> bool {
+        // A pinned root's `×` first: the narrower target, or the root's toggle would claim it.
+        if let Some(k) = self.explorer_x_at_cursor() {
+            return self.explorer_unpin_at(k);
+        }
         let Some(k) = self.explorer_item_at_cursor() else {
             return false;
         };
-        let items = self.sidebar.explorer.items(&self.explorer_root());
+        let items = self.explorer_items();
         let Some(item) = items.get(k) else {
             return false;
         };
@@ -100,7 +104,7 @@ impl CrewApp {
         let Some((_, rows)) = self.explorer_row() else {
             return false;
         };
-        let len = self.sidebar.explorer.items(&self.explorer_root()).len();
+        let len = self.explorer_items().len();
         let shown = usize::from(rows.saturating_sub(crate::explorerdraw::TOP));
         self.sidebar.explorer.scroll_by(lines, len, shown);
         true
@@ -109,8 +113,14 @@ impl CrewApp {
     /// The tree's cells for a panel `cols` × `rows`.
     pub(crate) fn explorer_cells(&self, cols: u16, rows: u16) -> Vec<crew_render::CellView> {
         let e = &self.sidebar.explorer;
-        let items = e.items(&self.explorer_root());
+        let items = self.explorer_items();
         let hover = self.explorer_item_at_cursor();
+        let gits: Vec<_> = (self.explorer_roots().iter())
+            .filter_map(|r| self.git_fleet.files(r))
+            .collect();
+        let x = hover
+            .filter(|&k| Self::explorer_pinned_at(&items, k).is_some())
+            .map(|k| (k, self.nav_x_under_cursor()));
         let scroll = scrolled(self, items.len());
         let cursor = self
             .tree_has_keys()
@@ -120,7 +130,8 @@ impl CrewApp {
             hover,
             picked: e.picked.as_deref(),
             cursor,
-            git: self.git_fleet.files(&self.explorer_root()),
+            git: &gits,
+            x,
             find: cursor.and(e.find.live(crate::explorerfind::now())),
         };
         crate::explorerdraw::cells(&items, scroll, marks, (cols, rows))

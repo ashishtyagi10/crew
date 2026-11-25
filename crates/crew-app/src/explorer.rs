@@ -77,6 +77,9 @@ pub(crate) struct Explorer {
     /// The viewer pane the tree opens files in (its `born_ms`), replaced by the next file
     /// opened — VS Code's preview editor — rather than a pane per click.
     pub preview: Option<u64>,
+    /// Folders pinned beside the pane's own, read from disk on first use
+    /// ([`crate::explorerroots`]).
+    pub(crate) pinned: RefCell<Option<Vec<PathBuf>>>,
     /// Refreshes in flight, and where their listings come back.
     pending: RefCell<HashSet<PathBuf>>,
     back: RefCell<Option<Chan>>,

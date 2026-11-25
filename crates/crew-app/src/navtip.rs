@@ -139,7 +139,7 @@ impl CrewApp {
             NavSection::Explorer => {
                 let k = self.explorer_item_at_cursor()?;
                 let row = self.section_row(s)?.0;
-                let items = self.sidebar.explorer.items(&self.explorer_root());
+                let items = self.explorer_items();
                 let item = items.get(k).filter(|i| i.more.is_none())?;
                 let name = crate::explorerdraw::shown_name(item);
                 (k, vec![row], vec![name], vec![item.name.clone()])

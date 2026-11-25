@@ -52,7 +52,7 @@ fn the_tree_draws_the_marks() {
         item("/r/src/a.rs", false, 2),
     ];
     let marks = crate::explorerdraw::Marks {
-        git: Some(&g),
+        git: &[&g],
         ..Default::default()
     };
     let cells = crate::explorerdraw::cells(&items, 0, marks, (30, 10));

@@ -24,7 +24,10 @@ fn completes_dirs_only_or_files_too() {
 #[test]
 fn every_path_command_completes_paths() {
     let base = fixture("suggest");
-    for cmd in super::PATH_COMMANDS {
+    for cmd in super::PATH_COMMANDS
+        .iter()
+        .chain(super::PATH_SUBJECTS.iter())
+    {
         assert_eq!(
             path_suggest(&format!("{cmd} al"), &base).as_deref(),
             Some("pha/"),
@@ -52,9 +55,11 @@ fn every_path_command_completes_paths() {
 fn every_command_that_takes_a_path_completes_one() {
     for c in crate::cmddefs::commands() {
         let takes_path = c.desc.contains("<path>") || c.desc.contains("<file>");
+        let completes = super::PATH_COMMANDS.contains(&c.name)
+            || (super::PATH_SUBJECTS.iter()).any(|s| s.split(' ').next() == Some(c.name));
         assert_eq!(
             takes_path,
-            super::PATH_COMMANDS.contains(&c.name),
+            completes,
             "{} says {:?} but is {}in PATH_COMMANDS",
             c.name,
             c.desc,

@@ -22,3 +22,29 @@ fn a_value_picker_ghosts_the_row_tab_fills() {
     assert_eq!(ghost("/s", 0).as_deref(), Some("ettings"));
     assert_eq!(ghost("/s", 1).as_deref(), Some("mith"));
 }
+
+/// `/nav explorer add` takes a path, and the bar completes it as `/view`'s: the `/nav`
+/// subject menu is shut by then, so Enter runs the line typed.
+#[test]
+fn a_folder_to_pin_completes_like_a_path() {
+    let base = crate::explorer::tests::tree("ghostpin", &["conf/app.properties"]);
+    let bar = |text: &str| InputBar {
+        text: text.into(),
+        focused: true,
+        cwd: base.clone(),
+        ..Default::default()
+    };
+    assert_eq!(bar("/nav explorer add co").ghost().as_deref(), Some("nf/"));
+    assert_eq!(
+        bar("/nav explorer remove co").ghost().as_deref(),
+        Some("nf/")
+    );
+    for text in ["/nav explorer add ", "/nav explorer add co"] {
+        let rows = crate::cmdnote::rows(text, &base);
+        assert!(
+            !crate::cmdnote::selectable(&rows),
+            "{text}: {} rows",
+            rows.len()
+        );
+    }
+}

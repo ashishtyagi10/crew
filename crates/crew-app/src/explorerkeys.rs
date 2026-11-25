@@ -5,7 +5,8 @@
 //! hands the tree the keyboard: ↑/↓ (or k/j) move a cursor row, → or Enter opens a folder,
 //! previews a file in the tree's one viewer, or on "… n more" opens that folder in Far; ←
 //! closes a folder or steps to its parent, Home/End go to the ends, a letter jumps to the next name starting with it
-//! ([`crate::explorerfind`]), Esc — or the chord again — gives the keys back.
+//! ([`crate::explorerfind`]), Delete unpins a pinned root ([`crate::explorerpin`]), Esc — or the
+//! chord again — gives the keys back.
 //!
 //! **Whose keys.** The tree holds them only while nothing else took them: the pane that had
 //! focus when the tree took over (or the viewer it opened since) is still focused and the bar is
@@ -50,7 +51,7 @@ impl CrewApp {
         self.input.focused = false;
         // The cursor starts on the focused viewer's file: reveal it now, not a frame later.
         self.explorer_reveal();
-        let items = self.sidebar.explorer.items(&self.explorer_root());
+        let items = self.explorer_items();
         let picked = self.sidebar.explorer.picked.as_deref();
         let row = items.iter().position(|i| Some(i.path.as_path()) == picked);
         self.sidebar.explorer.keys = Some(TreeKeys {
@@ -71,7 +72,7 @@ impl CrewApp {
         if !pressed || !self.tree_has_keys() {
             return false;
         }
-        let items = self.sidebar.explorer.items(&self.explorer_root());
+        let items = self.explorer_items();
         let Some(mut keys) = self.sidebar.explorer.keys else {
             return false;
         };
@@ -118,6 +119,13 @@ impl CrewApp {
                 }
                 None => {}
             },
+            // Delete (or Backspace) on a pinned root unpins it, as its `×` does.
+            Key::Named(NamedKey::Delete | NamedKey::Backspace)
+                if Self::explorer_pinned_at(&items, row).is_some() =>
+            {
+                self.explorer_unpin_at(row);
+                keys.row = row.min(self.explorer_items().len().saturating_sub(1));
+            }
             Key::Named(NamedKey::Escape) => {
                 self.sidebar.explorer.keys = None;
                 self.redraw();

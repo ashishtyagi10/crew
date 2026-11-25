@@ -456,7 +456,9 @@ mod explorerfind;
 mod explorergit;
 mod explorerhit;
 mod explorerkeys;
+mod explorerpin;
 mod explorerreveal;
+mod explorerroots;
 mod fargone;
 mod farrecent;
 #[cfg(test)]

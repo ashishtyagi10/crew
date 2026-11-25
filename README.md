@@ -188,7 +188,8 @@ wheel over the nav's LOG scrolls back through its buffered lines.
 The **left nav is sectioned like VS Code's**: an activity bar of icons —
 **Panes** (tabs and the pane list), **System** (clock, dials, load, host, net,
 git), **Activity** (the glance cards over the LOG), **Explorer** (the focused
-pane's directory as a tree: click a folder to open it, a file to view it) and a settings gear — and the open section beside it. Click an icon to
+pane's directory as a tree: click a folder to open it, a file to view it; `/nav explorer add <path>`
+pins more folders beside it, such as `~/.aws`) and a settings gear — and the open section beside it. Click an icon to
 switch; click the open one to put the panel away. `/nav <section>` opens one by
 name. The Panes icon carries the loudest mark any pane has; the Activity icon
 counts what waits on you.
@@ -424,7 +425,7 @@ know and fourteen fewer rows between you and `/find`. The old spellings
 memory is a feature — they are simply no longer things you have to learn.
 
 The left column is one verb too: `/nav panes|system|activity|explorer`,
-`/nav glance`, `/nav log`, `/nav weather <place>`; the command block list is `/out list`; and `/doc <file>` owns the
+`/nav explorer add|remove <path>`, `/nav glance`, `/nav log`, `/nav weather <place>`; the command block list is `/out list`; and `/doc <file>` owns the
 document window (`/md` still opens one).
 
 **The `all` variants are arguments, not names.** `/clear` clears this pane,

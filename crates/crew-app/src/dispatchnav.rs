@@ -5,16 +5,22 @@ use crate::app::CrewApp;
 use crate::navmode::NavCard;
 
 /// What `/nav` takes.
-const USAGE: &str = "[panes|system|activity|explorer|inbox|far|glance|log|weather <place>]";
+const USAGE: &str =
+    "[panes|system|activity|explorer [add|remove <path>]|inbox|far|glance|log|weather <place>]";
 
 impl CrewApp {
     /// `/nav <section>` opens a section of the nav (panes, system, activity, explorer, inbox, far);
-    /// `/nav [glance|log]` says what Activity shows over its LOG; `/nav weather <place>`. The
+    /// `/nav [glance|log]` says what Activity shows over its LOG; `/nav weather <place>`;
+    /// `/nav explorer add|remove <path>` pins a folder to the tree. The
     /// whole left column under one verb (`crate::verbs`). `/weather` still answers.
     pub(crate) fn nav_command(&mut self, arg: &str) {
         let arg = arg.trim();
         if let Some(rest) = arg.strip_prefix("weather") {
             return self.weather_command(rest.trim());
+        }
+        // `explorer add|remove <path>`: a folder pinned beside the pane's (`explorerpin`).
+        if let Some(rest) = arg.strip_prefix("explorer ") {
+            return self.explorer_pin_command(rest.trim());
         }
         if arg.is_empty() {
             self.set_status(format!(
