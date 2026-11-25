@@ -77,6 +77,8 @@ pub(crate) struct TermCore {
     osc7: crate::osc::OscScanner,
     /// Sniffs DECSET 2031 (color-scheme notifications), invisible to the parser.
     scheme: crate::schemenotify::SchemeNotify,
+    /// DECRQSS, answered from the state at the request (`modelrqss`).
+    rqss: modelrqss::Rqss,
     /// Answers `CSI 16 t`, XTVERSION and XTGETTCAP, which the parser does not dispatch.
     cellq: modelsize::Queries,
     /// Where the drag began, and its kind. Kept because a selection's sides
@@ -143,6 +145,7 @@ impl TermCore {
             events,
             osc7: crate::osc::OscScanner::default(),
             scheme: crate::schemenotify::SchemeNotify::default(),
+            rqss: Default::default(),
             sel_anchor: None,
             graphics: crate::graphics::GraphicsScanner::default(),
             images: Vec::new(),
@@ -185,9 +188,10 @@ impl TermCore {
         self.feed_split(bytes, &prompts);
     }
 
-    /// Everything but the OSC sniff, for one piece of a chunk (`feed_split`
-    /// cuts a chunk at each prompt mark).
-    fn feed_part(&mut self, bytes: &[u8]) {
+    /// Everything but the OSC sniff and DECRQSS, for one piece of a chunk
+    /// (`feed_split` cuts a chunk at each prompt mark, `modelrqss` at each
+    /// DECRQSS).
+    fn feed_piece(&mut self, bytes: &[u8]) {
         // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
         replies.push_str(&self.cellq.feed(bytes, self.cell_px));
@@ -267,6 +271,10 @@ mod modellast;
 mod modelmodes;
 #[path = "modelprompt.rs"]
 mod modelprompt;
+#[path = "modelrqss.rs"]
+mod modelrqss;
+#[path = "modelrqsssgr.rs"]
+mod modelrqsssgr;
 #[path = "modelscroll.rs"]
 mod modelscroll;
 #[path = "modelsel.rs"]

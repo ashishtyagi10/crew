@@ -4977,6 +4977,14 @@ crew has (`TN`, `Co`/`colors`, `RGB`, `Tc`, `setrgbf`/`setrgbb`, `Ms` for
 OSC 52, `Ss`/`Se` for the cursor shape, `Smulx` for curly and other
 underlines) and `DCS 0 + r <name> ST` for the rest, so neovim over ssh or
 inside tmux turns on 24-bit colour without waiting out its one-second probe.
+And what a setting is now: **DECRQSS** (`DCS $ q <setting> ST`) answers ` q`
+(the cursor's DECSCUSR shape, which vim asks at start-up) and `m` (the SGR new
+text gets, in xterm's form — `0;1;31;48:2::1:2:3`, the colon form nvim's
+truecolor probe reads) with `DCS 1 $ r <value> ST`, from the state at the
+request even when the set and the ask share one write or sit inside a
+synchronized update. Replayed, the `m` answer restores the same state. Anything
+else — the scroll margins `r` included, which crew cannot read — gets
+`DCS 0 $ r ST`, never a guess.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
