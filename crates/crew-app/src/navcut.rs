@@ -53,3 +53,23 @@ pub(crate) fn clip(row: u16, s: &str, max: usize) -> String {
     }
     fit
 }
+
+/// `s` in `room` columns: whole, or its END after `…` — two folders' paths differ at the end,
+/// so a cut from the end left both twins reading `/var/folders…`.
+pub(crate) fn tail(s: &str, room: usize) -> String {
+    if crate::chatwidth::str_w(s) <= room {
+        return s.to_string();
+    }
+    let mut kept: Vec<char> = Vec::new();
+    let mut w = 1; // the ellipsis
+    for c in s.chars().rev() {
+        w += crate::chatwidth::char_w(c);
+        if w > room {
+            break;
+        }
+        kept.push(c);
+    }
+    std::iter::once('\u{2026}')
+        .chain(kept.into_iter().rev())
+        .collect()
+}

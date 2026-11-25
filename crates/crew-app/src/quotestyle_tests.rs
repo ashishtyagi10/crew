@@ -16,6 +16,7 @@ const SYNTAX: &[&str] = &[
     "inbox/mime.rs",
     "inbox/icsline.rs",
     "inbox/pick.rs",
+    "explorerpick.rs",
 ];
 
 fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {

@@ -51,6 +51,10 @@ impl CrewApp {
     /// The tree's hover as the repaint check compares it: the row, and whether its `×` is lit
     /// — sliding onto the `×` changes no row but must repaint.
     pub(crate) fn explorer_hover_code(&self) -> Option<usize> {
+        // The rule's `+` lights too: a code no row makes.
+        if self.explorer_add_at_cursor() {
+            return Some(usize::MAX - 1);
+        }
         let k = self.explorer_item_at_cursor()?;
         let lit = self.nav_x_under_cursor() && self.explorer_x_at_cursor().is_some();
         Some(k * 2 + usize::from(lit))
@@ -80,7 +84,11 @@ impl CrewApp {
             _ => return self.set_status(format!("usage: {USAGE}")),
         };
         if rest.is_empty() {
-            return self.set_status(format!("usage: {USAGE}"));
+            // `add` alone asks the system's chooser for the folder, as the rule's `+` does.
+            return match add {
+                true => self.explorer_choose_folder(),
+                false => self.set_status(format!("usage: {USAGE}")),
+            };
         }
         let base = match self.cwd.as_os_str().is_empty() {
             true => self.explorer_root(),
@@ -95,6 +103,12 @@ impl CrewApp {
             self.set_status(format!("explorer: {msg} {}", short(&path)));
             return self.redraw();
         }
+        self.explorer_pin_path(path);
+    }
+
+    /// Pin `path` (absolute and normalized) and show it: a folder as a root of the tree, a
+    /// file's folder with the file open.
+    pub(crate) fn explorer_pin_path(&mut self, path: PathBuf) {
         let (dir, file) = match () {
             _ if path.is_dir() => (path, None),
             _ if path.is_file() => match path.parent() {

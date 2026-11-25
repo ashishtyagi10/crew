@@ -391,15 +391,14 @@ impl CrewApp {
         }
         // Land a finished `?` ask (AI command suggestion) from its worker.
         any_changed |= self.poll_ask() | self.sync_todo_runs() | self.poll_inbox();
+        any_changed |= self.poll_explorer_chooser();
         // Inter-pane `ask`: serve socket requests + advance live asks against
         // the output the pane loop just captured this tick.
         any_changed |= self.pump_asks(now_ms);
         // Broadcast asks aggregate silently (no injection here), so they don't
         // force a repaint — advance them off the same captured output.
         self.tick_castings(now_ms);
-        if self.sidebar.refresh(&self.cwd) {
-            any_changed = true;
-        }
+        any_changed |= self.sidebar.refresh(&self.cwd);
         // Mirror the watched repo's branch into every smith pane: the summary
         // footer shows `model | branch | …` and must never run git itself on
         // this thread — the sidebar's GitWatch already polls off-thread.

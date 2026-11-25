@@ -49,7 +49,7 @@ pub(crate) mod mouse;
 mod ontop;
 pub(crate) mod outgoing;
 pub(crate) mod picfetch;
-mod pick;
+pub(crate) mod pick;
 mod picpaint;
 pub(crate) mod pics;
 pub(crate) mod plain;

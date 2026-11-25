@@ -80,6 +80,8 @@ pub(crate) struct Explorer {
     /// Folders pinned beside the pane's own, read from disk on first use
     /// ([`crate::explorerroots`]).
     pub(crate) pinned: RefCell<Option<Vec<PathBuf>>>,
+    /// The folder chooser the rule's `+` opened, while it is open ([`crate::explorerpick`]).
+    pub(crate) choosing: Option<crate::explorerpick::Chosen>,
     /// Refreshes in flight, and where their listings come back.
     pending: RefCell<HashSet<PathBuf>>,
     back: RefCell<Option<Chan>>,

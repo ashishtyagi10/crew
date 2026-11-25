@@ -43,6 +43,12 @@ impl CrewApp {
     /// A press on the tree: a folder opens or closes, a file opens in the viewer, the "n more"
     /// line opens its folder in Far. `true` when it was the tree's.
     pub(crate) fn explorer_press(&mut self) -> bool {
+        // The rule's `+`: add a folder beside the pane's.
+        if self.explorer_add_at_cursor() {
+            self.explorer_choose_folder();
+            self.redraw();
+            return true;
+        }
         // A pinned root's `×` first: the narrower target, or the root's toggle would claim it.
         if let Some(k) = self.explorer_x_at_cursor() {
             return self.explorer_unpin_at(k);
@@ -134,6 +140,7 @@ impl CrewApp {
             cursor,
             git: &gits,
             x,
+            add_lit: self.explorer_add_at_cursor(),
             find: cursor.and(e.find.live(crate::explorerfind::now())),
         };
         crate::explorerdraw::cells(&items, scroll, marks, (cols, rows))

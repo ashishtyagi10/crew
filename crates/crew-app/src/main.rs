@@ -456,6 +456,7 @@ mod explorerfind;
 mod explorergit;
 mod explorerhit;
 mod explorerkeys;
+mod explorerpick;
 mod explorerpin;
 mod explorerreveal;
 mod explorerroots;

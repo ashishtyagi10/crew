@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.30
+
+**An Add button in the Explorer opens more folders beside yours.**
+
+Explorer:
+- The EXPLORER heading now has a `+ ADD` button at its right end. Click it to pick one or more folders in the system's folder chooser; each one opens as its own root under the pane's folder, with an `×` to remove it.
+- The button fills with the accent colour under the pointer. On a narrow panel it shrinks to a single `+`.
+- `/nav explorer add` with no path opens the same chooser. Cancelling it adds nothing.
+
 ## 0.30.29
 
 **Files from the Explorer or Cmd+P open ready to type.**

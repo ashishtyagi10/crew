@@ -103,6 +103,12 @@ impl CrewApp {
     }
 
     fn nav_x_col_hit(&self) -> Option<bool> {
+        let (col, cols) = self.nav_cursor_col()?;
+        Some(col == x_col(cols))
+    }
+
+    /// The open nav panel's column under the pointer, and the panel's width in columns.
+    pub(crate) fn nav_cursor_col(&self) -> Option<(u16, u16)> {
         let (panel, _, _) = self.nav_hit_geometry()?;
         let (cw, ch, ..) = self.frame_geometry()?;
         // The panel's interior starts one cell in, past the card's border column; its width
@@ -110,7 +116,7 @@ impl CrewApp {
         let col = ((self.cursor.0 - panel.x) / cw).floor() as i32 - 1;
         let bar = f32::from(crate::navopen::BAR_TAKES) * cw;
         let (card, _) = crate::layout::card_inner_cells(panel.w + bar, panel.h, cw, ch);
-        Some(u16::try_from(col).ok()? == x_col(panel_cols(card)))
+        Some((u16::try_from(col).ok()?, panel_cols(card)))
     }
 
     /// A press on a row's `×`: the folder is forgotten, not opened. `true` when it was the `×`'s.
