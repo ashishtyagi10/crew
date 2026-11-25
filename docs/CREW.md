@@ -387,8 +387,8 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 **On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
 keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
 with **Ctrl**, as a browser or an editor has it: Ctrl+T opens a shell, Ctrl+W
-closes a pane, Ctrl+N opens a window, Ctrl+1 … 9 jump to a pane, in every
-pane, terminals included. A terminal (or a line you are typing) keeps the
+closes a pane, Ctrl+1 … 9 jump to a pane, in every pane, terminals included
+(Ctrl+N opens a window outside a terminal). A terminal (or a line you are typing) keeps the
 plain Ctrl keys it lives by — C, D, Z, R, L, A, E, K, U, P and N (the previous
 and next line, and fzf's and vim's menus' up and down), and M, J, I, H and
 `[`, which are Enter, newline, Tab, Backspace and Escape to it — and there

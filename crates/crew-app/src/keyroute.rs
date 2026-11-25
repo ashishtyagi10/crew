@@ -26,6 +26,7 @@ impl CrewApp {
         let mut swarm_close = false;
         let mut disk_action: Option<crate::diskpane::DiskAction> = None;
         let mut inbox_action: Option<crate::inbox::keys::InboxAction> = None;
+        let ctrl_letter = crate::keychord::ctrl_letter(&event.logical_key, mstate);
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
@@ -36,6 +37,7 @@ impl CrewApp {
                 PaneContent::Chat(c) => {
                     chat_action = c.on_key(event, (shift, mstate.control_key(), alt), &self.cwd)
                 }
+                PaneContent::Settings(_) | PaneContent::Far(_) if ctrl_letter => {}
                 PaneContent::Settings(s) => {
                     settings_action = s.on_key(event, shift);
                 }

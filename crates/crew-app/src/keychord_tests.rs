@@ -135,3 +135,25 @@ fn ctrl_n_stays_the_shells_off_a_mac() {
     let shifted = ModifiersState::CONTROL | ModifiersState::SHIFT;
     assert_eq!(stand_in(&ch, shifted, false, true).as_deref(), Some("n"));
 }
+
+/// Off a Mac, Ctrl+N in Far's command line or a settings field is no chord
+/// (Far counts as typing) — and no letter either: it typed a stray `n`.
+#[test]
+fn a_ctrl_letter_is_no_text_to_type() {
+    let ch = |s: &str| Key::Character(s.into());
+    assert!(ctrl_letter(&ch("n"), ModifiersState::CONTROL));
+    assert!(ctrl_letter(
+        &ch("N"),
+        ModifiersState::CONTROL | ModifiersState::SHIFT
+    ));
+    assert!(
+        !ctrl_letter(&ch("n"), ModifiersState::empty()),
+        "a plain letter types"
+    );
+    let altgr = ModifiersState::CONTROL | ModifiersState::ALT;
+    assert!(
+        !ctrl_letter(&ch("q"), altgr),
+        "AltGr+Q is @ on a German layout"
+    );
+    assert!(!ctrl_letter(&ch("@"), ModifiersState::CONTROL));
+}

@@ -130,6 +130,16 @@ pub(crate) fn stands_in(key: &str) -> bool {
     (c.is_ascii_alphanumeric() || "=-,./[]".contains(c)) && !"lgfm".contains(c)
 }
 
+/// A Ctrl+letter (not AltGr's Ctrl+Alt): no text to type. Far's command line
+/// and a settings field read keys without Ctrl, so one left to them — off a
+/// Mac, a letter a typing pane keeps from crew's chords ([`TYPED`]) — typed
+/// a stray letter.
+pub(crate) fn ctrl_letter(key: &Key, mods: ModifiersState) -> bool {
+    mods.control_key()
+        && !mods.alt_key()
+        && matches!(key, Key::Character(s) if s.chars().all(|c| c.is_ascii_alphabetic()))
+}
+
 #[cfg(test)]
 #[path = "keychord_tests.rs"]
 mod tests;
