@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.26
+
+**Each pane gets a two-line card in the side panel's PANES list.**
+
+Side panel:
+- When the panel is tall enough, every pane in the PANES list is a small two-line card instead of a single row. Line one shows its number, its name and its state: working, you (it needs you), done, failed or exited.
+- Line two says what the pane is doing: an agent's spinner line with its timer (`Pondering · 12s`), the question it is waiting on, its last message, or a program's last line of output. A file viewer shows the folder its file is in. The restore `+` and the unread count sit at the end of that line.
+- A coloured strip down each card's left edge shows its state at a glance. The focused pane's strip is wider and in the accent colour.
+- Clicking either line of a card picks that pane; the gap between cards picks nothing.
+- With more panes than the panel can fit as cards, the list goes back to one-line rows.
+- On a narrow panel the pane's name stays visible; the state word is dropped first.
+- Resting the pointer on a card whose name or second line was cut short shows both lines whole in a small card beside the panel.
+- A pane that is still running stays marked as working when you scroll back through it.
+
 ## 0.30.25
 
 **Terminals type accents and answer nvim; nav lists take keys.**
