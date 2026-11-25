@@ -7,7 +7,7 @@
 src/app.rs 443
 src/app_tests.rs 1354
 src/appregister.rs 291
-src/blocked.rs 267
+src/blocked.rs 265
 src/blocked_tests.rs 413
 src/canvas/canvas_tests.rs 208
 src/cardshot_tests.rs 204
@@ -84,11 +84,11 @@ src/pane.rs 286
 src/panecard.rs 389
 src/panecard_tests.rs 512
 src/panecardglow_tests.rs 205
-src/panelist_tests.rs 283
+src/panelist_tests.rs 278
 src/panescroll_tests.rs 555
 src/paneview.rs 262
 src/plot/canvas.rs 349
-src/poll.rs 877
+src/poll.rs 873
 src/render.rs 561
 src/reopen_tests.rs 230
 src/sessionrestore.rs 259

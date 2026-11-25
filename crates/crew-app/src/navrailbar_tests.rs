@@ -25,6 +25,7 @@ fn the_list_starts_under_the_icons_and_the_gear_holds_the_last_row() {
             busy: false,
             unread: 0,
             hovered: false,
+            card: None,
         })
         .collect();
     let list = crate::tabnav::NavList::from(rows);

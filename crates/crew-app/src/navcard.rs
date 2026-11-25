@@ -131,6 +131,7 @@ impl CrewApp {
         let now = crate::anim::now_ms();
         // One hit-test per frame, not one per row.
         let hovered = self.pane_at_panes_list();
+        let cards = self.pane_cards();
         self.panes
             .iter()
             .enumerate()
@@ -154,6 +155,12 @@ impl CrewApp {
                     _ => 0,
                 },
                 hovered: hovered == Some(i),
+                card: cards.then(|| crate::navpanecard::Card {
+                    name: crate::panestate::name_of(p),
+                    detail: crate::panestate::detail_of(p),
+                    glyph: crate::panestate::glyph_of(p),
+                    state: crate::panestate::state_of(p, now),
+                }),
             })
             .collect()
     }

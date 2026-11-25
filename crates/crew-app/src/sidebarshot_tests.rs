@@ -1,8 +1,7 @@
-//! Off-screen render of the WHOLE left nav — every section stacked in one tall
-//! narrow card, the shape the app actually docks — so the column can be looked
-//! at as a column. The per-widget shots in `chartshot_tests` each pass on a
-//! wide card and still stack into something that reads badly: a chart that is
-//! a smear at 2 rows, a clipped log line, an overpowering mark. Only the stack shows that.
+//! Off-screen render of the WHOLE left nav — every section stacked in one tall narrow card, the
+//! shape the app actually docks — so the column can be looked at as a column. The per-widget
+//! shots in `chartshot_tests` each pass on a wide card and still stack into something that reads
+//! badly: a chart that is a smear at 2 rows, a clipped log line, an overpowering mark.
 //!
 //! `#[ignore]`d (needs a GPU adapter, writes PNGs):
 //! `cargo test -p crew-app --bin crew sidebar_shot -- --ignored --nocapture`
@@ -49,6 +48,7 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> PaneRow {
         busy,
         unread: 0,
         hovered: false,
+        card: None,
     }
 }
 

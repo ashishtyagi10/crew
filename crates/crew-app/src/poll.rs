@@ -680,8 +680,9 @@ impl CrewApp {
         }
         // Step each terminal's rendered-tail watch (stability clock + prompt
         // match) before reading the verdicts below.
+        let mut changed = false;
         for p in self.panes.iter_mut() {
-            crate::blocked::observe(p, now);
+            changed |= crate::blocked::observe(p, now);
         }
         let snap: Vec<(u64, bool)> = self
             .panes
@@ -694,7 +695,6 @@ impl CrewApp {
         let up = self
             .blocked
             .update(&snap, focused_key, focused_blocked, user_idle);
-        let mut changed = false;
         for key in &up.newly {
             if let Some(i) = self.panes.iter().position(|p| p.born_ms == *key) {
                 crate::attention::raise(

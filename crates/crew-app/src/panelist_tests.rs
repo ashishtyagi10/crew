@@ -10,6 +10,7 @@ fn row(index: usize, title: &str, focused: bool, activity: bool) -> PaneRow {
         attention: None,
         busy: false,
         hovered: false,
+        card: None,
         unread: 0,
     }
 }
@@ -69,15 +70,9 @@ fn the_title_stops_short_of_the_count() {
 fn nothing_in_a_sidebar_row_is_drawn_half_over() {
     let _g = crate::app::theme_test_guard();
     let row = PaneRow {
-        index: 12,
-        title: "crew \u{b7} claude".into(),
-        focused: false,
-        activity: true,
         minimized: true,
-        attention: None,
-        busy: false,
-        hovered: false,
         unread: 128,
+        ..row(12, "crew \u{b7} claude", false, true)
     };
     for cols in 12..=60u16 {
         let cells = cells_of(std::slice::from_ref(&row), cols, 4);

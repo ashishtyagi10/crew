@@ -94,6 +94,7 @@ fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
             busy: false,
             unread: 0,
             hovered: false,
+            card: None,
         })
         .collect();
     let cols = 26u16;

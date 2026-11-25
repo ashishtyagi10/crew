@@ -40,6 +40,7 @@ pub(crate) fn fixture() -> (StatsPane, Vec<LogEntry>, Vec<PaneRow>) {
             busy: i == 1,
             unread: if i == 3 { 4 } else { 0 },
             hovered: false,
+            card: None,
         })
         .collect();
     (sp, log, panes)

@@ -75,6 +75,7 @@ fn the_panes_badge_is_the_loudest_pane_mark() {
             busy,
             unread,
             hovered: false,
+            card: None,
         };
     assert_eq!(panes_badge(&[row(None, false, 0)], '*'), None);
     let unread = panes_badge(&[row(None, false, 3)], '*').unwrap().0;
