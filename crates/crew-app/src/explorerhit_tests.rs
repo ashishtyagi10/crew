@@ -2,7 +2,7 @@
 use crate::app::CrewApp;
 use crate::explorer::tests::tree;
 
-const CELL: (f32, f32) = (8.0, 17.0);
+pub(crate) const CELL: (f32, f32) = (8.0, 17.0);
 
 pub(crate) fn app(root: &std::path::Path) -> CrewApp {
     let mut a = CrewApp {

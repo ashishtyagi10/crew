@@ -144,7 +144,7 @@ fn remove_unpins_by_path_and_a_missing_path_says_so() {
     assert!(a.sidebar.explorer.pinned().is_empty());
     a.nav_command("explorer add no/such/folder");
     assert!(said(&a).contains("no such path"), "{}", said(&a));
-    a.nav_command("explorer add");
+    a.nav_command("explorer remove");
     assert!(said(&a).contains("usage"), "{}", said(&a));
 }
 

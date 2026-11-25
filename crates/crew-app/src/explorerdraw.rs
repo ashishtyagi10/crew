@@ -8,6 +8,7 @@ use std::path::Path;
 use crew_render::CellView;
 
 use crate::explorer::Item;
+use crate::navcut::tail;
 
 /// Rows above the first item: the section's rule.
 pub(crate) const TOP: u16 = 1;
@@ -35,6 +36,8 @@ pub(crate) struct Marks<'a> {
     pub x: Option<(usize, bool)>,
     /// The name being typed to find, and whether it matched ([`crate::explorerfind`]).
     pub find: Option<(&'a str, bool)>,
+    /// The pointer is on the rule's `+`, which adds a folder ([`crate::explorerpick`]).
+    pub add_lit: bool,
 }
 
 /// The tree's cells for a panel `cols` × `rows`, the list scrolled by `scroll`.
@@ -51,6 +54,7 @@ pub(crate) fn cells(
         git,
         find,
         x: close,
+        add_lit,
     } = marks;
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
@@ -64,6 +68,7 @@ pub(crate) fn cells(
     let (border, bg) = (t.border_normal, t.page_bg);
     let mut out =
         crate::boxdraw::section_header_key("EXPLORER", &key, cols, border, accent, key_fg, bg);
+    crate::explorerpick::add_button(&mut out, cols, add_lit);
     let shown = usize::from(rows.saturating_sub(TOP));
     // Every root's name, scrolled off or not, so a twin below the fold still marks this one.
     let roots: Vec<&str> = (items.iter().filter(|i| i.depth == 0 && i.more.is_none()))
@@ -162,26 +167,6 @@ pub(crate) fn bar(out: &mut Vec<CellView>, row: u16, cols: u16) {
     for c in out.iter_mut().filter(|c| c.row == row) {
         (c.fg, c.bg, c.bold) = (ink, fill, true);
     }
-}
-
-/// `s` in `room` columns: whole, or its END after `…` — two folders' paths differ at the end,
-/// so a cut from the end left both twins reading `/var/folders…`.
-pub(crate) fn tail(s: &str, room: usize) -> String {
-    if crate::chatwidth::str_w(s) <= room {
-        return s.to_string();
-    }
-    let mut kept: Vec<char> = Vec::new();
-    let mut w = 1; // the ellipsis
-    for c in s.chars().rev() {
-        w += crate::chatwidth::char_w(c);
-        if w > room {
-            break;
-        }
-        kept.push(c);
-    }
-    std::iter::once('\u{2026}')
-        .chain(kept.into_iter().rev())
-        .collect()
 }
 
 /// Write `s` at `col` on `row`, clipped to the panel.
