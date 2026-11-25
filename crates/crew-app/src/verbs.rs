@@ -66,6 +66,11 @@ pub(crate) const VERBS: &[Verb] = &[
             ("explorer", "open the EXPLORER section: the file tree"),
             ("inbox", "open the INBOX section: the newest unread mail"),
             ("far", "open the FAR section: the folders Far went to last"),
+            (
+                "explorer add",
+                "pin another folder (or a file's) to the EXPLORER beside the pane's",
+            ),
+            ("explorer remove", "unpin a folder from the EXPLORER"),
             ("glance", "Activity shows the glance cards over its LOG"),
             ("log", "Activity shows the LOG alone"),
             (
@@ -122,10 +127,13 @@ pub(crate) fn canon(cmd: &str, arg: &str) -> (String, String, String) {
     lookcmd::canon(cmd, arg)
 }
 
-/// Whether a row is a subject that opens a picker of its own — those INSERT
-/// (with the space the next step needs) instead of running.
+/// Whether a row is a subject that opens a picker of its own, or one of two words that waits
+/// for a path (`/nav explorer add `) — those INSERT (with the space the next step needs)
+/// instead of running.
 pub(crate) fn nested(prefix: &str, value: &str) -> bool {
-    verb(prefix).is_some_and(|v| v.two_step && v.subjects.iter().any(|(s, _)| *s == value))
+    verb(prefix).is_some_and(|v| {
+        (v.two_step || value.contains(' ')) && v.subjects.iter().any(|(s, _)| *s == value)
+    })
 }
 
 /// What a row types into the bar.

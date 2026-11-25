@@ -515,6 +515,16 @@ does: a changed file's name in its change's colour with a letter at the row's
 end (**M** modified, **A** added, **U** untracked, **D** deleted, **!** in
 conflict), and a folder holding changes tinted with a dot — read from the same
 `git status` the nav already asks every few seconds, so it costs no extra git.
+**More folders beside the pane's:** `/nav explorer add <path>` pins a folder to
+the tree — a credentials or properties folder such as `~/.aws`, kept wherever it
+lives — drawn as a root of its own under the focused pane's tree, opened, closed
+and walked like it, and kept across restarts (`<config dir>/crew/explorer-roots`).
+The pane's root still follows focus; pinned ones stay put. Give a file and its
+folder is pinned and the file opens in the viewer. `~`, `$VAR` and relative paths
+work, and the path completes, as `/view`'s do. A hovered
+pinned root shows a `×` at its end that unpins it, as Delete does on it with the
+tree holding the keys, or `/nav explorer remove <path>`. A pinned folder that is
+the pane's own folder just now is drawn once.
 **Cmd+Shift+E** hands the tree the keyboard (see the keys table). The **gear**
 at the bar's foot opens the settings.
 The **Inbox** and **Far** sections list the newest unread threads and the
@@ -893,7 +903,7 @@ The docked command bar supports:
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>` (`/find all <text>`), `/name <text>`, `/clear`
-  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav` (`/nav panes|system|activity|explorer`, `/nav weather <place>`), `/copy`, `/dump`,
+  (`/clear all`, `/clear log`), `/close all`, `/close others`, `/pwd`, `/about`, `/log`, `/nav` (`/nav panes|system|activity|explorer|inbox|far`, `/nav explorer add|remove <path>`, `/nav weather <place>`), `/copy`, `/dump`,
   `/font`, `/theme`, `/notify`, `/restart`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,

@@ -93,6 +93,16 @@ impl CrewApp {
     /// The recent folder whose `×` is under the pointer, as an index into `farrecent::list`.
     pub(crate) fn far_x_at_cursor(&self) -> Option<usize> {
         let k = self.far_item_at_cursor()?;
+        self.nav_x_under_cursor().then_some(k)
+    }
+
+    /// Whether the pointer is in the open nav panel's `×` column — a Far row's, a pinned
+    /// Explorer root's (`explorerpin`).
+    pub(crate) fn nav_x_under_cursor(&self) -> bool {
+        self.nav_x_col_hit().unwrap_or(false)
+    }
+
+    fn nav_x_col_hit(&self) -> Option<bool> {
         let (panel, _, _) = self.nav_hit_geometry()?;
         let (cw, ch, ..) = self.frame_geometry()?;
         // The panel's interior starts one cell in, past the card's border column; its width
@@ -100,7 +110,7 @@ impl CrewApp {
         let col = ((self.cursor.0 - panel.x) / cw).floor() as i32 - 1;
         let bar = f32::from(crate::navopen::BAR_TAKES) * cw;
         let (card, _) = crate::layout::card_inner_cells(panel.w + bar, panel.h, cw, ch);
-        (u16::try_from(col).ok()? == x_col(panel_cols(card))).then_some(k)
+        Some(u16::try_from(col).ok()? == x_col(panel_cols(card)))
     }
 
     /// A press on a row's `×`: the folder is forgotten, not opened. `true` when it was the `×`'s.

@@ -3,12 +3,13 @@
 //! The tree marked a file only when it was opened from the tree. A viewer opened any other way —
 //! Cmd+P, a clicked link, `/view path` — left the tree closed above it and the file unmarked,
 //! so "where is this?" meant walking the folders by hand. Now, while the Explorer is the open
-//! section, a focused viewer whose file is under the tree's root opens every folder down to it,
+//! section, a focused viewer whose file is under one of the tree's roots (the pane's, then each
+//! pinned one) opens every folder down to it,
 //! marks it, and scrolls its row to the middle of the panel when it was off screen.
 //!
 //! **Once per change.** It runs when the focused pane or its file changes (or the Explorer
 //! opens), not every frame: a tree the user scrolls after the reveal stays where they put it
-//! until they look at something else. A file outside the root leaves the tree alone.
+//! until they look at something else. A file outside every root leaves the tree alone.
 use std::path::{Path, PathBuf};
 
 use crate::app::CrewApp;
@@ -44,8 +45,9 @@ impl CrewApp {
         let Some(file) = file else {
             return;
         };
-        let root = self.explorer_root();
-        let Some(rel) = under(&root, &file) else {
+        // The first root the file is under: the pane's, then each pinned one.
+        let found = (self.explorer_roots().into_iter()).find_map(|r| Some((under(&r, &file)?, r)));
+        let Some((rel, root)) = found else {
             return;
         };
         let e = &mut self.sidebar.explorer;
@@ -59,9 +61,9 @@ impl CrewApp {
             }
         }
         let path = root.join(&rel);
-        let items = e.items(&root);
+        e.picked = Some(path.clone());
+        let items = self.explorer_items();
         let row = items.iter().position(|i| i.path == path);
-        e.picked = Some(path);
         // A file the tree does not list (hidden, past the cap, written since the folder was
         // read) is marked for when it shows, but there is no row to scroll to.
         if let Some(row) = row {

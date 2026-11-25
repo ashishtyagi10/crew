@@ -52,6 +52,10 @@ pub(crate) fn complete_path(arg: &str, base: &Path, files_too: bool) -> Option<S
 /// offering it files.
 pub(crate) const PATH_COMMANDS: [&str; 5] = ["/dump", "/view", "/md", "/doc", "/batch"];
 
+/// A verb's subjects that take a path after them — `/nav explorer add ~/.aws` — completed as
+/// [`PATH_COMMANDS`] are, and held against the palette by the same parity test.
+pub(crate) const PATH_SUBJECTS: [&str; 2] = ["/nav explorer add", "/nav explorer remove"];
+
 /// The directory partial of a line that takes ONE directory: `cd <dir>`,
 /// and `/todo project <name> <dir>` — the binding `r` on an unplaced
 /// project fills the bar with, so the path it asks for completes the way
@@ -69,8 +73,7 @@ pub(crate) fn dir_arg(text: &str) -> Option<&str> {
 /// Path completion for a `<command> <partial>` line (files and directories),
 /// or `None` when `text` is not one of [`PATH_COMMANDS`].
 pub(crate) fn path_suggest(text: &str, base: &Path) -> Option<String> {
-    let arg = PATH_COMMANDS
-        .iter()
+    let arg = (PATH_COMMANDS.iter().chain(PATH_SUBJECTS.iter()))
         .find_map(|c| text.strip_prefix(c)?.strip_prefix(' '))?;
     complete_path(arg, base, true)
 }

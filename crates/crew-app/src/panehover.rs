@@ -112,7 +112,7 @@ impl CrewApp {
         let btn = publish(self.hover_btn());
         let nav = publish_nav(self.pane_at_sidebar())
             | crate::navbar::publish_hover(self.bar_at_cursor())
-            | crate::explorerhit::publish_hover(self.explorer_item_at_cursor())
+            | crate::explorerhit::publish_hover(self.explorer_hover_code())
             | crate::navsectionhit::publish_hover(self.list_hover())
             | crate::navfarrow::publish_x(self.far_x_at_cursor());
         // The rims' light follows the pointer: a whole step of travel is a

@@ -51,9 +51,9 @@ impl CrewApp {
         // lookup on almost every frame it is called on.
         let mut dirs: Vec<std::path::PathBuf> =
             self.panes.iter().filter_map(|p| p.dir.clone()).collect();
-        // The Explorer's root is asked about too: its marks come from the same answer.
+        // The Explorer's roots are asked about too: their marks come from the same answer.
         if self.nav_section() == crate::navsection::NavSection::Explorer {
-            dirs.push(self.explorer_root());
+            dirs.extend(self.explorer_roots());
         }
         self.git_fleet.poll(&dirs, now / 1000);
         // Watching is reading: the pane you are looking at, at its live
