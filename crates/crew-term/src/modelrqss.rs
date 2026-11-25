@@ -1,16 +1,18 @@
 //! DECRQSS, `DCS $ q <setting> ST`: a program asks what a setting is NOW.
 //!
-//! nvim 0.10 decides on 24-bit colour this way: it sets a background of
-//! `48;2;r;g;b` and asks for `m` (SGR) in the same write, and turns
-//! 'termguicolors' on only when the reply ends with those three numbers —
-//! the one check that survives ssh, sudo and tmux, where `$COLORTERM` does
-//! not. vim asks for ` q` (DECSCUSR) at start-up to learn the cursor's shape
-//! and blink. vte has no arm for this DCS, so it went unanswered: nvim stayed
-//! on 256 colours and vim on its guess.
+//! vim asks for ` q` (DECSCUSR, its `t_RS`) at start-up to learn the
+//! cursor's shape and blink. nvim 0.10+ sets a background of `48:2::r:g:b`
+//! and asks for `m` (SGR) in the same write, beside its XTGETTCAP query
+//! (`modelcaps`), and takes 'termguicolors' from whichever says yes. vte has
+//! no arm for this DCS, so it went unanswered: vim kept its guess, and
+//! nvim's probe waited out its one-second timer (XTGETTCAP had already
+//! answered for it).
 //!
 //! Answered from the terminal's state AT the request, not at the end of the
 //! read: the bytes before it reach the parser first, so a set-then-ask in
-//! one write is told what was just set. Replies are xterm's: `DCS 1 $ r
+//! one write is told what was just set — inside a synchronized update too,
+//! whose held bytes are drawn before the answer (the update ends early, as
+//! a stale one does in `modelsync`). Replies are xterm's: `DCS 1 $ r
 //! <value> ST` for a setting crew knows, `DCS 0 $ r ST` for one it does not —
 //! which includes `r` (DECSTBM): alacritty keeps the scroll margins private,
 //! and a wrong answer is worse than none, since the asker falls back as for
@@ -55,8 +57,14 @@ impl Rqss {
             // CAN and SUB cancel any sequence, as vte treats them.
             (Body, 0x18 | 0x1a) => Ground,
             (Body, ESC) => BodyEsc,
-            (Body, _) if self.body.len() < MAX_BODY => {
-                self.body.push(b);
+            // DEL is dropped inside a DCS, as vte drops it.
+            (Body, 0x7f) => Body,
+            // Past the cap nothing more is kept, but the request still ends
+            // and is answered: unknown, not left to time out.
+            (Body, _) => {
+                if self.body.len() <= MAX_BODY {
+                    self.body.push(b);
+                }
                 Body
             }
             (Esc | BodyEsc, b'P') => Dcs,
@@ -81,6 +89,10 @@ impl TermCore {
             if let Some(setting) = self.rqss.step(b) {
                 self.feed_piece(&bytes[from..=i]);
                 from = i + 1;
+                if self.parser.sync_bytes_count() > 0 {
+                    self.parser.stop_sync(&mut self.term);
+                    self.answer_colors();
+                }
                 let reply = reply(&setting, self);
                 self.events.replies.lock().unwrap().push_str(&reply);
             }
