@@ -10,6 +10,7 @@ fn row(index: usize, title: &str, focused: bool, activity: bool) -> PaneRow {
         attention: None,
         busy: false,
         hovered: false,
+        card: None,
         unread: 0,
     }
 }
@@ -77,6 +78,7 @@ fn nothing_in_a_sidebar_row_is_drawn_half_over() {
         attention: None,
         busy: false,
         hovered: false,
+        card: None,
         unread: 128,
     };
     for cols in 12..=60u16 {
@@ -122,6 +124,7 @@ fn a_hovered_row_lifts_its_ink_out_of_the_muted_grey() {
     let quiet = [row(1, "build", false, false)];
     let hot = [PaneRow {
         hovered: true,
+        card: None,
         ..row(1, "build", false, false)
     }];
     let ink_of = |rows: &[PaneRow]| -> Vec<(u8, u8, u8)> {

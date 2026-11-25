@@ -29,6 +29,7 @@ fn pane(index: usize, focused: bool, busy: bool) -> PaneRow {
         busy,
         unread: 0,
         hovered: false,
+        card: None,
     }
 }
 

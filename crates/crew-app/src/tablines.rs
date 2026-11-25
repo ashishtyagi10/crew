@@ -15,35 +15,65 @@ impl CrewApp {
         }
     }
 
-    /// Every line of the PANES list, in drawing order.
+    /// Every line of the PANES list, in drawing order — a card's two lines
+    /// and the gaps between cards when the panel has the room ([`Self::pane_cards`]).
     pub(crate) fn nav_lines(&self) -> Vec<Line> {
-        if self.tabs.list.len() < 2 {
-            return (0..self.panes.len()).map(Line::Pane).collect();
-        }
+        let cards = self.pane_cards();
         let mut out = Vec::new();
+        if self.tabs.list.len() < 2 {
+            crate::navpanecard::push_entries(&mut out, 0..self.panes.len(), cards);
+            return out;
+        }
         for t in &self.tabs.list {
             out.push(Line::Tab(t.id));
-            out.extend(
-                (0..self.panes.len())
-                    .filter(|&i| self.tab_of(i) == t.id)
-                    .map(Line::Pane),
-            );
+            let mine = (0..self.panes.len()).filter(|&i| self.tab_of(i) == t.id);
+            crate::navpanecard::push_entries(&mut out, mine, cards);
             out.push(Line::Edge(t.id));
         }
         out
     }
 
-    /// The rail's lines: the list's, without the cards' bottom edges.
+    /// Whether the PANES list draws as two-line cards: the Panes section is
+    /// open and the panel has a row for every card line (`navpanecard::fits`).
+    /// Read from the panel's height alone — the layout itself counts
+    /// [`Self::nav_lines`], so asking it would ask this.
+    pub(crate) fn pane_cards(&self) -> bool {
+        if !self.config.show_nav || self.config.nav_collapsed {
+            return false;
+        }
+        if self.nav_section() != crate::navsection::NavSection::Panes || self.panes.is_empty() {
+            return false;
+        }
+        let Some((cw, ch, _sw, sh, scale)) = self.frame_geometry() else {
+            return false;
+        };
+        let (nav, g) = (self.nav_px(scale), self.gutter());
+        let sb = crate::chrome::stats_card_rect(sh, nav, g, ch, self.nav_top_card());
+        let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
+        let tabs = self.tabs.list.len();
+        let groups = match tabs {
+            0 | 1 => 1,
+            _ => (self.tabs.list.iter())
+                .filter(|t| (0..self.panes.len()).any(|i| self.tab_of(i) == t.id))
+                .count(),
+        };
+        let compact = self.panes.len() + if tabs < 2 { 0 } else { 2 * tabs };
+        crate::navpanecard::fits(rows, compact, self.panes.len(), groups)
+    }
+
+    /// The rail's lines: the list's, without the cards' bottom edges (the
+    /// rail is never in card density, so it has no second lines or gaps).
     pub(crate) fn rail_lines(&self) -> Vec<Line> {
         let mut l = self.nav_lines();
-        l.retain(|l| !matches!(l, Line::Edge(_)));
+        l.retain(|l| matches!(l, Line::Pane(_) | Line::Tab(_)));
         l
     }
 
-    /// The pane on line `k` of the open nav's list, if a pane is there.
+    /// The pane on line `k` of the open nav's list, if a pane is there: either
+    /// line of its card.
     pub(crate) fn nav_pane_at(&self, k: usize) -> Option<usize> {
         match self.nav_lines().get(k)? {
-            Line::Pane(i) => Some(*i),
+            Line::Pane(i) | Line::Detail(i) => Some(*i),
             _ => None,
         }
     }
@@ -89,7 +119,7 @@ impl CrewApp {
         };
         match line {
             Line::Tab(id) | Line::Edge(id) => Some(id),
-            Line::Pane(_) => None,
+            Line::Pane(_) | Line::Detail(_) | Line::Gap => None,
         }
     }
 

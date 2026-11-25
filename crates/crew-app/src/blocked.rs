@@ -2,22 +2,18 @@
 //! approval prompt, a y/n question, a pending plan) and the policy for
 //! surfacing them (attention badge, one auto-focus per episode, Cmd+. cycle).
 //!
-//! The hard part is waiting-vs-thinking: an agent quietly computing must NOT
-//! read as blocked. PTY-byte quiescence cannot draw that line: Claude Code
-//! repaints a blinking `⏺` every ~600 ms while its approval dialog just sits
-//! there (measured 2026-08-05, claude 2.1.222 — 47–49 bytes each ~0.6 s), so
-//! a byte-quiet gate never opens. What actually distinguishes the two states
-//! is the RENDERED bottom of the screen: waiting, its text is frozen;
-//! thinking, a spinner/timer line (`✳ Pondering… (12s · esc to interrupt)`)
-//! rewrites it every second. So quiescence is text stability: the last
-//! [`STABLE_ROWS`] non-empty rows unchanged for [`QUIET_MS`] (blinks and OSC
-//! title churn don't alter that text; a ticking timer does). A pane counts as
-//! blocked only when that stable tail also carries a question/permission
-//! signal within [`MATCH_ROWS`] rows — wide enough to reach a question pushed
-//! up by wrapped option lines in a narrow pane (Claude Code's dialog puts it
-//! 8 non-empty rows above the bottom at 44 cols) or by Codex's
-//! press-enter/composer footer. The smith/chat pane is exact: its broker
-//! reports a pending Plan (`plan_pending`).
+//! The hard part is waiting-vs-thinking: an agent quietly computing must NOT read as blocked.
+//! PTY-byte quiescence cannot draw that line: Claude Code repaints a blinking `⏺` every ~600 ms
+//! while its approval dialog just sits there (measured 2026-08-05, claude 2.1.222 — 47–49 bytes
+//! each ~0.6 s), so a byte-quiet gate never opens. What actually distinguishes the two states is
+//! the RENDERED bottom of the screen: waiting, its text is frozen; thinking, a spinner/timer line
+//! (`✳ Pondering… (12s · esc to interrupt)`) rewrites it every second. So quiescence is text
+//! stability: the last [`STABLE_ROWS`] non-empty rows unchanged for [`QUIET_MS`] (blinks and OSC
+//! title churn don't alter that text; a ticking timer does). A pane counts as blocked only when
+//! that stable tail also carries a question/permission signal within [`MATCH_ROWS`] rows — wide
+//! enough to reach a question pushed up by wrapped option lines in a narrow pane (Claude Code's
+//! dialog puts it 8 non-empty rows above the bottom at 44 cols) or by Codex's press-enter/composer
+//! footer. The smith/chat pane is exact: its broker reports a pending Plan (`plan_pending`).
 use crate::pane::{Pane, PaneContent};
 use crew_term::TermModel;
 use std::hash::{Hash, Hasher};
@@ -116,6 +112,8 @@ pub struct TailWatch {
     since_ms: u64,
     /// Whether the tail matched [`tail_is_prompt`] at the previous step.
     prompt: bool,
+    /// What the nav's entry says the pane is doing ([`crate::panegist`]).
+    pub(crate) gist: crate::panegist::Gist,
 }
 
 impl TailWatch {
@@ -147,21 +145,21 @@ impl TailWatch {
     }
 }
 
-/// Advance a pane's [`TailWatch`] (terminals only; call at most 1×/s — the
+/// Advance a pane's [`TailWatch`] and its gist (terminals; at most 1×/s — the
 /// row extraction is the O(cells) cost this module throttles). An idle shell
-/// (`cmd` = None) is never waiting even with an old question above its
-/// prompt, and a scrolled-back viewport's tail is not the live tail — both
-/// reset rather than step.
-pub(crate) fn observe(p: &mut Pane, now: u64) {
+/// is never waiting (and has no gist), and a scrolled-back viewport's tail is
+/// not the live tail: both reset rather than step. `true`: the gist changed.
+pub(crate) fn observe(p: &mut Pane, now: u64) -> bool {
     let PaneContent::Terminal(t) = &mut p.content else {
-        return;
+        return false;
     };
     if t.cmd.is_none() || t.pty.display_offset() != 0 {
         t.tail.reset(now);
-        return;
+        return t.cmd.is_none() && t.tail.gist.clear();
     }
     let rows = crate::search::rows_text(&t.pty.cells(false), p.grid.cols, p.grid.rows, false);
     t.tail.step(&rows, now);
+    t.tail.gist.note(&rows, now)
 }
 
 /// Whether `p` is blocked on the user right now. Chat panes are exact

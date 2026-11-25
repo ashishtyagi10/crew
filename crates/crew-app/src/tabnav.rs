@@ -22,6 +22,10 @@ pub(crate) enum Line {
     Tab(u32),
     /// A tab card's bottom edge.
     Edge(u32),
+    /// The second line of pane `i`'s card (`navpanecard`): a click there is a click on it.
+    Detail(usize),
+    /// The air between two cards: nobody's.
+    Gap,
 }
 
 /// One tab's card: its legend and its panes' rows.
@@ -57,16 +61,27 @@ impl NavList {
     /// Lines below the PANES rule.
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
+        // A card group spends two lines a pane and one between each two.
+        let lines = |r: &[PaneRow]| match crate::navcardlist::all_cards(r) {
+            true => 3 * r.len() - 1,
+            false => r.len(),
+        };
         match self {
-            NavList::Flat(r) => r.len(),
-            NavList::Tabs(b) => b.iter().map(|b| b.rows.len() + 2).sum(),
+            NavList::Flat(r) => lines(r),
+            NavList::Tabs(b) => b.iter().map(|b| lines(&b.rows) + 2).sum(),
         }
     }
 
     /// The PANES section: its rule on row 0 and up to `limit` lines under it.
     pub(crate) fn cells(&self, cols: u16, limit: usize, spin: char) -> Vec<CellView> {
         let blocks = match self {
+            NavList::Flat(r) if crate::navcardlist::all_cards(r) => {
+                return crate::navcardlist::flat(r, cols, limit)
+            }
             NavList::Flat(rows) => return pane_cells(rows, cols, limit, spin),
+            NavList::Tabs(b) if crate::navcardlist::tabs_cards(b) => {
+                return crate::navcardlist::tabs(b, cols, limit)
+            }
             NavList::Tabs(b) => b,
         };
         let t = crew_theme::theme();

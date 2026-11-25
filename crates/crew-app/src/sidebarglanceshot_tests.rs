@@ -26,6 +26,7 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> crate::panelist
         busy,
         unread: 0,
         hovered: false,
+        card: None,
     }
 }
 

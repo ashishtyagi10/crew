@@ -13,6 +13,7 @@ fn row(title: &str) -> PaneRow {
         busy: false,
         unread: 0,
         hovered: false,
+        card: None,
     }
 }
 

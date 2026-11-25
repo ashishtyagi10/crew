@@ -37,11 +37,11 @@ pub struct PaneRow {
     /// ([`crate::unread`]) — the same count the pane's own card and its
     /// minimized thumbnail carry. `0` draws nothing.
     pub unread: usize,
-    /// The pointer is on this row. The whole row is a click target that
-    /// focuses (and restores) the pane, and nothing said so: it lifts its ink
-    /// out of the muted grey rather than washing a background behind it,
-    /// because the page's contrast headroom is already spent.
+    /// The pointer is on this row, a click target that focuses (and restores) the pane: it lifts
+    /// its ink rather than washing a background behind it (the contrast headroom is spent).
     pub hovered: bool,
+    /// Drawn as a two-line card (`navpanecard`) when the panel has the room.
+    pub card: Option<crate::navpanecard::Card>,
 }
 
 /// Render the PANES section: a `PANES n` rule on row 0, then one row per pane

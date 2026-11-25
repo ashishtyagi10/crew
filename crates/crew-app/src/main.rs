@@ -491,6 +491,7 @@ mod mousereport;
 mod mouseroute;
 mod navbar;
 mod navcard;
+mod navcardlist;
 #[cfg(test)]
 #[path = "navcontrast_tests.rs"]
 mod navcontrast_tests;
@@ -510,6 +511,7 @@ mod navlogscroll;
 mod navmode;
 mod navopen;
 mod navpanel;
+mod navpanecard;
 mod navrail;
 mod navrailbar;
 mod navrailfoot;
@@ -549,6 +551,7 @@ mod pane;
 mod panebtn;
 mod panebusy;
 mod panecard;
+mod panegist;
 #[cfg(test)]
 #[path = "panecard_budget_tests.rs"]
 mod panecard_budget_tests;
@@ -567,6 +570,7 @@ mod panehome;
 mod panehover;
 mod panelcard;
 mod panelist;
+mod panestate;
 mod panellevel;
 #[cfg(test)]
 #[path = "panelshot_tests.rs"]

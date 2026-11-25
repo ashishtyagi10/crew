@@ -91,6 +91,7 @@ fn row(index: usize, title: &str) -> PaneRow {
         busy: false,
         unread: 0,
         hovered: false,
+        card: None,
     }
 }
 

@@ -20,6 +20,7 @@ fn row(i: usize) -> crate::panelist::PaneRow {
         attention: None,
         busy: false,
         hovered: false,
+        card: None,
         unread: 0,
     }
 }
