@@ -420,6 +420,12 @@ mod mdshot_tests;
 #[path = "navbarshot_tests.rs"]
 mod navbarshot_tests;
 #[cfg(test)]
+#[path = "panecardhit_tests.rs"]
+mod panecardhit_tests;
+#[cfg(test)]
+#[path = "panecardshot_tests.rs"]
+mod panecardshot_tests;
+#[cfg(test)]
 #[path = "paneeditshot_tests.rs"]
 mod paneeditshot_tests;
 #[cfg(test)]
@@ -510,8 +516,8 @@ mod navlog;
 mod navlogscroll;
 mod navmode;
 mod navopen;
-mod navpanel;
 mod navpanecard;
+mod navpanel;
 mod navrail;
 mod navrailbar;
 mod navrailfoot;
@@ -551,7 +557,6 @@ mod pane;
 mod panebtn;
 mod panebusy;
 mod panecard;
-mod panegist;
 #[cfg(test)]
 #[path = "panecard_budget_tests.rs"]
 mod panecard_budget_tests;
@@ -564,13 +569,13 @@ mod panedir;
 mod panedrag;
 mod paneentry;
 mod panefit;
+mod panegist;
 mod paneglance;
 mod panegutter;
 mod panehome;
 mod panehover;
 mod panelcard;
 mod panelist;
-mod panestate;
 mod panellevel;
 #[cfg(test)]
 #[path = "panelshot_tests.rs"]
@@ -580,6 +585,7 @@ mod panepics;
 mod panes_roster;
 mod panescenes;
 mod panescroll;
+mod panestate;
 mod paneview;
 mod panezoom;
 mod pastesafe;

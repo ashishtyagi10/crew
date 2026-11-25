@@ -70,16 +70,9 @@ fn the_title_stops_short_of_the_count() {
 fn nothing_in_a_sidebar_row_is_drawn_half_over() {
     let _g = crate::app::theme_test_guard();
     let row = PaneRow {
-        index: 12,
-        title: "crew \u{b7} claude".into(),
-        focused: false,
-        activity: true,
         minimized: true,
-        attention: None,
-        busy: false,
-        hovered: false,
-        card: None,
         unread: 128,
+        ..row(12, "crew \u{b7} claude", false, true)
     };
     for cols in 12..=60u16 {
         let cells = cells_of(std::slice::from_ref(&row), cols, 4);
@@ -124,7 +117,6 @@ fn a_hovered_row_lifts_its_ink_out_of_the_muted_grey() {
     let quiet = [row(1, "build", false, false)];
     let hot = [PaneRow {
         hovered: true,
-        card: None,
         ..row(1, "build", false, false)
     }];
     let ink_of = |rows: &[PaneRow]| -> Vec<(u8, u8, u8)> {

@@ -65,6 +65,8 @@ fn a_hotter_cell_is_drawn_stronger() {
 
 #[test]
 fn shading_is_relative_to_the_grids_own_peak() {
+    // Both renders read the theme's ink: a switch between them is a flake.
+    let _g = crate::app::theme_test_guard();
     // A quiet week and a busy one draw the same picture: the eye compares
     // within a heatmap, never between two of them.
     let quiet = grid(&[0, 1, 2, 4], 1, 4);

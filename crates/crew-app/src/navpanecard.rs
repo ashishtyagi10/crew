@@ -90,18 +90,23 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     let t = crew_theme::theme();
     let mut out = Vec::new();
     let mut put = |s: &str, col: u16, row: u16, fg, max: u16, bold: bool| {
-        crate::chatwidth::place_row(col, max, s.chars().map(|ch| (ch, fg)), |x, ch, marks, fg| {
-            out.push(CellView {
-                col: x,
-                row,
-                c: ch,
-                marks,
-                fg,
-                bg: t.page_bg,
-                bold,
-                ..Default::default()
-            })
-        });
+        crate::chatwidth::place_row(
+            col,
+            max,
+            s.chars().map(|ch| (ch, fg)),
+            |x, ch, marks, fg| {
+                out.push(CellView {
+                    col: x,
+                    row,
+                    c: ch,
+                    marks,
+                    fg,
+                    bg: t.page_bg,
+                    bold,
+                    ..Default::default()
+                })
+            },
+        );
     };
     let edge = spine(c.state, r.focused);
     let bar = if r.focused { "\u{258c}" } else { "\u{258e}" };
@@ -110,44 +115,71 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     // Line one: number, name, state word from the right edge in.
     let lit = r.focused || r.hovered;
     let num = r.index.to_string();
-    let num_fg = if lit { crate::palette::accent() } else { t.text_muted };
+    let num_fg = if lit {
+        crate::palette::accent()
+    } else {
+        t.text_muted
+    };
     put(&num, 3, row, num_fg, cols, false);
     let name_at = 3 + num.chars().count() as u16 + 1;
     let right = cols.saturating_sub(1);
-    let word_at = c.state.word().map(|w| right.saturating_sub(w.chars().count() as u16));
+    let word_at = c
+        .state
+        .word()
+        .map(|w| right.saturating_sub(w.chars().count() as u16));
     let name_end = word_at.map_or(right, |x| x.saturating_sub(1));
     let room = name_end.saturating_sub(name_at) as usize;
     let name = crate::navcut::clip(row, &c.name, room);
-    let name_fg = if r.hovered && !r.focused { crate::palette::accent() } else { t.ink };
+    let name_fg = if r.hovered && !r.focused {
+        crate::palette::accent()
+    } else {
+        t.ink
+    };
     put(&name, name_at, row, name_fg, name_end, r.focused);
     if let (Some(w), Some(x)) = (c.state.word(), word_at) {
         if x > name_at + 2 {
             put(w, x, row, word_fg(c.state), right, false);
         }
     }
-    // Line two: the kind, what it is doing, then `+` and the unread count.
+    // Line two: the kind (under the number, a column of its own), what it is
+    // doing, then its time, `+` and the unread count from the edge in.
     let row2 = row + 1;
-    put(&c.glyph.to_string(), name_at, row2, t.text_muted, cols, false);
+    put(&c.glyph.to_string(), 3, row2, t.text_muted, cols, false);
     let mut rx = right;
     let mut tail = |s: &str, fg, out_x: &mut Vec<(u16, String, (u8, u8, u8))>| {
         let w = s.chars().count() as u16;
-        if rx > name_at + 2 + w + 4 {
+        if rx > 5 + w + 4 {
             rx -= w;
             out_x.push((rx, s.to_string(), fg));
             rx -= 1;
         }
     };
     let mut marks = Vec::new();
+    // An agent's elapsed time outlives its words when the line is short:
+    // `12s` says more than `Pondering`.
+    let (said, time) = match &c.detail {
+        Some(d) => crate::panegist::split_time(d),
+        None => ("", None),
+    };
+    if let Some(time) = time {
+        tail(time, word_fg(c.state), &mut marks);
+    }
     if r.minimized {
         tail("+", crate::palette::accent(), &mut marks);
     }
-    if let Some(n) = crate::unread::badge(r.unread).filter(|_| !r.focused) {
+    // New output is news on a pane at rest; one working is making it, and
+    // one waiting has a question that matters more than its count.
+    let quiet = matches!(
+        c.state,
+        EntryState::Idle | EntryState::Done | EntryState::Exited
+    );
+    if let Some(n) = crate::unread::badge(r.unread).filter(|_| !r.focused && quiet) {
         tail(&n, t.activity, &mut marks);
     }
-    let detail_at = name_at + 2;
-    if let Some(d) = &c.detail {
+    let detail_at = 5;
+    if !said.is_empty() {
         let room = rx.saturating_sub(detail_at) as usize;
-        let d = crate::navcut::clip(row2, d, room);
+        let d = crate::navcut::clip(row2, said, room);
         put(&d, detail_at, row2, t.text_muted, rx, false);
     }
     for (x, s, fg) in marks {

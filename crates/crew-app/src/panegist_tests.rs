@@ -19,7 +19,7 @@ fn claude_working_says_its_spinner_line_and_time() {
         "╰──────────────────────────────╯",
         "  ? for shortcuts",
     ]);
-    assert_eq!(summary(&screen).as_deref(), Some("Pondering… · 12s"));
+    assert_eq!(summary(&screen).as_deref(), Some("Pondering · 12s"));
 }
 
 #[test]
@@ -27,7 +27,7 @@ fn codex_and_gemini_working_lines_read_the_same_way() {
     let codex = rows(&["• Working (3m20s • esc to interrupt)", "› ", "  ⏎ send"]);
     assert_eq!(summary(&codex).as_deref(), Some("Working · 3m20s"));
     let gemini = rows(&["⠏ Thinking... (esc to cancel, 45s)", "> "]);
-    assert_eq!(summary(&gemini).as_deref(), Some("Thinking... · 45s"));
+    assert_eq!(summary(&gemini).as_deref(), Some("Thinking · 45s"));
 }
 
 /// Waiting on you: the question its dialog asks, out of its box.
@@ -58,14 +58,23 @@ fn an_idle_agent_says_its_last_message() {
         "  ⏵⏵ accept edits on (shift+tab to cycle)",
     ]);
     let got = summary(&screen);
-    assert_eq!(got.as_deref(), Some("Updated 3 files and ran the tests: all green."));
+    assert_eq!(
+        got.as_deref(),
+        Some("Updated 3 files and ran the tests: all green.")
+    );
 }
 
 /// Any other program: its last row that is not chrome.
 #[test]
 fn a_build_says_its_last_line() {
-    let screen = rows(&["   Compiling crew-app v0.30.24", "    Building [====>   ] 512/800"]);
-    assert_eq!(summary(&screen).as_deref(), Some("Building [====> ] 512/800"));
+    let screen = rows(&[
+        "   Compiling crew-app v0.30.24",
+        "    Building [====>   ] 512/800",
+    ]);
+    assert_eq!(
+        summary(&screen).as_deref(),
+        Some("Building [====> ] 512/800")
+    );
     assert_eq!(summary(&rows(&["", "  "])), None);
 }
 
@@ -91,5 +100,8 @@ fn a_lapse_into_stillness_is_news() {
     let mut g = Gist::default();
     g.note(&rows(&["a"]), 1_000);
     assert!(g.note(&rows(&["a"]), 1_000 + MOVING_MS), "stopped working");
-    assert!(!g.note(&rows(&["a"]), 2_000 + MOVING_MS), "and stays stopped");
+    assert!(
+        !g.note(&rows(&["a"]), 2_000 + MOVING_MS),
+        "and stays stopped"
+    );
 }

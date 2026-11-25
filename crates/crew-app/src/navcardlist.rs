@@ -16,7 +16,9 @@ pub(crate) fn all_cards(rows: &[PaneRow]) -> bool {
 /// Whether a tab list draws as cards: every pane in every tab carries one.
 pub(crate) fn tabs_cards(blocks: &[TabBlock]) -> bool {
     blocks.iter().any(|b| !b.rows.is_empty())
-        && blocks.iter().all(|b| b.rows.iter().all(|r| r.card.is_some()))
+        && blocks
+            .iter()
+            .all(|b| b.rows.iter().all(|r| r.card.is_some()))
 }
 
 /// One group's cards from `row`, in a list `cols` wide shifted `dx` columns
