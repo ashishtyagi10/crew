@@ -254,9 +254,10 @@ spelling, and typing `cmd` or `shift` still filters the list.
 **On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
 keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
 with **Ctrl**, as a browser or an editor has it: Ctrl+T opens a shell, Ctrl+W
-closes a pane, Ctrl+N opens a window, Ctrl+1 … 9 jump to a pane, in every
-pane, terminals included. A terminal (or a line you are typing) keeps the
-plain Ctrl keys it lives by — C, D, Z, R, L, A, E, K, U, and M, J, I, H and
+closes a pane, Ctrl+1 … 9 jump to a pane, in every pane, terminals included
+(Ctrl+N opens a window outside a terminal). A terminal (or a line you are typing) keeps the
+plain Ctrl keys it lives by — C, D, Z, R, L, A, E, K, U, P and N (the previous
+and next line, and fzf's and vim's menus' up and down), and M, J, I, H and
 `[`, which are Enter, newline, Tab, Backspace and Escape to it — and there
 **Ctrl+Shift** and the key reaches crew instead (Ctrl+Shift+C, Ctrl+Shift+I);
 Ctrl+Shift works for every chord anywhere. A chord a Mac shifts is
@@ -298,7 +299,7 @@ way that machine presses it.
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
-| Open another crew window | **Cmd+N** |
+| Open another crew window (off a Mac, Ctrl+N stays a terminal's next line there: Ctrl+Shift+N) | **Cmd+N** |
 | Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → soft → metal → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
