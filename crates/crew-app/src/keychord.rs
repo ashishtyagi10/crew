@@ -58,11 +58,12 @@ pub(crate) fn cmd_chord(
 }
 
 /// What a terminal, or a line being typed, keeps for itself from plain Ctrl:
-/// interrupt, end of input, suspend, history search and the previous line
-/// (P — Cmd+P's go-to-file must not take it), clear, line start and end,
-/// kill — and the keys that ARE Enter, newline, Tab, Backspace and Escape to
-/// a terminal (M, J, I, H, `[`).
-pub(crate) const TYPED: &str = "cdzrlaekumjihp[";
+/// interrupt, end of input, suspend, history search, the previous and next
+/// line (P and N — Cmd+P's go-to-file and Cmd+N's new window must not take
+/// them: they are also fzf's and vim's completion menus' up and down), clear,
+/// line start and end, kill — and the keys that ARE Enter, newline, Tab,
+/// Backspace and Escape to a terminal (M, J, I, H, `[`).
+pub(crate) const TYPED: &str = "cdzrlaekumjihpn[";
 
 /// Off a Mac the Cmd key is the Windows key, and the OS keeps most of its
 /// chords (Win+I opens Settings, Win+T the taskbar). So plain Ctrl+<key> is

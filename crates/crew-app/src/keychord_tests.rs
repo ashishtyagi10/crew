@@ -122,3 +122,16 @@ fn ctrl_p_stays_the_shells_off_a_mac() {
     assert!(!plain("p", true));
     assert!(plain("p", false));
 }
+
+/// Ctrl+N is the shell's next line, and fzf's and vim's completion menu's
+/// down: off a Mac it reached Cmd+N and opened a new window instead. It is
+/// the terminal's now — and still a new window outside one, or with Shift.
+#[test]
+fn ctrl_n_stays_the_shells_off_a_mac() {
+    let ch = Key::Character("n".into());
+    assert_eq!(stand_in(&ch, ModifiersState::CONTROL, false, true), None);
+    let outside = stand_in(&ch, ModifiersState::CONTROL, false, false);
+    assert_eq!(outside.as_deref(), Some("n"));
+    let shifted = ModifiersState::CONTROL | ModifiersState::SHIFT;
+    assert_eq!(stand_in(&ch, shifted, false, true).as_deref(), Some("n"));
+}
