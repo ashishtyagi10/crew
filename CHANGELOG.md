@@ -8,6 +8,44 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.25
+
+**Terminals type accents and answer nvim; nav lists take keys.**
+
+Terminal:
+- Dead keys and Option-composed letters type é in a terminal pane. Holding a letter on a Mac repeats it instead of opening the accent picker.
+- Japanese, Chinese and Korean input shows the text being composed at the caret, underlined, and the candidate window opens there.
+- The cursor blinks when a program asks for a blinking shape (vim's insert mode, zsh vi-mode, Claude Code), and stays steady when it asks for a steady one. An unfocused pane's cursor never blinks.
+- A cursor colour a program sets (nvim's cursor highlight, a prompt's vi-mode colour) is now drawn, kept readable against the page. The caret's trail takes the same colour.
+- A program killed while it had hidden the cursor no longer leaves the prompt with no cursor.
+- Programs that turn on the kitty keyboard protocol (nvim, helix, fish 4, Claude Code) can now tell Esc and Ctrl or Alt chords apart. With broadcast on, every pane gets plain keys.
+- nvim and vim now learn that crew does true colour and cursor shapes, even over ssh, sudo or tmux, instead of waiting a second and falling back to 256 colours.
+- A program can read the clipboard (OSC 52) only if you allow it: Settings → Window → Clipboard read, off by default. Even then, only the focused pane of a focused window is answered.
+- Off a Mac, Ctrl+N stays the shell's next-history key; Ctrl+Shift+N opens a new window. A Ctrl+letter no longer types a stray letter into Far's command line or a settings field.
+
+Side panel:
+- The mouse wheel scrolls the Inbox and Far lists, and `/nav inbox` / `/nav far` let you work them from the keyboard: up/down or j/k, Home/End, Enter opens, Esc gives the keys back.
+- A Far folder can be taken off the list with the × that shows on hover, or Delete. A folder gone from disk is drawn struck through, and the folder the Far pane is in is marked.
+- Resting the pointer on a nav row that was cut short shows its whole text in a small card beside the panel.
+- Explorer: type a name's first letters to jump to it. The tree opens down to and marks the file the focused viewer shows. "… N more" on a big folder now opens that folder in Far.
+
+Files:
+- Cmd+P with nothing typed lists the files you viewed last, newest first. `.env` files are never remembered.
+- Typing in a long markdown file is about twice as fast: only the block you are typing in is redrawn.
+
+AI:
+- Claude requests fall back from Opus to Sonnet to Haiku when a model is overloaded or retired, and the reply says it fell back. `CREW_ANTHROPIC_MODEL="a,b"` sets your own order.
+- `/model` marks models with a shutdown date ("retires Dec 11"), and a reply from one close to its date says what comes next, once a session.
+- The OpenAI chain now ends on gpt-6-luna, since gpt-4.1 shuts down in January.
+- Plans and reviews ask the model to think harder, and commit messages and standups ask it to think less. A hard plan now gets room to think instead of coming back cut off.
+- Ask for a "quick look" at your changes for at most the 5 worst findings, or a "deep" or "security" review for a second check of each finding.
+- When the agent edits files and is about to answer without running a build, test or lint, the advisor reads the work first.
+- A correction you give is no longer stored silently: crew asks, and only "keep" saves it.
+
+MCP:
+- crew speaks the newest MCP version to servers that know it, and the old handshake to the rest.
+- When a server says its tools changed, crew fetches the new list for the next task, and the LOG shows what was added and removed.
+
 ## 0.30.24
 
 **Inbox and Far get their own places in the left nav.**
