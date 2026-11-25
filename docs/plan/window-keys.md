@@ -1,6 +1,7 @@
 # Windows keys: Alt is crew's key, every shortcut is two keys
 
-Status: planned 2026-11-25, approved by the user ("sounds good"). Not started.
+Status: planned 2026-11-25, approved by the user ("sounds good"). Step 1 done
+(`winkeys.rs`, not wired yet); steps 2–8 to do.
 
 ## Goal
 
@@ -63,6 +64,7 @@ So the same key does different things depending on focus. The 2026-10-21 work
 | Alt+= / Alt+- / Alt+0 | Cmd+= / - / 0 | Font size up / down / reset |
 | Alt+/ | Cmd+/ | The keys overlay |
 | Alt+Q | Cmd+Q | Quit |
+| Alt+Enter | Cmd+Enter | Send the inbox reply being written |
 | Alt+Click | Cmd+Click | Open URL / file / dir |
 
 ### Three-key shortcuts, made two
@@ -128,6 +130,12 @@ single place actions live:
   hand-written Ctrl+Shift blocks become one table lookup.
 - Read the key with `key_without_modifiers()` / `physical_key` so a non-US
   layout's Alt+key still names the letter printed on the key.
+- Quit is its own variant (`WinChord::Quit`): Cmd+Q is handled in `keys.rs`
+  before the Cmd chords, not by `handle_super_chord`.
+- Digits match the physical key (AZERTY's `&` is still 1); `0` and the
+  punctuation (`, . / [ ] = -`) match the layout's character, so on a layout
+  where one needs Shift or AltGr that chord is not two keys. Fine on US
+  layouts; revisit if a user hits it.
 - Returns `None` for Alt+F4, Alt+Tab, Alt+Space and any key not in the table,
   so those reach the OS or the terminal (as Meta).
 
