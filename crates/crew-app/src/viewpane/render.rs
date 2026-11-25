@@ -156,23 +156,8 @@ impl ViewPane {
             let at = cache.blame_w + cache.lsp_w;
             lspdeco::apply(&mut out, &cache.lines, top, rows as usize, at, &spans);
         }
-        // The caret, on the cell it is standing on. A beam rather than a
-        // block: the character under it is the document, and a block would
-        // hide the very letter you are about to type beside.
         if let Some(caret) = self.caret {
-            let row = caret.row.checked_sub(top);
-            if let Some(row) = row.filter(|r| *r < usize::from(rows)) {
-                let mark = crew_theme::deco::CursorMark {
-                    shape: crew_theme::deco::CursorShape::Beam,
-                    color: crate::palette::accent(),
-                };
-                if let Some(cell) = out
-                    .iter_mut()
-                    .find(|c| c.row == row as u16 && c.col == caret.col)
-                {
-                    cell.cursor = mark;
-                }
-            }
+            super::caretdraw::draw(&mut out, caret, top, (cols, rows), page_bg);
         }
         // The heading this row is underneath, kept where the address is
         // (see `sticky`). Before the search line, which owns the LAST row and
