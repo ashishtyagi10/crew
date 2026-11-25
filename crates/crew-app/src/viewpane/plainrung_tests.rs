@@ -52,7 +52,8 @@ fn prose_breaks_between_words_and_a_detail_keeps_its_indent() {
 fn a_blank_line_is_one_empty_row_and_nothing_is_numbered() {
     let ink = (1, 2, 3);
     let rows = text_of(&unnumbered("one\n\nthree", 40, ink, ink, &[]));
-    assert_eq!(rows, vec!["one", "", "three"]);
+    // The blank row's one cell is the caret's anchor (`srcstamp`): a space, drawn as nothing.
+    assert_eq!(rows, vec!["one", " ", "three"]);
 }
 
 /// Every character of an indented line survives the wrap. The continuation

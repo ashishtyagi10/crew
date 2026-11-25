@@ -122,6 +122,7 @@ pub(crate) fn painted_by(
         .split('\n')
         .map(|l| hang(&l.chars().collect::<Vec<_>>(), w))
         .collect();
+    let stamp = super::srcstamp::Stamper::new(text);
     for (n, chars) in wrap(text, w, hang) {
         src.push(n - 1);
         let mut line: CardLine = if n == last {
@@ -141,7 +142,7 @@ pub(crate) fn painted_by(
         };
         last = n;
         let row_paint = row_paint(paints, n, pos, chars.len());
-        pos += chars.len();
+        let body_at = line.len();
         match row_paint {
             Some(paint) => line.extend(
                 chars
@@ -151,6 +152,8 @@ pub(crate) fn painted_by(
             ),
             None => line.extend(chars.iter().map(|c| plain(*c, ink, false))),
         }
+        stamp.row(&mut line, body_at, n, pos, chars.len());
+        pos += chars.len();
         out.push(line);
     }
     (out, src)

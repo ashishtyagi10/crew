@@ -209,7 +209,7 @@ pub(crate) fn push_pane_scenes(
         ..crate::scrollpx::scene(p, ch)
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
-    let title = p.title_text();
+    let title = crate::viewpane::pane_legend(p, foc);
     let bar = Bar {
         index,
         title: &title,

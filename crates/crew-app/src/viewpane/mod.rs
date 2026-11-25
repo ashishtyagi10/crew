@@ -21,6 +21,8 @@ pub(crate) mod diffsplitdraw;
 pub(crate) mod edit;
 mod editkeys;
 pub(crate) use editkeys::EditDone;
+mod editable;
+pub(crate) use editable::pane_legend;
 #[cfg(test)]
 #[path = "editpane_tests.rs"]
 pub(crate) mod editpane_tests;
@@ -42,6 +44,7 @@ mod metacard;
 mod outline;
 mod pane;
 pub(crate) mod pictures;
+mod plainedit;
 pub(crate) mod plainrung;
 mod readable;
 mod render;
@@ -53,6 +56,7 @@ mod search_apply;
 mod searchline;
 pub(crate) mod select;
 pub(crate) mod srcmap;
+pub(crate) mod srcstamp;
 pub(crate) mod sticky;
 pub(crate) mod undo;
 pub(crate) mod viewhit;

@@ -426,7 +426,7 @@ way that machine presses it.
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder, the files viewed last first (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
-| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, preview a file or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
+| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
 | The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete (Fn+Backspace on a Mac; not its key repeat) forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
@@ -504,7 +504,7 @@ folders first, then files, `.git` and `.DS_Store` left out; a closed folder wear
 `+` and an open one `−`. Click a folder to
 open or close it (an open folder stays open by path, so walking between panes
 and back finds the tree as you left it); click a file to open it in a viewer
-pane, where `i` edits a markdown one. A folder of more than 2000 entries ends in
+pane, ready to type in (any text file; Esc to read, `i` or Enter to edit again). A folder of more than 2000 entries ends in
 "… N more"; click it (or Enter on it) and that folder opens in Far, which lists them all.
 A viewer opened any other way (Cmd+P, a link, `/view`)
 opens the tree down to its file and marks it, scrolled into view once per file. The wheel
@@ -1387,7 +1387,14 @@ longer aim at.
   window rather than stacking a second copy of it.
   It is a second *surface*, not a second app: one process, one broker, one
   theme, one font.
-- **`i` in a markdown viewer pane edits it right there**, in the grid — the
+- **A file opened from the Explorer, Cmd+P (`/view`) or Enter in Far opens
+  ready to type**, as in any editor; other viewers (`/out`, a clicked link, F3)
+  open reading, and `i` or Enter edits them. Esc goes back to reading, where
+  the viewer's letters (`e o r s v w / n`) are commands. Editing works in any
+  text file, not only markdown: code and plain text keep their lines (Enter carries
+  the indent, Tab follows the file's tabs or spaces, CRLF stays CRLF). The focused
+  frame reads `i to edit` / `editing`. A picture, a rendered table, a partial read
+  or a non-UTF-8 file is refused with the reason. The
   same editor as the window below, keys and all, with the caret starting at the
   top of what you were reading. `Esc` goes back to reading and keeps the edits;
   closing the pane, `r`, `e` or `w` with unsaved edits asks once (or refuses)

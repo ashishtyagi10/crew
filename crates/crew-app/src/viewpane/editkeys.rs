@@ -39,18 +39,6 @@ impl Edit {
 }
 
 impl ViewPane {
-    /// Whether this pane holds a document the caret belongs in: rendered markdown, the rung
-    /// whose cells carry the bytes a caret is made of (see `crate::md::source`).
-    pub(crate) fn editable(&self) -> bool {
-        matches!(
-            &self.state,
-            super::LoadState::Ready {
-                format: super::detect::Format::Markdown,
-                ..
-            }
-        ) && !self.raw
-    }
-
     /// Start editing at the top of what is on screen rather than at the top of the file — the
     /// caret goes where the reader already is.
     pub(crate) fn edit_here(&mut self, cols: u16, rows: u16) {
@@ -106,6 +94,8 @@ impl ViewPane {
                 self.move_caret(dir, cols, rows);
             }
             Edit::SelectAll => self.select_all(cols, rows),
+            // Bold and italic are markdown's; a code file has no spelling for them.
+            Edit::Wrap(_) if !self.renders_markdown() => return EditDone::Drawn,
             Edit::Wrap(marker) if !self.wrap_selection(marker, cols, rows) => {
                 return EditDone::Refused
             }
@@ -126,9 +116,11 @@ impl ViewPane {
             Edit::Redo => {
                 self.redo(cols, rows);
             }
+            Edit::Newline if !self.renders_markdown() => self.newline_plain(cols, rows),
             Edit::Newline => self.newline(cols, rows),
             Edit::Save => return EditDone::Save,
             Edit::Reload => return EditDone::Reload,
+            Edit::Tab if !self.renders_markdown() => self.tab_plain(cols, rows),
             Edit::Tab => {
                 if !self.tab_cell(cols, rows) {
                     self.insert("  ", cols, rows);

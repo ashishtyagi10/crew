@@ -291,7 +291,7 @@ way that machine presses it.
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder, the files viewed last first (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
-| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, preview a file or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
+| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
 | The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete (Fn+Backspace on a Mac; not its key repeat) forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
@@ -612,7 +612,9 @@ cards, links):
   was in.
 - **Live preview, in a window or a pane.** The block the caret is in shows its
   markdown (`#`, `**`, `[text](url)`, fences) so it can be edited; everything
-  else stays rendered. `i` edits a markdown viewer pane right in the grid.
+  else stays rendered. A file opened from the Explorer, Cmd+P or Far opens ready
+  to type, like any editor — markdown, code, config, plain text; Esc goes back to
+  reading (where the viewer's letters are commands), `i` or Enter edits again.
 - **A markdown document in a window is an editor.** It opens rendered with a
   cursor in it; the arrows move through the *render*, typing goes in where you
   are looking, Enter continues the block you are in, and **Cmd+S** writes the

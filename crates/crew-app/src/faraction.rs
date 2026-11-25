@@ -20,7 +20,7 @@ impl CrewApp {
             // Enter on a file that can be read is read here, in the viewer;
             // anything else is the system's to open (`viewpane::readable`).
             FarAction::Open(path) if crate::viewpane::readable(&path) => {
-                self.open_view(&path.to_string_lossy())
+                self.open_to_edit(&path.to_string_lossy())
             }
             FarAction::Open(path) => {
                 // `that_detached`, never `that`: the blocking form waits for

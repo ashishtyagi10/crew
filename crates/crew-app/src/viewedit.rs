@@ -185,3 +185,15 @@ impl CrewApp {
 #[cfg(test)]
 #[path = "viewedit_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "viewedit_code_tests.rs"]
+mod code_tests;
+
+#[cfg(test)]
+#[path = "viewedit_crlf_tests.rs"]
+mod crlf_tests;
+
+#[cfg(test)]
+#[path = "viewedit_open_tests.rs"]
+mod open_tests;

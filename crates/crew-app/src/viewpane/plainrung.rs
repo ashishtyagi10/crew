@@ -42,6 +42,7 @@ pub(crate) fn unnumbered(
     super::whitespace::dim(&mut paints, ws, muted);
     let cols = cols.max(1);
     let mut out = Vec::new();
+    let stamp = super::srcstamp::Stamper::new(text);
     for (i, line) in text.split('\n').enumerate() {
         let chars: Vec<char> = line.chars().collect();
         let lead = chars
@@ -75,6 +76,7 @@ pub(crate) fn unnumbered(
                 }
             };
             let body = &chars[s..e];
+            let body_at = row.len();
             match row_paint(&paints, i + 1, s, body.len()) {
                 Some(paint) => row.extend(
                     body.iter()
@@ -83,6 +85,7 @@ pub(crate) fn unnumbered(
                 ),
                 None => row.extend(body.iter().map(|c| plain(*c, ink, false))),
             }
+            stamp.row(&mut row, body_at, i + 1, s, body.len());
             debug_assert!(row.len() <= cols, "a hanging wrap fits by construction");
             out.push(row);
             first = false;

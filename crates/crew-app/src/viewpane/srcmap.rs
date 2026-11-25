@@ -62,6 +62,29 @@ impl SrcMap {
         o - (s.orig + s.orig_len) + s.prep + s.prep_len
     }
 
+    /// The code and plain rungs' rows mapped back ([`super::srcstamp`]). Unlike [`Self::remap`],
+    /// the FIRST byte of a substitution is the file's byte where it starts: the first space of an
+    /// expanded tab is the place before the tab (or a tab-indented line could not be typed at
+    /// column 0), and a blank CRLF line's anchor stands before its `\r`, not between it and `\n`.
+    pub(crate) fn mapped(
+        &self,
+        mut lines: Vec<crate::chatbody::CardLine>,
+    ) -> Vec<crate::chatbody::CardLine> {
+        if self.is_identity() {
+            return lines;
+        }
+        for cell in lines.iter_mut().flatten() {
+            cell.src = cell.src.and_then(|p| {
+                let i = self.subs.partition_point(|s| s.prep < p);
+                match self.subs.get(i) {
+                    Some(s) if s.prep == p => Some(s.orig),
+                    _ => self.to_orig(p),
+                }
+            });
+        }
+        lines
+    }
+
     /// Rewrite every cell's source byte from the prepared text's to the file's.
     pub(crate) fn remap(&self, lines: &mut [crate::chatbody::CardLine]) {
         if self.is_identity() {

@@ -3,7 +3,8 @@
 //! The tree was mouse-only: every folder opened, every file previewed, was a reach for the
 //! pointer in an app driven from the keys. Cmd+Shift+E now opens the nav on the Explorer and
 //! hands the tree the keyboard: ↑/↓ (or k/j) move a cursor row, → or Enter opens a folder,
-//! previews a file in the tree's one viewer, or on "… n more" opens that folder in Far; ←
+//! Space or → previews a file in the tree's one viewer and Enter opens it with the keys (so it can
+//! be edited at once), or on "… n more" opens that folder in Far; ←
 //! closes a folder or steps to its parent, Home/End go to the ends, a letter jumps to the next name starting with it
 //! ([`crate::explorerfind`]), Delete unpins a pinned root ([`crate::explorerpin`]), Esc — or the
 //! chord again — gives the keys back.
@@ -105,6 +106,13 @@ impl CrewApp {
                     Some(i) => {
                         self.sidebar.explorer.picked = Some(i.path.clone());
                         self.explorer_open(i.path);
+                        // Enter is VS Code's: the file is what you came for, so it gets the
+                        // keys — `i`, Enter again, then typing. Space and → only preview.
+                        if matches!(key, Key::Named(NamedKey::Enter)) {
+                            self.sidebar.explorer.keys = None;
+                            self.redraw();
+                            return true;
+                        }
                         // Browsing goes on: the viewer just focused is now the owner.
                         keys.owner = self.focused;
                     }

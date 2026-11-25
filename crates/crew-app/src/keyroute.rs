@@ -106,7 +106,10 @@ impl CrewApp {
                 }
                 ViewAction::Reload if self.refuse_dirty(focused, "r again to discard them") => {}
                 ViewAction::Reload => self.reread_view(focused),
-                ViewAction::Editing => self.set_status("editing — Esc to stop"),
+                ViewAction::Editing => self.set_status(crate::chordglyph::shown_ctrl(
+                    "editing — Cmd+S saves, Esc stops",
+                )),
+                ViewAction::NoEdit(why) => self.set_status(format!("cannot edit: {why}")),
                 ViewAction::Edit(_) | ViewAction::PopOut(_) if self.view_is_dirty(focused) => self
                     .set_status(crate::chordglyph::shown_ctrl(
                         "unsaved changes — Cmd+S first",

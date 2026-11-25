@@ -86,6 +86,7 @@ impl CrewApp {
         if let Some(i) = reuse {
             if let crate::pane::PaneContent::View(v) = &mut self.panes[i].content {
                 *v = crate::viewrecent::open(path);
+                v.edit_on_load = true;
             }
             self.focused = i;
             self.input.focused = false;
@@ -94,6 +95,7 @@ impl CrewApp {
         }
         let before = self.panes.len();
         self.open_view_here(&path.to_string_lossy());
+        self.edit_on_load_since(before);
         if self.panes.len() > before {
             self.sidebar.explorer.preview = self.panes.last().map(|p| p.born_ms);
         }

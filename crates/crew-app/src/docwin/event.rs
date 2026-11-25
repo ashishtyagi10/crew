@@ -164,7 +164,12 @@ impl CrewApp {
                         Some(ViewAction::OpenExternal(p)) => external = Some(p),
                         // Already in a window; `w` there is a no-op rather
                         // than a second copy of the same document.
-                        Some(ViewAction::Reload | ViewAction::PopOut(_) | ViewAction::Editing)
+                        Some(
+                            ViewAction::Reload
+                            | ViewAction::PopOut(_)
+                            | ViewAction::Editing
+                            | ViewAction::NoEdit(_),
+                        )
                         | None => {}
                     }
                     d.window.request_redraw();

@@ -70,6 +70,8 @@ pub(crate) enum ViewAction {
     Reload,
     /// `i` started editing: the host says how to stop.
     Editing,
+    /// `i` or Enter on a file that cannot be edited here, and why — Enter had no reader job.
+    NoEdit(&'static str),
 }
 
 pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
@@ -145,7 +147,10 @@ pub(crate) fn apply(
         ViewInput::OpenExternal => return Some(ViewAction::OpenExternal(p.path.clone())),
         ViewInput::PopOut => return Some(ViewAction::PopOut(p.path.clone())),
         ViewInput::Reload => return Some(ViewAction::Reload),
-        ViewInput::Insert => {
+        ViewInput::Insert | ViewInput::Enter => {
+            if let Some(why) = p.edit_refusal() {
+                return Some(ViewAction::NoEdit(why));
+            }
             p.edit_here(cols, rows);
             return p.caret.map(|_| ViewAction::Editing);
         }
@@ -176,7 +181,7 @@ pub(crate) fn apply(
         ViewInput::PrevMark => super::outline::jump(p, cols, rows, false),
         ViewInput::NextHit => search_apply::jump(p, cols, rows, Search::next),
         ViewInput::PrevHit => search_apply::jump(p, cols, rows, Search::prev),
-        ViewInput::Enter | ViewInput::Char(_) | ViewInput::Backspace | ViewInput::Ignore => {}
+        ViewInput::Char(_) | ViewInput::Backspace | ViewInput::Ignore => {}
     }
     None
 }
