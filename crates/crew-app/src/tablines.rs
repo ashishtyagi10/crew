@@ -61,6 +61,33 @@ impl CrewApp {
         crate::navpanecard::fits(rows, compact, self.panes.len(), groups)
     }
 
+    /// The hover card's view of pane `i` under the pointer: the rows it is
+    /// drawn on, the text drawn there, and the text whole. A card is two rows —
+    /// its name and what it is doing — and either may be the one cut.
+    pub(crate) fn pane_tip(&self, i: usize) -> Option<(Vec<u16>, Vec<String>, Vec<String>)> {
+        let p = self.panes.get(i)?;
+        let (rel, l) = self.sidebar_row()?;
+        // `sidebar_row` counts the card's border; the panel's rows start under it.
+        let row = rel.checked_sub(1)?;
+        if !self.pane_cards() {
+            let title = p.title_text();
+            return Some((vec![row], vec![title.clone()], vec![title]));
+        }
+        let k = crate::hit::sidebar_pane_index(rel, l.panes_top?)?;
+        let top = match self.nav_lines().get(k)? {
+            Line::Detail(_) => row.checked_sub(1)?,
+            _ => row,
+        };
+        let name = crate::panestate::name_of(p);
+        let detail = crate::panestate::detail_of(p).unwrap_or_default();
+        let said = crate::panegist::split_time(&detail).0.to_string();
+        Some((
+            vec![top, top + 1],
+            vec![name, said],
+            vec![p.title_text(), detail],
+        ))
+    }
+
     /// The rail's lines: the list's, without the cards' bottom edges (the
     /// rail is never in card density, so it has no second lines or gaps).
     pub(crate) fn rail_lines(&self) -> Vec<Line> {

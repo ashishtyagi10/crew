@@ -104,3 +104,26 @@ fn cards_fit_only_when_every_line_has_a_row() {
     assert!(!fits(11, 7, 3, 2));
     assert!(!fits(40, 0, 0, 1), "no panes, no cards");
 }
+
+/// However narrow, nothing leaves the card and the name keeps a few letters:
+/// the state word goes first, its colour still on the spine.
+#[test]
+fn a_narrow_card_keeps_its_name() {
+    let _g = crate::app::theme_test_guard();
+    let r = row(
+        7,
+        card("sentinel", Some("Pondering · 12s"), EntryState::Working),
+    );
+    for cols in 10..=40u16 {
+        let cells = card_cells(&r, r.card.as_ref().unwrap(), cols, 0);
+        assert!(cells.iter().all(|c| c.col < cols), "{cols}: a cell escaped");
+        let one = line(&cells, 0, cols);
+        assert!(one.contains("se"), "{cols}: the name went: {one:?}");
+        if one.contains("working") {
+            assert!(
+                one.contains("sen"),
+                "{cols}: the word crowded the name: {one:?}"
+            );
+        }
+    }
+}

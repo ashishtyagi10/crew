@@ -5,8 +5,8 @@ fn rows(lines: &[&str]) -> Vec<String> {
     lines.iter().map(|s| s.to_string()).collect()
 }
 
-/// Claude Code thinking: its timer line, under the input box and over the
-/// footer — the footer is what the pane's last line said.
+/// Claude Code thinking: its timer line, over the input box and the footer —
+/// the footer is what the pane's last line said.
 #[test]
 fn claude_working_says_its_spinner_line_and_time() {
     let screen = rows(&[
@@ -104,4 +104,31 @@ fn a_lapse_into_stillness_is_news() {
         !g.note(&rows(&["a"]), 2_000 + MOVING_MS),
         "and stays stopped"
     );
+}
+
+/// A spaced timer reads whole, and a markdown bullet is not a message.
+#[test]
+fn a_spaced_timer_and_a_bullet() {
+    let spaced = rows(&["✶ Brewing… (1m 23s · esc to interrupt)"]);
+    assert_eq!(summary(&spaced).as_deref(), Some("Brewing · 1m23s"));
+    let list = rows(&[
+        "⏺ Here is the plan:",
+        "  • split the module",
+        "  • add tests",
+        "│ > │",
+    ]);
+    assert_eq!(summary(&list).as_deref(), Some("Here is the plan:"));
+}
+
+/// Scrolled back, the tail cannot be read, but output arriving still says
+/// the pane is working.
+#[test]
+fn output_while_scrolled_back_keeps_it_working() {
+    let mut g = Gist::default();
+    g.touch(10, 1_000);
+    assert!(g.moving(2_000));
+    g.touch(10, 3_000);
+    assert!(!g.moving(1_000 + MOVING_MS), "nothing new arrived");
+    g.touch(14, 5_000);
+    assert!(g.moving(5_500));
 }

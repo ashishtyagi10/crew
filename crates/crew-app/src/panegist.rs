@@ -8,7 +8,7 @@
 //! - working: a spinner line with a timer and an interrupt hint
 //!   (`✳ Pondering… (12s · esc to interrupt)`, Codex's `• Working (12s • esc
 //!   to interrupt)`, Gemini's `⠏ Thinking... (esc to cancel, 12s)`) —
-//!   said as `Pondering… · 12s`;
+//!   said as `Pondering · 12s`, the time drawn at the line's end;
 //! - waiting on you: the question its dialog asks (the same tail
 //!   [`crate::blocked::tail_is_prompt`] reads);
 //! - otherwise: its last message (`⏺ Updated 3 files`), or for any other
@@ -25,12 +25,13 @@ use std::hash::{Hash, Hasher};
 pub(crate) const MOVING_MS: u64 = 2_500;
 
 /// Rows from the bottom the summary looks through: an agent's spinner line
-/// sits under its input box (≤6 rows up), its last message a few above that.
+/// sits just over its input box (≤6 rows up), its last message a few above.
 const LOOK_ROWS: usize = 24;
 
-/// Markers an agent CLI leads its messages with: Claude Code's `⏺`, Codex's
-/// `•`, Gemini's `✦`, and the `●` some builds draw for `⏺`.
-const MESSAGE: [char; 4] = ['⏺', '•', '✦', '●'];
+/// Markers an agent CLI leads its messages with: Claude Code's `⏺` and
+/// Gemini's `✦`. Not `•` or `●`: a markdown list and `systemctl` draw those,
+/// and the bottom-most bullet would win over the message heading it.
+const MESSAGE: [char; 2] = ['⏺', '✦'];
 
 /// Footers and hints that are on screen whatever the agent is doing.
 const CHROME: [&str; 6] = [
@@ -51,6 +52,8 @@ pub struct Gist {
     moved_ms: Option<u64>,
     /// [`Gist::moving`] at the last observation, so a lapse is news.
     was_moving: bool,
+    /// Lines the pane had seen at the last [`Gist::touch`].
+    seen: usize,
 }
 
 impl Gist {
@@ -81,6 +84,15 @@ impl Gist {
         let had = self.moved_ms.is_some();
         *self = Self::default();
         had
+    }
+
+    /// Output arrived while the pane is scrolled back, where the live tail
+    /// cannot be read: still working, whatever it last said.
+    pub(crate) fn touch(&mut self, seen: usize, now: u64) {
+        if seen != self.seen {
+            self.seen = seen;
+            self.moved_ms = Some(now);
+        }
     }
 
     /// The tail moved within [`MOVING_MS`]: output arriving, a timer ticking.
@@ -115,7 +127,10 @@ pub(crate) fn summary(rows: &[String]) -> Option<String> {
         return Some(s);
     }
     if crate::blocked::tail_is_prompt(rows) {
-        if let Some(q) = tail.iter().find(|r| r.contains('?') && !chrome(r)) {
+        // Only as deep as the prompt matcher looks, or an older `?` above
+        // a `press enter` prompt would be read as its question.
+        let mut near = tail.iter().take(crate::blocked::MATCH_ROWS);
+        if let Some(q) = near.find(|r| r.contains('?') && !chrome(r)) {
             return crate::minpreview::tidy(unboxed(q));
         }
     }
@@ -131,48 +146,6 @@ pub(crate) fn summary(rows: &[String]) -> Option<String> {
     })
 }
 
-/// An agent's working line, as `Pondering… · 12s`: the words before its
-/// parenthesis, the spinner glyph dropped, and the first time in it.
-fn spinner(row: &str) -> Option<String> {
-    let lower = row.to_lowercase();
-    if !(lower.contains("to interrupt") || lower.contains("esc to cancel")) {
-        return None;
-    }
-    let (head, rest) = row.split_once('(')?;
-    // The spinner glyph before it and the agent's own `…` after it go: the
-    // time that follows says it is still going, and a clip adds its own.
-    let head = head
-        .trim_start_matches(|c: char| !c.is_alphanumeric())
-        .trim();
-    let head = head.trim_end_matches(['…', '.']).trim_end();
-    if head.is_empty() {
-        return None;
-    }
-    let time = rest
-        .split(|c: char| c == '·' || c == '•' || c == ',' || c == ')' || c.is_whitespace())
-        .find(|w| is_elapsed(w));
-    Some(match time {
-        Some(t) => format!("{head} \u{b7} {t}"),
-        None => head.to_string(),
-    })
-}
-
-/// A summary's words and its elapsed time, when it ends in one
-/// (`Pondering · 12s` → `("Pondering", Some("12s"))`).
-pub(crate) fn split_time(s: &str) -> (&str, Option<&str>) {
-    match s.rsplit_once(" \u{b7} ") {
-        Some((head, t)) if is_elapsed(t) => (head, Some(t)),
-        _ => (s, None),
-    }
-}
-
-/// `12s`, `1m`, `3m20s`, `2h`: digits and unit letters, a digit first.
-fn is_elapsed(w: &str) -> bool {
-    w.starts_with(|c: char| c.is_ascii_digit())
-        && w.ends_with(['s', 'm', 'h'])
-        && w.chars().all(|c| c.is_ascii_digit() || "smh".contains(c))
-}
-
 /// A row with a box's sides stripped: `│ Do you want to proceed? │`.
 fn unboxed(row: &str) -> &str {
     row.trim_matches(|c: char| c == '│' || c == '┃' || c.is_whitespace())
@@ -185,6 +158,11 @@ fn chrome(row: &str) -> bool {
     let inner = unboxed(row);
     CHROME.iter().any(|c| lower.contains(c)) || inner.chars().all(|c| "─━═╭╮╰╯┌┐└┘>❯› ".contains(c))
 }
+
+#[path = "panegistspin.rs"]
+mod spin;
+use spin::spinner;
+pub(crate) use spin::split_time;
 
 #[cfg(test)]
 #[path = "panegist_tests.rs"]

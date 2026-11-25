@@ -3,8 +3,8 @@
 //! panels… a separate entry for each pane").
 //!
 //! ```text
-//! ▌ 7 sentinel        working
-//! ▌   ✳ Pondering… · 12s   +
+//! ▎ 7 sentinel     working
+//! ▎ ✳ Pondering        12s
 //! ```
 //!
 //! Line one is the pane: its number (Cmd+number), its name, and what state
@@ -13,7 +13,7 @@
 //! thing running there and its gist ([`crate::panestate::detail_of`]), with
 //! the restore `+` and the unread count at its end. The spine down the left
 //! carries the state's colour, so a column of cards reads at a glance; the
-//! focused one's spine is wider and in the accent.
+//! focused one's spine is wider, and in the accent unless it needs you.
 //!
 //! Cards are a density, not a mode: [`fits`] decides them from the rows the
 //! panel has, and a crew too big for its panel gets the one-line rows back.
@@ -60,7 +60,8 @@ pub(crate) fn push_entries(
     }
 }
 
-/// The spine's colour for `state`; the focused card's is the accent.
+/// The spine's colour for `state`: the bell's when it needs you or failed,
+/// else the accent for the focused card.
 fn spine(state: EntryState, focused: bool) -> (u8, u8, u8) {
     let t = crew_theme::theme();
     match state {
@@ -123,11 +124,12 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     put(&num, 3, row, num_fg, cols, false);
     let name_at = 3 + num.chars().count() as u16 + 1;
     let right = cols.saturating_sub(1);
-    let word_at = c
-        .state
-        .word()
-        .map(|w| right.saturating_sub(w.chars().count() as u16));
-    let name_end = word_at.map_or(right, |x| x.saturating_sub(1));
+    // The word only where it leaves the name a few columns: on a narrow
+    // panel the spine's colour says the state, and the name is the card.
+    let word_at = (c.state.word())
+        .map(|w| right.saturating_sub(w.chars().count() as u16))
+        .filter(|&x| x > name_at + 4);
+    let name_end = word_at.map_or(right, |x| x - 1);
     let room = name_end.saturating_sub(name_at) as usize;
     let name = crate::navcut::clip(row, &c.name, room);
     let name_fg = if r.hovered && !r.focused {
@@ -137,9 +139,7 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     };
     put(&name, name_at, row, name_fg, name_end, r.focused);
     if let (Some(w), Some(x)) = (c.state.word(), word_at) {
-        if x > name_at + 2 {
-            put(w, x, row, word_fg(c.state), right, false);
-        }
+        put(w, x, row, word_fg(c.state), right, false);
     }
     // Line two: the kind (under the number, a column of its own), what it is
     // doing, then its time, `+` and the unread count from the edge in.

@@ -146,10 +146,8 @@ impl CrewApp {
             }
             NavSection::Panes => {
                 let i = self.pane_at_panes_list()?;
-                // `sidebar_row` counts the card's border; the panel's rows start under it.
-                let row = self.sidebar_row()?.0.checked_sub(1)?;
-                let title = self.panes.get(i)?.title_text();
-                (i, vec![row], vec![title.clone()], vec![title])
+                let (rows, drawn, whole) = self.pane_tip(i)?;
+                (i, rows, drawn, whole)
             }
             _ => return None,
         };

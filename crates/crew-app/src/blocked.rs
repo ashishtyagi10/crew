@@ -145,16 +145,16 @@ impl TailWatch {
     }
 }
 
-/// Advance a pane's [`TailWatch`] and its gist (terminals; at most 1×/s — the
-/// row extraction is the O(cells) cost this module throttles). An idle shell
-/// is never waiting (and has no gist), and a scrolled-back viewport's tail is
-/// not the live tail: both reset rather than step. `true`: the gist changed.
+/// Advance a pane's [`TailWatch`] and gist (terminals; ≤1×/s — the row extraction is the O(cells)
+/// cost this module throttles). An idle shell is never waiting and has no gist; a scrolled-back
+/// tail is not the live one (only new lines say it works). `true`: the gist changed.
 pub(crate) fn observe(p: &mut Pane, now: u64) -> bool {
     let PaneContent::Terminal(t) = &mut p.content else {
         return false;
     };
     if t.cmd.is_none() || t.pty.display_offset() != 0 {
         t.tail.reset(now);
+        t.tail.gist.touch(t.pty.lines_seen(), now);
         return t.cmd.is_none() && t.tail.gist.clear();
     }
     let rows = crate::search::rows_text(&t.pty.cells(false), p.grid.cols, p.grid.rows, false);

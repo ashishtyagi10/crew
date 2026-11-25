@@ -6,8 +6,7 @@
 use crate::app::CrewApp;
 use crate::explorerhit::tests::at;
 
-/// An app with the PANES section open and three named shells in `rows`
-/// pixels of window.
+/// An app with the PANES section open and three named shells, `h` pixels tall.
 fn app(h: f32) -> CrewApp {
     let dir = std::env::temp_dir();
     let mut a = CrewApp {
@@ -44,25 +43,47 @@ fn a_click_on_either_line_of_a_card_is_its_pane() {
     assert_eq!(a.pane_at_panes_list(), None, "the gap is nobody's");
 }
 
-/// Exactly the rows the cards need, then one fewer.
+/// Exactly the rows the cards need, then one fewer (one app, its window
+/// shrunk a row at a time).
 #[test]
 fn one_row_short_the_list_goes_back_to_one_line_rows() {
     let _g = crate::app::theme_test_guard();
-    let mut tall = app(720.0);
-    assert_eq!(tall.nav_lines().len(), 3 * 3 - 1);
-    // Find the window height where the cards stop fitting, a row at a time.
+    let mut a = app(720.0);
+    assert_eq!(a.nav_lines().len(), 3 * 3 - 1);
+    a.cursor = at(&mut a, "alpha");
+    assert_eq!(a.pane_at_panes_list(), Some(0));
+    let tall = |a: &mut CrewApp, h: f32| a.geo_override = Some((8.0, 17.0, 1280.0, h, 1.0));
     let mut h = 720.0;
-    while app(h).pane_cards() {
+    while a.pane_cards() {
         h -= 17.0;
+        tall(&mut a, h);
     }
-    let mut short = app(h);
-    assert_eq!(short.nav_lines().len(), 3, "one line a pane");
-    short.cursor = at(&mut short, "charlie");
-    assert_eq!(short.pane_at_panes_list(), Some(2));
-    let mut fit = app(h + 17.0);
-    assert!(fit.pane_cards(), "a row more and the cards are back");
-    fit.cursor = at(&mut fit, "charlie");
-    assert_eq!(fit.pane_at_panes_list(), Some(2));
-    tall.cursor = at(&mut tall, "alpha");
-    assert_eq!(tall.pane_at_panes_list(), Some(0));
+    assert_eq!(a.nav_lines().len(), 3, "one line a pane");
+    a.cursor = at(&mut a, "charlie");
+    assert_eq!(a.pane_at_panes_list(), Some(2));
+    tall(&mut a, h + 17.0);
+    assert!(a.pane_cards(), "a row more and the cards are back");
+    a.cursor = at(&mut a, "charlie");
+    assert_eq!(a.pane_at_panes_list(), Some(2));
+}
+
+/// The hover card reads what the card draws: both of its rows, its name and
+/// what it is doing — so a cut second line, not only a cut name, can be read whole.
+#[test]
+fn the_hover_card_covers_both_lines_of_a_card() {
+    let _g = crate::app::theme_test_guard();
+    let mut a = app(720.0);
+    a.cursor_in = true;
+    a.cursor = at(&mut a, "/zzbravo");
+    let t = a.nav_tip_target().expect("a target");
+    assert_eq!(t.rows.len(), 2, "the name's row and the one under it");
+    assert_eq!(t.rows[1], t.rows[0] + 1);
+    assert_eq!(t.drawn[0], "bravo");
+    assert_eq!(t.whole, vec!["bravo".to_string(), "/zzbravo".to_string()]);
+    a.cursor = at(&mut a, "bravo");
+    assert_eq!(
+        a.nav_tip_target().unwrap().rows,
+        t.rows,
+        "same card from its name"
+    );
 }

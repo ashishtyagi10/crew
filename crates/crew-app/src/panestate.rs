@@ -1,6 +1,6 @@
 //! One answer to "what is this pane doing", for its entry in the nav's PANES
-//! list: the state word, the spine's colour and whether the entry animates
-//! all read [`state_of`], so the three never disagree.
+//! list: the state word and the spine's colour both read [`state_of`], so
+//! the two never disagree.
 //!
 //! Every pane kind says it from what it already knows. A terminal is the
 //! case that matters most and knows least — no protocol says "an agent is
@@ -87,15 +87,17 @@ pub(crate) fn glyph_of(p: &Pane) -> char {
 }
 
 /// The entry's second line: what the pane is doing ([`crate::panegist`] for
-/// a terminal running something, its folder for a shell at its prompt, its
-/// own one-line glance for everything crew draws).
+/// a terminal running something, its folder for a shell at its prompt and
+/// for a viewer, its own one-line glance for everything else crew draws).
+/// Read every frame, so nothing here walks a screen or a file.
 pub(crate) fn detail_of(p: &Pane) -> Option<String> {
     match &p.content {
         PaneContent::Terminal(t) => match (&t.cmd, &t.tail.gist.summary) {
             (Some(_), Some(s)) => Some(s.clone()),
             (Some(cmd), None) => Some(cmd.clone()),
-            (None, _) => p.dir.as_deref().map(crate::panestate::home_path),
+            (None, _) => p.dir.as_deref().map(crate::disktile::short_path),
         },
+        PaneContent::View(v) => v.path.parent().map(crate::disktile::short_path),
         _ => crate::minpreview::of(p),
     }
 }
@@ -113,21 +115,6 @@ pub(crate) fn name_of(p: &Pane) -> String {
             None => title,
         },
         _ => title,
-    }
-}
-
-/// `path` with the home folder as `~`.
-pub(crate) fn home_path(path: &std::path::Path) -> String {
-    match std::env::var_os("HOME").map(std::path::PathBuf::from) {
-        Some(home) if path.starts_with(&home) => {
-            let rest = path.strip_prefix(&home).unwrap_or(path);
-            if rest.as_os_str().is_empty() {
-                "~".into()
-            } else {
-                format!("~/{}", rest.display())
-            }
-        }
-        _ => path.display().to_string(),
     }
 }
 
