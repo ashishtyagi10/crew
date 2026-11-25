@@ -32,8 +32,8 @@ pub(crate) const VIEW_BINDINGS: &[(&str, &str)] = &[
         "Take the document out of the grid, into a window of its own",
     ),
     (
-        "i",
-        "Markdown: edit it right here \u{2014} the editor's keys below; Esc to stop",
+        "i / Enter",
+        "Edit here (files from the Explorer or Cmd+P open editing); Esc: commands",
     ),
     ("Cmd+Click", "Follow a rendered markdown link"),
     ("Esc", "Close the viewer (a live search first)"),

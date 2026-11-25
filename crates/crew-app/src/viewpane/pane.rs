@@ -62,13 +62,11 @@ pub(crate) struct ViewPane {
     /// the thing being debugged.
     pub raw: bool,
     /// The cursor in the render, when this document is being EDITED rather than read (see
-    /// [`super::caret`]). A document window starts with one; a viewer pane gets one on `i`.
+    /// [`super::caret`]). A document window starts with one; a viewer pane on `i` or Enter, or
+    /// as it lands when opened to edit ([`Self::edit_on_load`]).
     pub caret: Option<super::caret::Caret>,
-    /// The BYTE the caret is on — its durable identity. The rendered position
-    /// above is derived from this and the current layout, and a re-wrap
-    /// (a resize, an edit) throws that position away and finds this offset
-    /// again. Keeping the row would put the cursor on a different word every
-    /// time the window changed width.
+    /// The BYTE the caret is on — its durable identity. The position above is derived from it
+    /// and the layout; a re-wrap (a resize, an edit) finds this offset again.
     pub caret_at: Option<u32>,
     /// Edited since it was read or last saved; `warned` once a close or re-read was refused.
     pub dirty: bool,
@@ -89,11 +87,8 @@ pub(crate) struct ViewPane {
     /// `reload` — a search over text that is about to change is stale.
     pub search: Option<Search>,
     pub(crate) cache: RefCell<Option<ViewCache>>,
-    /// The `born_ms` of the terminal pane `e` spawned to edit this file, if
-    /// any is outstanding. `poll_panes` clears it and calls `reload` once
-    /// that pane's `cmd` goes back to `None` (the editor exited) — see
-    /// `poll::reload_views_after_edit`. Identified by `born_ms` rather than
-    /// pane index: indices shift the moment any pane closes.
+    /// The `born_ms` (not index: indices shift) of the terminal pane `e` spawned to edit this
+    /// file; `poll::reload_views_after_edit` reloads once that editor exits.
     pub editor_born: Option<u64>,
     /// Set by `/about` and `??` (`openview::spawn_about_pane`,
     /// `askbar::absorb_explain_result`) for a viewer on a SYNTHETIC temp
@@ -113,6 +108,8 @@ pub(crate) struct ViewPane {
     /// What a language server said about this file ([`super::lspjob`]):
     /// asked once the file lands, drawn as the margin and the underlines.
     pub lsp: Lsp,
+    /// Opened to be typed in (the Explorer, Cmd+P, Far): the caret arrives with the text.
+    pub edit_on_load: bool,
 }
 
 impl ViewPane {
@@ -139,6 +136,7 @@ impl ViewPane {
             blame: Blame::default(),
             goto: None,
             lsp: Lsp::default(),
+            edit_on_load: false,
         }
     }
 

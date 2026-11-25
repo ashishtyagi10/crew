@@ -49,7 +49,7 @@ pub(super) fn stops(line: &CardLine) -> Vec<(u16, u32)> {
         }
         if let Some(src) = cell.src {
             out.push((col, src));
-            end = Some((col + w, src + cell.c.len_utf8() as u32));
+            end = super::srcstamp::end_after(cell, col + w, src);
         }
         col += w;
     }

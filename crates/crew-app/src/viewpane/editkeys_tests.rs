@@ -18,15 +18,13 @@ fn editing_starts_at_the_top_of_what_is_on_screen() {
     );
 }
 
+/// `s` shows the file's own lines, and those are edited as text (`srcstamp`).
 #[test]
-fn a_raw_view_is_not_edited() {
+fn a_raw_view_is_edited_as_text() {
     let mut p = doc();
     p.raw = true;
     p.edit_here(60, 6);
-    assert!(
-        p.caret.is_none(),
-        "`s` shows bytes the caret has no provenance for"
-    );
+    assert!(p.caret.is_some());
 }
 
 #[test]

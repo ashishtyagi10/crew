@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.29
+
+**Files from the Explorer or Cmd+P open ready to type.**
+
+Viewer:
+- A file opened from the Explorer, Cmd+P (`/view`) or Enter in Far now opens ready to type, as in any editor. Esc goes back to reading, where the viewer's letters are commands; `i` or Enter edits again.
+- Viewers crew opens by itself (`/out`, `/blocks`, a clicked link, F3, a restored session) still open for reading; `i` or Enter edits them.
+- Editing now works in any text file, not only markdown: code, config and data files, plain text, and a markdown or CSV file's source view.
+- In code, Enter keeps the line's indent and Tab follows the file's own choice of tabs or spaces.
+- Files with Windows (CRLF) line endings keep them when you press Enter, and a tab-indented line can be typed at its very start.
+- The focused viewer's frame says `i to edit` or `editing`.
+- A file that can't be edited here says why when you press `i`: a picture, a rendered table (`s` shows its text, which can be edited), a file only partly shown, or one that isn't plain UTF-8, where `e` opens your `$EDITOR` instead.
+
+Explorer:
+- Enter on a file opens it to edit; Space or → still previews it. Pressing `i` in the tree no longer jumps to the next name starting with i.
+
+Help:
+- The keys overlay, README and manual list `i` / Enter for editing any text file, and the Explorer's Enter versus Space.
+
 ## 0.30.28
 
 **Explorer folders show + and −; same-named roots show where.**

@@ -40,7 +40,7 @@ fn the_chord_opens_the_explorer_and_takes_the_keys() {
     assert!(!a.tree_has_keys());
 }
 
-/// Down walks, → opens a folder and steps into it, Enter on a file previews it and keeps the
+/// Down walks, → opens a folder and steps into it, Space on a file previews it and keeps the
 /// keys, ← steps to the parent then closes it.
 #[test]
 fn arrows_walk_open_and_preview() {
@@ -57,7 +57,7 @@ fn arrows_walk_open_and_preview() {
     assert_eq!(a.sidebar.explorer.items(&root).len(), 4, "docs opened");
     press(&mut a, NamedKey::ArrowRight);
     assert_eq!(row(&a), 2, "into docs: guide.md");
-    press(&mut a, NamedKey::Enter);
+    assert!(a.explorer_tree_key(&Key::Character(" ".into()), true));
     assert_eq!(a.panes.len(), 1, "previewed in a viewer");
     assert_eq!(a.sidebar.explorer.picked, Some(root.join("docs/guide.md")));
     assert!(a.tree_has_keys(), "browsing goes on in the tree");
@@ -152,4 +152,20 @@ fn nav_explorer_typed_gives_the_tree_the_keys() {
     let mut a = app(&root);
     a.nav_command("explorer");
     assert!(a.tree_has_keys());
+}
+
+/// Enter on a file opens it AND hands it the keys, as VS Code's does: the next `i` (or Enter)
+/// is the file's, not a jump to the next name starting with "i".
+#[test]
+fn enter_on_a_file_gives_it_the_keys() {
+    let _g = crate::app::theme_test_guard();
+    let root = tree("kenter", &["notes.txt"]);
+    let mut a = app(&root);
+    a.explorer_keys_toggle();
+    press(&mut a, NamedKey::ArrowDown);
+    assert!(press(&mut a, NamedKey::Enter));
+    assert_eq!(a.panes.len(), 1, "opened in a viewer");
+    assert!(!a.tree_has_keys(), "the viewer has the keys now");
+    assert!(!a.nav_has_keys());
+    assert!(!a.input.focused);
 }

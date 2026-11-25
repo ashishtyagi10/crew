@@ -1,4 +1,4 @@
-//! `/view <path>` (alias `/md`): opens a file in the read-only file-viewer
+//! `/view <path>` (alias `/md`): opens a file in the file-viewer
 //! pane (`viewpane::ViewPane`) — code, markdown, CSV, diffs, and more, one
 //! rung per format. See `viewpane::detect` for the format ladder.
 use crate::app::{CrewApp, FALLBACK_SIZE};
@@ -17,6 +17,22 @@ impl CrewApp {
     /// back in the tab it was in, not a new one.
     pub(crate) fn open_view_here(&mut self, path: &str) {
         self.open_view_in(path, false, true);
+    }
+
+    /// [`Self::open_view`] for a file the user picked (Cmd+P, Enter in Far): ready to type in.
+    pub(crate) fn open_to_edit(&mut self, path: &str) {
+        let before = self.panes.len();
+        self.open_view(path);
+        self.edit_on_load_since(before);
+    }
+
+    /// Mark the viewer opened since there were `before` panes as opened to edit.
+    pub(crate) fn edit_on_load_since(&mut self, before: usize) {
+        if self.panes.len() > before {
+            if let Some(PaneContent::View(v)) = self.panes.last_mut().map(|p| &mut p.content) {
+                v.edit_on_load = true;
+            }
+        }
     }
 
     /// A saved viewer put back (session restore, undo-close), here and NOT

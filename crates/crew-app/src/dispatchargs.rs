@@ -72,7 +72,7 @@ impl CrewApp {
                 "diff" => self.diff_in_pane(),
                 "blame" => self.blame_command(),
                 "log" => self.open_log(),
-                path => self.open_view(path),
+                path => self.open_to_edit(path),
             }
         } else if let Some(f) = other.strip_prefix("doc ") {
             // The window is opened on the next tick: only a winit

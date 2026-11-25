@@ -149,13 +149,21 @@ pub(super) fn ready_lines(
             lines
         }
         Format::Csv { delim } if !raw => super::csv::lines(text, delim, cols),
-        Format::Text => super::plainrung::unnumbered(text, cols, t.ink, t.text_muted, ws),
+        Format::Text => prepared.map.mapped(super::plainrung::unnumbered(
+            text,
+            cols,
+            t.ink,
+            t.text_muted,
+            ws,
+        )),
         // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
         // why every character painted the same `ink` regardless of what the
         // lexer would have called it. `Format::lang` is `""` for every other
         // rung that lands here (raw `Markdown`/`Csv`), so their behaviour is
         // unchanged.
-        _ => numbered(text, cols, format.lang(), t.ink, t.text_muted, ws),
+        _ => prepared
+            .map
+            .mapped(numbered(text, cols, format.lang(), t.ink, t.text_muted, ws)),
     };
     // A file with nothing in it renders as an empty pane, which is
     // indistinguishable from one that failed to render — and from one still
@@ -167,7 +175,10 @@ pub(super) fn ready_lines(
     let wordless = matches!(format, Format::Opaque { .. } | Format::Image { .. });
     if text.trim().is_empty() && !wordless {
         out.push(banner("this file is empty", cols));
-        return (out, marks, Vec::new());
+        // An empty text file is still one to write in: its one blank line is kept to stand on.
+        if !super::editable::typed_in(format, raw) {
+            return (out, marks, Vec::new());
+        }
     }
     out.extend(body);
     (out, marks, pictures)
