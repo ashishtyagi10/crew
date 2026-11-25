@@ -70,6 +70,7 @@ pub(crate) mod smith;
 pub(crate) mod split;
 mod states;
 pub(crate) mod take;
+mod thumb;
 pub(crate) mod todocard;
 pub(crate) mod triage;
 mod undo;
