@@ -5105,6 +5105,14 @@ resize, once the pty's own size (`TIOCGWINSZ`, same pixel numbers) is set, so
 neovim and libvaxis apps redraw without waiting for SIGWINCH. A program killed
 with it on is cleared when the shell is back, like the mouse; RIS and DECSTR
 clear it too.
+**Title stack** (`CSI 22 ; Ps t` push, `CSI 23 ; Ps t` pop, `Ps` 0 or 2 or none
+for the title, 1 for the icon name, which crew ignores) lets vim, tmux, less
+and htop put the pane's title back when they exit: the pop sets the title the
+push saved, as if the program had set it. The stack holds 10 (the oldest is
+forgotten), a pop with nothing pushed does nothing, and RIS empties it. A
+program killed after its push is undone when the shell is back, like the
+mouse: crew pops what it holds, leaving the title saved before the program
+started. A name given with `/name` still wins over any program title.
 **Pointer shape** (`OSC 22 ; <css name> ST`, BEL or ST; `pointer`, `text`,
 `crosshair`, `grab`, `not-allowed`, `ew-resize`, `wait`, `help`, `move`,
 `zoom-in`... as in CSS) lets lazygit, yazi, helix and textual apps show a hand

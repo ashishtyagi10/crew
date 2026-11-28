@@ -116,6 +116,8 @@ impl PtyTerm {
         if shape {
             self.core.feed(CLEAR_SHAPE);
         }
+        // Titles a killed program pushed: the shell's comes back (`modeltitle`).
+        let shape = self.core.title_unwind() || shape;
         let Some(reset) = leftover_reset(modes, scheme, hidden, marked) else {
             return shape;
         };

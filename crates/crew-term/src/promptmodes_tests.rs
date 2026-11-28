@@ -138,3 +138,18 @@ fn a_prompt_mark_takes_a_dead_programs_alternate_screen_and_mouse() {
     let m = term.input_modes();
     assert!(!m.alt_screen && !m.mouse, "{m:?}");
 }
+
+/// A program killed after pushing the title (vim, `kill -9`) never pops it:
+/// the shell getting the pane back restores the title saved before it.
+#[test]
+fn a_dead_programs_pushed_title_goes_when_the_shell_is_back() {
+    let mut term = PtyTerm::spawn(GridSize { cols: 60, rows: 8 }, "sh").unwrap();
+    crate::TermModel::feed(&mut term, b"\x1b]0;shell\x07\x1b[22;0t\x1b]0;vim\x07");
+    assert_eq!(term.title(), "vim");
+    assert!(term.release_leftover_modes());
+    assert_eq!(term.title(), "shell");
+    assert!(
+        !term.release_leftover_modes(),
+        "nothing left the second time"
+    );
+}

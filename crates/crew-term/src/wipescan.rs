@@ -63,6 +63,11 @@ pub(crate) enum Hit {
     /// A kitty keyboard pop (`CSI < n u`) of `n` entries (an absent or zero
     /// count is one, as in the spec).
     KittyPop(u32),
+    /// A title push (`CSI 22 ; Ps t`) or pop (`CSI 23 ; Ps t`); the flag is
+    /// whether it is about the title (`Ps` 0 or 2, or none) and not just
+    /// the icon name (`modeltitle`).
+    TitlePush(bool),
+    TitlePop(bool),
 }
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -74,7 +79,8 @@ enum State {
 }
 
 /// A tiny CSI reader that only looks for ED 2/3, DECSET 47/1047/1049, RIS
-/// and the kitty keyboard push and pop (`modelkitty`),
+/// the kitty keyboard push and pop (`modelkitty`) and the title push and
+/// pop (`modeltitle`),
 /// carrying its state across reads.
 #[derive(Default)]
 pub(crate) struct WipeScan {
@@ -163,6 +169,14 @@ impl WipeScan {
                 .iter()
                 .any(|p| matches!(p, 47 | 1047 | 1049))
                 .then_some(Hit::AltScreen(fin == b'h')),
+            (false, b't') => {
+                let title = matches!(self.params.get(1).copied().unwrap_or(0), 0 | 2);
+                match self.params[0] {
+                    22 => Some(Hit::TitlePush(title)),
+                    23 => Some(Hit::TitlePop(title)),
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }
