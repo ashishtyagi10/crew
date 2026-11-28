@@ -41,7 +41,6 @@ src/chatview_tests.rs 786
 src/clipboard.rs 301
 src/cmdmenu_tests.rs 205
 src/cmdrow_tests.rs 223
-src/cmdspan.rs 204
 src/cmdspan_tests.rs 326
 src/config.rs 319
 src/config_tests.rs 344

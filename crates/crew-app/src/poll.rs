@@ -224,11 +224,11 @@ impl CrewApp {
                             // A prompt being drawn means whatever was running
                             // is over, whether or not the shell said `D`.
                             crew_term::ShellMark::Prompt => t.prompt_back(at, ms),
-                            // `C` is where output begins. The span is opened
-                            // by the foreground-process watch, which is also
-                            // the only thing that knows the command's NAME —
-                            // this only tightens a boundary polling guessed.
-                            crew_term::ShellMark::OutputStart => {}
+                            // `C` is where output begins. It cannot open the
+                            // span (only the poll knows the NAME), but it says
+                            // which `D` belongs to a span and which to a
+                            // command too fast to have one (`cmdexit`).
+                            crew_term::ShellMark::OutputStart => t.spans.output_started(ms),
                         }
                     }
                     // A picture that just finished decoding is a change with

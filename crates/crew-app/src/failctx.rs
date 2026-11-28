@@ -111,7 +111,10 @@ impl Failure {
             .as_ref()
             .map(|c| format!(" in {c}"))
             .unwrap_or_default();
-        format!("`{}` failed (exit {}){at}", self.command, self.exit)
+        // Redacted HERE, the one line both the prefill and `??` start from:
+        // argv is shell-expanded, so a secret in a flag is the real secret.
+        let command = crate::failredact::redact(&self.command);
+        format!("`{command}` failed (exit {}){at}", self.exit)
     }
 
     /// The composer text for agent smith. A prefill, never a send: the user

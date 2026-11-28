@@ -37,7 +37,12 @@ const CAP: usize = 32;
 
 /// The spans a pane has seen, oldest first.
 #[derive(Default)]
-pub(crate) struct Spans(Vec<Span>);
+pub(crate) struct Spans(
+    pub(crate) Vec<Span>,
+    /// When the shell last said a command's output began (OSC 133 `C`), on
+    /// the monotonic clock; see [`crate::cmdexit`].
+    pub(crate) Option<u64>,
+);
 
 impl Spans {
     /// A command started at buffer line `at`, on the monotonic clock `now`.
@@ -89,26 +94,6 @@ impl Spans {
     /// Every span, newest first — what [`crate::blocks`] lists.
     pub(crate) fn recent(&self) -> impl Iterator<Item = &Span> {
         self.0.iter().rev()
-    }
-
-    /// The shell reported that the last command finished with `code`, at
-    /// buffer line `at` (OSC 133 `D`).
-    ///
-    /// It closes the span as well as marking it: the shell knows the command
-    /// is over a full poll before the foreground-process watch will notice,
-    /// and a boundary the shell states beats one crew inferred. Applied to
-    /// the LAST span whether or not it is still open — a `D` arriving just
-    /// after the poll closed the span is the same command, and the alternative
-    /// is dropping the one fact polling cannot supply.
-    pub(crate) fn finished(&mut self, code: Option<i32>, at: usize, now: u64) {
-        let Some(last) = self.0.last_mut() else {
-            return;
-        };
-        if last.to.is_none() {
-            last.to = Some(at.max(last.from));
-            last.done_ms = Some(now);
-        }
-        last.exit = code;
     }
 
     /// The visible rows that begin a command the shell reported FAILED, each

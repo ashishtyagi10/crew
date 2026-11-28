@@ -238,6 +238,7 @@ mod clipread;
 mod clock;
 mod cmdcheck;
 mod cmddefs;
+mod cmdexit;
 mod cmdhead;
 mod cmdheader;
 mod cmdjump;
@@ -315,6 +316,7 @@ mod exereplace;
 mod failctx;
 mod failhint;
 mod failmark;
+mod failredact;
 mod faraction;
 mod farpane;
 #[cfg(test)]

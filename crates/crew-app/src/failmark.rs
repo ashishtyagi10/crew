@@ -18,7 +18,14 @@ pub(crate) fn in_view(t: &TermPane, grid_rows: u16) -> Vec<(u16, &Span)> {
 
 /// [`in_view`]'s rows alone, for the drawing.
 pub(crate) fn rows(t: &TermPane, grid_rows: u16) -> Vec<u16> {
-    in_view(t, grid_rows).into_iter().map(|(r, _)| r).collect()
+    // The card is the grid plus its two border rows (`cardmarks::painted`).
+    let card_rows = grid_rows + 2;
+    let drawn = |r: &u16| crate::cardmarks::shown(*r, card_rows);
+    in_view(t, grid_rows)
+        .into_iter()
+        .map(|(r, _)| r)
+        .filter(drawn)
+        .collect()
 }
 
 /// The failed row under the pointer at `cursor` px, if any: on the card's

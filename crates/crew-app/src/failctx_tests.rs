@@ -164,3 +164,13 @@ fn the_explain_context_leads_with_the_command_and_its_status() {
         .explain_context()
         .starts_with("`cargo test -p crew-app` failed (exit 101)\n\nrunning 3 tests"));
 }
+
+#[test]
+fn a_secret_in_the_command_reaches_neither_the_prefill_nor_the_context() {
+    let mut f = failed();
+    f.command = "deploy --token=hunter2 API_KEY=abc".into();
+    for text in [f.prefill(), f.explain_context()] {
+        assert!(!text.contains("hunter2") && !text.contains("abc"), "{text}");
+        assert!(text.contains("deploy --token=*** API_KEY=***"), "{text}");
+    }
+}
