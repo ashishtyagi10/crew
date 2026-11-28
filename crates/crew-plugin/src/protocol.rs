@@ -23,9 +23,15 @@ pub enum PluginCommand {
     },
     /// Answer an approval the broker is blocked on. `id` comes from the
     /// [`PluginEvent::Approval`] that opened it.
+    ///
+    /// `hunks` (1-based) narrows a granted file edit to those hunks of the diff the question
+    /// showed; absent = the whole change, so an older host's answer parses as before. (An older
+    /// broker would ignore it and apply everything; the app spawns its own broker.)
     Approve {
         id: String,
         granted: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        hunks: Option<Vec<u32>>,
     },
     /// The user started composing a message: open the provider connection
     /// now, while they type, so the turn's first model call doesn't pay for

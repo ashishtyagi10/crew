@@ -319,9 +319,9 @@ pub fn ask_host(p: &Pending) -> bool {
 }
 
 /// Ask the person at a pane about `p`, saying `what` it would do — the pane draws the
-/// question with its own keys, so it carries no "reply yes" instructions. `false` when nothing
-/// can carry it.
-pub fn ask_host_about(p: &Pending, what: &str, danger: Option<&str>) -> bool {
+/// question with its own keys, so it carries no "reply yes" instructions. `more` is a file
+/// change's diff, as (words after the dash, rows below). `false` when nothing can carry it.
+pub fn ask_host_about(p: &Pending, what: &str, danger: Option<&str>, more: (&str, &str)) -> bool {
     let Some(emit) = EMITTER.get() else {
         return false;
     };
@@ -336,7 +336,7 @@ pub fn ask_host_about(p: &Pending, what: &str, danger: Option<&str>) -> bool {
         tool: p.tool.clone(),
         tier: p.tier.label().to_string(),
         reply_to: p.requester.reply_to().to_string(),
-        question: format!("{what} \u{2014} {why}"),
+        question: format!("{what} \u{2014} {}{why}{}", more.0, more.1),
     });
     true
 }

@@ -561,14 +561,8 @@ impl super::toolcall::ToolRunner for SessionTools {
         let tier = self.tier_for(server, tool);
         let now = super::ledger::now_ms();
         // The few commands even auto-approve asks about, and why (`danger`).
-        let danger = (name == "sys:run")
-            .then(|| serde_json::from_str::<serde_json::Value>(args).ok())
-            .flatten()
-            .and_then(|v| {
-                v.get("cmd")
-                    .and_then(|c| c.as_str())
-                    .and_then(super::danger::of)
-            });
+        let danger = sessionask::danger(&name, args);
+        let mut kept = None;
         let policy = super::approval::Policy {
             mode: super::approval::mode(),
             risky: danger.is_some(),
@@ -594,13 +588,16 @@ impl super::toolcall::ToolRunner for SessionTools {
             // waits for the answer. Anyone else has nothing that can carry it yet, so it is a
             // refusal said out loud rather than a silent wait.
             Decision::Ask { id, reply_to } => {
-                if let Err(why) = self.ask(&id, &name, args, danger) {
-                    let why = why.unwrap_or_else(|| {
-                        format!("{name} needs approval from {reply_to} and no channel can ask yet (approval {id})")
-                    });
-                    self.note(rec("ask", &why).with_outcome("denied"));
-                    return Err(why);
-                }
+                kept = match self.ask(&id, &name, args, danger) {
+                    Ok(kept) => kept,
+                    Err(why) => {
+                        let why = why.unwrap_or_else(|| {
+                            format!("{name} needs approval from {reply_to} and no channel can ask yet (approval {id})")
+                        });
+                        self.note(rec("ask", &why).with_outcome("denied"));
+                        return Err(why);
+                    }
+                };
                 self.note(rec("ask", "approved at the pane").with_outcome("granted"));
             }
             Decision::Allow => {}
@@ -637,7 +634,7 @@ impl super::toolcall::ToolRunner for SessionTools {
             let out = self
                 .reads
                 .check(tool, args)
-                .and_then(|()| super::systools::call(tool, args));
+                .and_then(|()| self.run_sys(&kept, tool, args));
             if out.is_ok() {
                 self.warm.wrote(tool, args);
                 self.reads.saw(tool, args);

@@ -118,7 +118,7 @@ impl ChatPane {
     /// The broker is waiting on a yes or no for `question`. Several agents of
     /// one swarm can ask at once: they queue, answered first to last.
     pub(crate) fn ask_user(&mut self, id: String, question: String) {
-        self.push_note(crate::spendask::asked(&id, &question));
+        self.push_asked(&id, &question);
         self.asking.push_back(Asking {
             id,
             question,
@@ -138,19 +138,7 @@ impl ChatPane {
 
     /// Answer the question [`Self::asking`] names. `false` when none waits.
     pub(crate) fn answer_approval(&mut self, granted: bool) -> bool {
-        let timeout = crew_plugin::approval::DEFAULT_TIMEOUT_MS;
-        let now = crate::anim::now_ms();
-        self.asking
-            .retain(|a| now.saturating_sub(a.since) < timeout);
-        let Some(a) = self.asking.pop_front() else {
-            return false;
-        };
-        let _ = self.plugin.send(&PluginCommand::Approve {
-            id: a.id.clone(),
-            granted,
-        });
-        self.push_note(crate::spendask::answered(&a.id, &a.question, granted));
-        true
+        self.answer_with(granted, None)
     }
 
     /// The keys the mode and a waiting question take before anything else
@@ -163,6 +151,7 @@ impl ChatPane {
                     "" | "y" | "yes" => true,
                     "n" | "no" => false,
                     // Anything else is a message: it goes out as one.
+                    _ if self.take_picks() => return Some(None),
                     _ => return None,
                 };
                 self.input.clear();
@@ -180,7 +169,9 @@ impl ChatPane {
     pub(crate) fn approval_footer(&self) -> Footer<'_> {
         Footer {
             mode: self.approval_mode,
-            asking: self.asking().map(|a| a.question.as_str()),
+            asking: self
+                .asking()
+                .map(|a| a.question.lines().next().unwrap_or("")),
             spend: self
                 .asking()
                 .is_some_and(|a| crate::spendask::is_spend(&a.id)),

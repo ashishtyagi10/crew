@@ -728,6 +728,8 @@ lists what's running, and `/stop [#n]` cancels one task or all of them.
 **Shift+Tab** steps the pane's approval mode — auto-approve, accept edits, ask
 first, plan only, yolo — and `/approvals <mode>` says it in words
 (`/approvals default <mode>` also makes it the mode new panes start in);
+when an edit asks, the question shows its diff as numbered hunks and typing `1 3`
+(or `-2`) keeps only those;
 `/init` writes an `AGENTS.md` for the project, and `/clear` starts a fresh
 conversation.
 `@file` mentions in the composer fuzzy-complete against the project tree and

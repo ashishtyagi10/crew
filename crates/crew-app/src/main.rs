@@ -90,6 +90,7 @@ mod chathidden;
 mod chathistory;
 mod chathistsearch;
 mod chathue;
+mod chathunks;
 mod chatimage;
 mod chatink;
 mod chatinput;

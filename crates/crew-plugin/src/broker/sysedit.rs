@@ -50,6 +50,17 @@ pub(crate) struct Swap<'a> {
 /// Applied in order, each against the result of the last: that is what lets
 /// one swap rewrite a line a later swap then matches.
 pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
+    run(path, swaps, true).map(|(report, ..)| report)
+}
+
+/// What `edit_all` would leave in the file, as `(before, after)`, with nothing written: the
+/// approval question shows it (`hunkpick`), so what is shown is what the edit would do.
+pub(crate) fn dry(path: &str, swaps: &[Swap]) -> Result<(String, String), String> {
+    run(path, swaps, false).map(|(_, before, after)| (before, after))
+}
+
+/// `(report, before, after)`; the file is written only when `write`.
+fn run(path: &str, swaps: &[Swap], write: bool) -> Result<(String, String, String), String> {
     if swaps.is_empty() {
         return Err("edit: no edits \u{2014} pass {\"old\": …, \"new\": …}".into());
     }
@@ -61,7 +72,10 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
         } else {
             continue;
         };
-        return Err(format!("edit: {}", numbered(swaps.len(), i, why)));
+        return Err(format!(
+            "edit: {}",
+            super::editnum::numbered(swaps.len(), i, why)
+        ));
     }
     let body =
         std::fs::read_to_string(path).map_err(|e| super::syspath::with_hint("edit", path, e))?;
@@ -78,8 +92,12 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
             Some((old, new)) => Swap { old, new, ..*s },
             None => Swap { ..*s },
         };
-        let ats = place(&edited, s, &shift)
-            .map_err(|e| format!("edit {path}: {}", numbered(swaps.len(), i, &e)))?;
+        let ats = place(&edited, s, &shift).map_err(|e| {
+            format!(
+                "edit {path}: {}",
+                super::editnum::numbered(swaps.len(), i, &e)
+            )
+        })?;
         landed.swap(&edited, ats[0], s.old, s.new);
         shift.note(&edited, &ats, s.old, s.new);
         edited = splice(&edited, &ats, s.old, s.new);
@@ -87,38 +105,21 @@ pub(crate) fn edit_all(path: &str, swaps: &[Swap]) -> Result<String, String> {
             first = ats;
         }
     }
-    std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
+    if write {
+        std::fs::write(path, &edited).map_err(|e| format!("edit {path}: {e}"))?;
+    }
     // The report line, then the edited lines as they now read, so the edit
     // can be checked without spending a round on sys:read_file.
     let mut report = super::editreport::report_all(path, &body, swaps, &first);
     if moved {
         report += " \u{2014} matched with the file's indentation";
     }
-    match landed.show(&edited) {
-        shown if shown.is_empty() => Ok(report),
-        shown => Ok(format!("{report}\n{shown}")),
-    }
-}
-
-/// A failure, saying WHICH edit failed and that the file is untouched — but
-/// only when there was more than one, since "edit 1 of 1" is noise.
-fn numbered(total: usize, i: usize, why: &str) -> String {
-    match total {
-        1 => why.to_string(),
-        // After the reason's first line, not under the rows it shows.
-        n => {
-            let (head, rows) = why.split_once('\n').unwrap_or((why, ""));
-            let rows = if rows.is_empty() {
-                String::new()
-            } else {
-                format!("\n{rows}")
-            };
-            format!(
-                "edit {} of {n}: {head} \u{2014} nothing was written{rows}",
-                i + 1
-            )
-        }
-    }
+    let shown = landed.show(&edited);
+    let report = match shown.is_empty() {
+        true => report,
+        false => format!("{report}\n{shown}"),
+    };
+    Ok((report, body, edited))
 }
 
 /// Where in `body` the swap goes: its one `old`, the one its `line` names,
