@@ -261,12 +261,14 @@ fn banner_for(reg: &Registry, provider: bool) -> String {
 }
 
 /// What `/clear` forgets besides the running tasks: the thread, anything
-/// typed into a run, a pending plan, and a correction waiting for "keep" —
-/// a fresh conversation must not answer a question the old one asked.
+/// typed into a run, a pending plan or pull request, and a correction waiting
+/// for "keep" — a fresh conversation must not answer a question the old one
+/// asked (a stale PR draft would push to the remote).
 fn fresh_start(session: &Session) {
     super::thread::forget(&session.thread);
     super::steer::clear();
     *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    super::gitpr::drop_pr(session);
     super::recall::lock(&session.recall).drop_proposed();
 }
 

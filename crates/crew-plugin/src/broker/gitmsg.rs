@@ -237,7 +237,7 @@ pub(crate) fn commit_cmd(
         return emit(msg("agent smith", "the draft came back empty — try again"));
     }
     emit(msg(&format!("{author} → user"), message.clone()))?;
-    *lock(&session.commit) = Some(PendingCommit { message, staged });
+    super::gitpr::hold_commit(session, PendingCommit { message, staged });
     emit(msg(
         "agent smith",
         "proposal ready — say \u{201c}apply\u{201d} to create the commit, or \

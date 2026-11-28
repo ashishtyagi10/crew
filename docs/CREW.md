@@ -3307,6 +3307,28 @@ and a typo gets a **did-you-mean** suggestion):
   misrouted message can draft but can never commit. Asking again re-drafts.
   A clean tree, a missing repo, or an empty draft each get a status line
   instead.
+- **"open a PR"** (also "make a pull request", "create a PR for this", "send
+  this as a PR") — drafts a **pull request** from the branch's commits: an
+  agent reads `git log` and `git diff` against the remote's default branch
+  (`origin/HEAD`, else whichever one of `main`/`master` exists — both is
+  refused rather than guessed; 12 KB cap) and writes a title and a
+  body, then shows `branch → base`, the title, the body and the exact commands
+  it will run. **Nothing is pushed or opened until you say "apply"** — that
+  word only, not the "yes" / "do it" a commit or plan accepts, and never by the
+  model — and only for the commit the draft described (a commit made since is
+  refused: ask again). Then `git push -u origin <branch>` (never
+  `--force`) and `gh pr create --base … --head … --title … --body-file …`, and
+  the PR's URL is reported; a git or gh failure is reported as its stderr on
+  one line. On the base branch itself the draft proposes `<type>/<slug>` from
+  the title, apply creates it from HEAD, and the base is never pushed; if the
+  push fails you are put back on the base and the new branch is deleted. Each
+  unmet condition is a status line instead of a draft: not a git repo, `gh`
+  missing or not signed in (`gh auth status`), no `origin`, uncommitted changes
+  (commit first with "commit this"), nothing ahead of the base. A pending PR
+  and a pending commit replace each other, so "apply" is never ambiguous; a
+  new plan, `/clear` and a rewind drop a pending PR.
+  "review my PR" stays a review. `CREW_GH` names the `gh` binary (default
+  `gh`) — the test seam for a fake gh.
 - **"look over my changes"** — an **AI code review** of the same diff the
   commit draft sees (à la Codex; the `/review` slash form is retired): the
   reviewer reports findings worst-first — `blocker — file:line — what and

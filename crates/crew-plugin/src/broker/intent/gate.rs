@@ -46,6 +46,9 @@ pub(crate) fn human_gates(
     if confirms_apply(task) && pending_commit(session) {
         return Some(crate::broker::gitmsg::commit_cmd(session, "apply", emit));
     }
+    if crate::broker::gitpr::opens_pr(task) && crate::broker::gitpr::pending(session) {
+        return Some(crate::broker::gitprapply::apply(session, emit));
+    }
     if pending_plan(session) {
         if approves_plan(task) {
             return Some(crate::broker::plan::approve_cmd(session, emit));
@@ -53,6 +56,11 @@ pub(crate) fn human_gates(
         if rejects_plan(task) {
             return Some(crate::broker::plan::reject_cmd(session, emit));
         }
+    }
+    // Asked for in so many words, a pull request is DRAFTED here and opened
+    // only by the exact confirm above (`gitprask`).
+    if crate::broker::gitprask::asks_pr(task) {
+        return Some(crate::broker::gitprdraft::draft(session, emit));
     }
     // Last, and only when nothing above held the message: it reads but
     // writes nothing (`reviewask`, `handsoff`).

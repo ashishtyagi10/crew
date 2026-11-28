@@ -25,6 +25,12 @@ mod grammar;
 mod hints;
 mod led;
 mod plangate;
+#[cfg(unix)]
+mod pr;
+#[cfg(unix)]
+mod pr_more;
+#[cfg(unix)]
+mod pr_safe;
 mod remembers;
 mod replypick;
 mod routereval;

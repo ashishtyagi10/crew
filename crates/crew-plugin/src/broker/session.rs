@@ -61,6 +61,8 @@ pub(crate) struct Session {
     /// The commit message `/commit` drafted, awaiting `/commit apply` —
     /// shared for the same worker-vs-inline reason as the plan.
     pub commit: super::gitmsg::SharedCommit,
+    /// The pull request drafted by "open a PR", awaiting "apply" (`gitpr`).
+    pub pr: super::gitpr::SharedPr,
     /// Plan-first mode (`planfirst`): while it is set every plain task is
     /// drafted as a plan and waits. Shared, since the task that reads it runs
     /// on a worker and the word that set it arrived on another.
@@ -136,6 +138,7 @@ impl Default for Session {
             lsp,
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
+            pr: Arc::new(Mutex::new(None)),
             plan_first: Arc::new(AtomicBool::new(false)),
             undo: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
@@ -182,6 +185,7 @@ impl Session {
             bg: Default::default(),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
+            pr: Arc::clone(&self.pr),
             plan_first: Arc::clone(&self.plan_first),
             undo: Arc::clone(&self.undo),
             resume: Arc::clone(&self.resume),

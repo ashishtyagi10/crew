@@ -846,6 +846,8 @@ repair pass is told the same),
 `crew-transcript-<stamp>.md` — à la OpenCode), **AI commit messages**
 (say "commit this" and the crew drafts a Conventional Commits message for
 your diff; nothing is committed until you say "apply" — à la Aider),
+**AI pull requests** (say "open a PR" and the crew drafts a title and body
+from the branch's commits; nothing is pushed or opened until you say "apply"),
 **AI code review** (ask "look over my changes" for findings on the working
 diff worst-first — à la Codex; "a quick look at my diff" or "a deep review of my
 changes" sets its level), **session resume** (the conversation
