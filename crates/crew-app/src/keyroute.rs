@@ -143,7 +143,8 @@ impl CrewApp {
             };
             let meta = self.config.option_as_meta;
             let flags = modes.kitty_flags;
-            let kitty = crate::kittykey::key_event(event, m, flags, self.broadcast, meta);
+            let id = self.panes.get(focused).map_or(0, |p| p.born_ms);
+            let kitty = crate::kittykey::key_event(event, m, flags, self.broadcast, meta, id);
             let bytes = kitty
                 .or_else(|| crate::altmeta::meta_key(event, m, meta))
                 .or_else(|| key_to_bytes(event, m, modes));

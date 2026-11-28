@@ -23,6 +23,9 @@ fn open_modifier(state: ModifiersState) -> bool {
 impl CrewApp {
     /// Handle one `WindowEvent` for the main window.
     pub(crate) fn handle_window_event(&mut self, event_loop: &ActiveEventLoop, event: WindowEvent) {
+        // Focus may have moved since the last event (a click, a chord): the
+        // pane it left is owed the releases of its held keys.
+        self.release_stale_keys(false);
         // Any deliberate input (key press, click, scroll) stamps the user as
         // active: blocked-pane auto-focus never steals focus inside the
         // [`crate::blocked::USER_IDLE_MS`] window that follows.
@@ -67,6 +70,11 @@ impl CrewApp {
             // crew that would otherwise run for a window nobody is looking at.
             // The repaint is what restarts the loop, so both edges need one.
             WindowEvent::Focused(on) => {
+                // Blur: keys held in a kitty program will never see their
+                // release, so send it now (see `kittyheld`).
+                if !on {
+                    self.release_stale_keys(true);
+                }
                 self.win_focus = Some(on);
                 self.redraw();
             }

@@ -737,7 +737,10 @@ report all keys as escape codes (plain letters, Enter, Tab, Backspace, the
 keypad as `57399…` and bare modifier keys as `57441…`) and **16** report
 associated text (`CSI 97;2;65 u`). What Option, AltGr or a dead key composed
 is plain text unless the program asked for 8 and 16 together, and an IME
-commit is always plain text. Caps Lock and Num Lock bits are not reported.
+commit is always plain text. When the window loses focus or focus moves to
+another pane, keys still held in a program that asked for 2 get their release
+first (a held Shift never sticks). Caps Lock and Num Lock bits, Super on a
+letter and the Num-Lock-off keypad codes are not reported.
 Under `/broadcast` keys stay legacy. A program killed in that mode doesn't
 leave the shell in it: every flag is emptied when the shell's prompt comes
 back.

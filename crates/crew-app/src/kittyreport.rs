@@ -18,8 +18,10 @@
 //! Text the layout composed (Option+letter on a Mac, AltGr, a dead key's
 //! accent) is not a key's own text: it goes as plain text unless 8 and 16
 //! both ask for text as codepoints, and an IME commit never comes through
-//! here at all (`composeinput` writes it raw). Caps/Num Lock bits are not
-//! reported. `keykitty` keeps the flag-1-only forms; this is for the rest.
+//! here at all (`composeinput` writes it raw). Caps/Num Lock bits, Super on
+//! a letter and the keypad with Num Lock off (`KP_Home` and kin) are not
+//! reported: documented gaps.
+//! `keykitty` keeps the flag-1-only forms; this is for the rest.
 use winit::keyboard::{Key, KeyCode, NamedKey};
 
 use crate::keyenc::Mods;
@@ -76,10 +78,16 @@ pub(crate) fn encode(flags: u8, e: &Ev, m: Mods, mac: bool, meta: bool) -> Optio
         return all.then(|| csi_u(code.to_string(), p, ev, text).into_bytes());
     }
     let seq = match e.logical {
-        Key::Named(NamedKey::Escape) => esc.then(|| csi_u("27".into(), p, ev, None))?,
-        Key::Named(n @ (NamedKey::Enter | NamedKey::Tab | NamedKey::Backspace)) => {
-            (all || (esc && p > 1)).then(|| csi_u(enter_code(*n).to_string(), p, ev, None))?
+        // Flag 2 alone still reports Esc's release (a press stays the legacy
+        // byte): a program tracking Esc as held needs the way back up.
+        Key::Named(NamedKey::Escape) => {
+            (esc || (events && ev != 1)).then(|| csi_u("27".into(), p, ev, None))?
         }
+        // The spec keeps these three out of release reports unless 8 is on:
+        // their legacy bytes (CR, HT, DEL) were never paired with a release.
+        Key::Named(n @ (NamedKey::Enter | NamedKey::Tab | NamedKey::Backspace)) => (all
+            || (esc && p > 1 && ev != 3))
+            .then(|| csi_u(enter_code(*n).to_string(), p, ev, None))?,
         Key::Named(NamedKey::Space) => text_key(flags, e, " ", " ", m, ev, mac, meta)?,
         Key::Named(n) => functional(*n, p, ev)?,
         Key::Character(own) => {
@@ -138,7 +146,7 @@ fn text_key(
         let shifted = own
             .chars()
             .next()
-            .filter(|s| m.shift && own.chars().count() == 1 && *s != c);
+            .filter(|s| m.shift && own.chars().count() == 1 && *s != c && !s.is_control());
         let base = e.code.and_then(base_layout).filter(|b| *b != code);
         match (shifted, base) {
             (None, None) => {}
@@ -164,3 +172,7 @@ mod tests;
 #[cfg(test)]
 #[path = "kittyreport2_tests.rs"]
 mod tests_more;
+
+#[cfg(test)]
+#[path = "kittyreport3_tests.rs"]
+mod tests_review;

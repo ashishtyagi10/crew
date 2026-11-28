@@ -412,6 +412,8 @@ mod keyhint;
 mod keykitty;
 mod keyroute;
 mod keys;
+mod kittyfocus;
+mod kittyheld;
 mod kittykey;
 mod kittyreport;
 mod kittytable;

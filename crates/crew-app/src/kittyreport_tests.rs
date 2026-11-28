@@ -136,8 +136,8 @@ fn flag_2_reports_the_keys_that_are_escape_codes_anyway() {
     assert_eq!(f1.as_deref(), Some("\x1b[1;1:3P"));
     let f3 = named(EVT, F3, KeyCode::F3, NONE, Release);
     assert_eq!(f3.as_deref(), Some("\x1b[13;1:3~"));
-    // Esc is an escape code only where flag 1 or 8 makes it one.
-    assert_eq!(named(EVT, Escape, KeyCode::Escape, NONE, Release), None);
+    // Esc's press is a legacy byte unless flag 1 or 8 (its release: flag 2).
+    assert_eq!(named(EVT, Escape, KeyCode::Escape, NONE, Press), None);
     let esc = named(1 | EVT, Escape, KeyCode::Escape, NONE, Release);
     assert_eq!(esc.as_deref(), Some("\x1b[27;1:3u"));
 }
