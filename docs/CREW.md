@@ -384,24 +384,10 @@ matches nothing says so rather than emptying the panel. What you typed is shown
 where the version normally sits. **Esc** closes it (so does any key that is not
 a letter, a space or Backspace), and the filter is forgotten on the way out.
 
-**On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
-keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
-with **Ctrl**, as a browser or an editor has it: Ctrl+T opens a shell, Ctrl+W
-closes a pane, Ctrl+1 … 9 jump to a pane, in every pane, terminals included
-(Ctrl+N opens a window outside a terminal). A terminal (or a line you are typing) keeps the
-plain Ctrl keys it lives by — C, D, Z, R, L, A, E, K, U, P and N (the previous
-and next line, and fzf's and vim's menus' up and down), and M, J, I, H and
-`[`, which are Enter, newline, Tab, Backspace and Escape to it — and there
-**Ctrl+Shift** and the key reaches crew instead (Ctrl+Shift+C, Ctrl+Shift+I);
-Ctrl+Shift works for every chord anywhere. A chord a Mac shifts is
-Ctrl+Shift too: Ctrl+Shift+T reopens the pane you just closed, as a browser
-reopens a tab, and Ctrl+Shift+[ / ] move a pane. The grid's arrows take
-**Alt** (Alt+arrow focuses that way, Alt+Shift+arrow swaps), since Windows
-keeps Win+arrow for snapping windows. Cmd+Click and Cmd+wheel are Ctrl+Click
-and Ctrl+wheel, and a document window takes plain Ctrl (Ctrl+B, Ctrl+S).
-Ctrl+Shift+F, G, L and M keep their meanings (focus mode, the gradient,
-themes, markdown source) on every platform. `/keys` writes each chord the
-way that machine presses it.
+**On Windows and Linux** the Cmd chords in the table below are pressed with
+**Alt**, and no shortcut takes more than one modifier plus one key — see
+[Windows and Linux keys](#windows-and-linux-keys) after the table. `/keys` and
+the command palette write each chord the way that machine presses it.
 
 | Action | Keys |
 |--------|------|
@@ -410,7 +396,7 @@ way that machine presses it.
 | Jump to next active pane | **Cmd+A** |
 | Jump to next pane waiting on you | **Cmd+.** |
 | Previous / next tab | **Cmd+{** / **Cmd+}** (Cmd+Shift+[ / ]) |
-| Jump to tab N | **Cmd+Opt+1 … 9** (Ctrl+Alt+1 … 9 on Windows and Linux) |
+| Jump to tab N | **Cmd+Opt+1 … 9** (Ctrl+1 … 9 on Windows and Linux) |
 | Send the focused pane to another tab | **Cmd+Shift+M** (fills in `/tab move `) |
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
@@ -425,8 +411,8 @@ way that machine presses it.
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
-| Go to file — `/view`, its picker matching every file under the folder, the files viewed last first (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
-| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
+| Go to file — `/view`, its picker matching every file under the folder, the files viewed last first | **Cmd+P** |
+| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, Alt+X) | **Cmd+Shift+E** |
 | The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete (Fn+Backspace on a Mac; not its key repeat) forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — opens on the section for the pane you are in; type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
@@ -749,6 +735,51 @@ own oh-my-posh theme, Starship, a hand-written `prompt`), crew leaves it alone,
 and that is also how to opt out. The theme lives at
 `%APPDATA%\crew\crew.omp.json`, and crew rewrites it whenever its own copy
 changes, so to restyle the prompt, start oh-my-posh from your profile instead.
+
+
+### Windows and Linux keys
+
+`Alt is crew's key.` It sits where Cmd sits on a Mac keyboard, so Cmd+D is
+`Alt+D`, Cmd+T is `Alt+T`, and every Cmd chord in the table above is the
+same letter with Alt: Alt+W closes a pane, Alt+1 … 9 jump to a pane, Alt+] /
+Alt+[ step panes, Alt+I focuses the input bar, Alt+P goes to a file, Alt+O opens
+agent smith, Alt+Z zooms, Alt+F finds, Alt+C / Alt+V copy and paste, Alt+S saves,
+Alt+N opens a window, Alt+= / Alt+- / Alt+0 size the font, Alt+/ shows the keys,
+Alt+Q quits, Alt+Enter sends an inbox reply, and Alt+arrow moves focus on the
+grid (Alt+Shift+arrow swaps panes, the one three-key chord). `Ctrl belongs to
+what you type into`, so a terminal gets every Ctrl key, bar the few crew keeps
+everywhere (the last table below).
+
+The Mac's three-key chords get a key of their own, so everything is two keys:
+
+| Windows and Linux | Mac | Action |
+|---|---|---|
+| `Alt+U` | Cmd+Shift+T | Reopen the pane you just closed |
+| `Alt+X` | Cmd+Shift+E | Explorer takes the keys |
+| `Alt+M` | Cmd+Shift+M | Send the pane to another tab (`/tab move`) |
+| `F11` | Cmd+M | Maximize the window (Alt+M is taken above) |
+| `Ctrl+PgUp` / `Ctrl+PgDn` | Cmd+{ / Cmd+} | Previous / next tab |
+| `Ctrl+1 … 9` | Cmd+Opt+1 … 9 | Go to tab N |
+| `Alt+PgUp` / `Alt+PgDn` | Cmd+Opt+↑ / ↓ | Previous / next command in a terminal |
+| `Alt+Home` / `Alt+End` | Cmd+Opt+← / → | Previous / next screen |
+| `Alt+L` | Ctrl+Shift+L | Cycle themes |
+| `Alt+B` | Ctrl+Shift+G | Step the background gradient |
+| `Alt+H` | Ctrl+Shift+F | Focus mode |
+| `Alt+Y` | Ctrl+Shift+M | Markdown source in a chat pane |
+
+Ctrl, by where the focus is:
+
+| Focus | Ctrl keys |
+|---|---|
+| Terminal | Every Ctrl key goes to the program, with two exceptions taken from Windows Terminal: `Ctrl+C copies when text is selected` (and sends ^C otherwise), and `Ctrl+V pastes`. |
+| Editor, input bar, settings fields, inbox compose | Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save, Ctrl+A select all, Ctrl+C / X / V, Ctrl+F find, Ctrl+B / I bold and italic in markdown. |
+| Anywhere | Ctrl+Tab / Ctrl+Shift+Tab step panes, Ctrl+PgUp / PgDn step tabs, Ctrl+1 … 9 go to tab N. Ctrl+Click and Ctrl+wheel stand in for Cmd+Click and Cmd+wheel. |
+
+What Alt gives up: `Alt as Meta in a terminal.` Alt+letter used to send
+ESC+letter; now only the letters crew does not use (R and the unused
+punctuation) still reach the shell as Meta, and bash and zsh's Alt+B / Alt+F
+word jumps are crew's. The OS keeps Alt+F4, Alt+Tab, Alt+Space and every
+Win+key; crew never takes them.
 
 ## The input bar
 
@@ -1762,7 +1793,7 @@ longer aim at.
   drawn as chrome rather than in the program's own columns. An error bar on the
   same row wins it: "this failed" outranks "this began".
 
-  **Cmd+Opt+↑↓** (Ctrl+Alt+↑↓ on Windows and Linux) walks those ticks: each
+  **Cmd+Opt+↑↓** (Alt+PgUp / Alt+PgDn on Windows and Linux) walks those ticks: each
   press scrolls the focused terminal so the previous / next command's first
   row is the window's top row, and ↓ past the newest returns to the live
   screen. It is the screens' chord turned vertical (←→ steps the screens,
@@ -2004,7 +2035,7 @@ longer aim at.
   of the words, written between `<<<DRAFT` and `DRAFT>>>` and put in the box for
   you to change — crew writes the To, Subject (`Re:`), `In-Reply-To` and
   `References` headers itself from the thread, so the model writes only the
-  words, and nothing is sent until you press Cmd+Enter (Ctrl+Enter off a Mac);
+  words, and nothing is sent until you press Cmd+Enter (Alt+Enter off a Mac);
   `f` forwards the newest mail, its HTML, pictures and files with it, under a
   note of yours; the box's row of files takes files of yours (↓ to it, Enter on
   `+ attach` for the system's chooser, or a drop on the pane; Gmail's 25 MB at
@@ -4491,7 +4522,7 @@ a quarter tile beside the work. Every other pane is a tile.
 The zoom belongs to the pane, not to whatever has focus. With the inbox on
 screen, Cmd+2 to a shell brings the grid back, and coming back to the inbox
 gives it the screen again. So the window is a row of **screens** — the grid,
-then each zoomed pane — and **Cmd+Opt+←→** (Ctrl+Alt+←→ on Windows and Linux)
+then each zoomed pane — and **Cmd+Opt+←→** (Alt+Home / Alt+End on Windows and Linux)
 steps along it. Getting out needs nothing new: **Esc** on far, the settings
 form or a viewer closes it, and closing the pane on screen lands you on the
 grid you left; **Esc** on the inbox's list goes back to the grid and keeps the

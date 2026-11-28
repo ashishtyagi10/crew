@@ -252,24 +252,10 @@ at the top, as before. On macOS it and the command palette write chords the
 way the menu bar does (`⇧⌘T`, `⌃⇧L`); the table below keeps the portable
 spelling, and typing `cmd` or `shift` still filters the list.
 
-**On Windows and Linux** the Cmd key is the Windows/Super key, which the OS
-keeps for itself (Win+I opens Settings), so every Cmd chord below is pressed
-with **Ctrl**, as a browser or an editor has it: Ctrl+T opens a shell, Ctrl+W
-closes a pane, Ctrl+1 … 9 jump to a pane, in every pane, terminals included
-(Ctrl+N opens a window outside a terminal). A terminal (or a line you are typing) keeps the
-plain Ctrl keys it lives by — C, D, Z, R, L, A, E, K, U, P and N (the previous
-and next line, and fzf's and vim's menus' up and down), and M, J, I, H and
-`[`, which are Enter, newline, Tab, Backspace and Escape to it — and there
-**Ctrl+Shift** and the key reaches crew instead (Ctrl+Shift+C, Ctrl+Shift+I);
-Ctrl+Shift works for every chord anywhere. A chord a Mac shifts is
-Ctrl+Shift too: Ctrl+Shift+T reopens the pane you just closed, as a browser
-reopens a tab, and Ctrl+Shift+[ / ] move a pane. The grid's arrows take
-**Alt** (Alt+arrow focuses that way, Alt+Shift+arrow swaps), since Windows
-keeps Win+arrow for snapping windows. Cmd+Click and Cmd+wheel are Ctrl+Click
-and Ctrl+wheel, and a document window takes plain Ctrl (Ctrl+B, Ctrl+S).
-Ctrl+Shift+F, G, L and M keep their meanings (focus mode, the gradient,
-themes, markdown source) on every platform. `/keys` writes each chord the
-way that machine presses it.
+**On Windows and Linux** the Cmd chords in the table below are pressed with
+**Alt**, and no shortcut takes more than one modifier plus one key — see
+[Windows and Linux keys](#windows-and-linux-keys) after the table. `/keys` and
+the command palette write each chord the way that machine presses it.
 
 | Action | Keys |
 |--------|------|
@@ -290,8 +276,8 @@ way that machine presses it.
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | Toggle the nav | **Cmd+G** |
-| Go to file — `/view`, its picker matching every file under the folder, the files viewed last first (off a Mac, Ctrl+P stays a terminal's previous line there) | **Cmd+P** |
-| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, where Ctrl+Shift+E is the hints: `/nav explorer`) | **Cmd+Shift+E** |
+| Go to file — `/view`, its picker matching every file under the folder, the files viewed last first | **Cmd+P** |
+| Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, Alt+X) | **Cmd+Shift+E** |
 | The nav's Inbox or Far list from the keyboard — ↑/↓ (j/k) move a cursor bar, Home/End, Enter opens the thread or folder as a click does, Delete (Fn+Backspace on a Mac; not its key repeat) forgets the Far folder (as its row's hover `×` does), Esc gives the keys back | `/nav inbox` / `/nav far` |
 | These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
@@ -300,7 +286,7 @@ way that machine presses it.
 | Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
-| Open another crew window (off a Mac, Ctrl+N stays a terminal's next line there: Ctrl+Shift+N) | **Cmd+N** |
+| Open another crew window | **Cmd+N** |
 | Cycle the theme rotations (dark → light → crt → glass → neon → classic → purple → prism → soft → metal → auto) | **Ctrl+Shift+L** |
 | Step the canvas gradient (… → the theme's own) | **Ctrl+Shift+G** |
 | Focus mode: hold notifications, never steal focus | **Ctrl+Shift+F** (or `/focus`) |
@@ -319,6 +305,51 @@ way that machine presses it.
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
 | Scroll any pane | **Shift+PageUp** / **Shift+PageDown** (Shift+Home/End for top/bottom), or mouse wheel — in a full-screen app (vim/less/agent TUI) the wheel is forwarded to the program |
 | Quit | **Cmd+Q** (press twice to confirm when panes are open) |
+
+
+### Windows and Linux keys
+
+`Alt is crew's key.` It sits where Cmd sits on a Mac keyboard, so Cmd+D is
+`Alt+D`, Cmd+T is `Alt+T`, and every Cmd chord in the table above is the
+same letter with Alt: Alt+W closes a pane, Alt+1 … 9 jump to a pane, Alt+] /
+Alt+[ step panes, Alt+I focuses the input bar, Alt+P goes to a file, Alt+O opens
+agent smith, Alt+Z zooms, Alt+F finds, Alt+C / Alt+V copy and paste, Alt+S saves,
+Alt+N opens a window, Alt+= / Alt+- / Alt+0 size the font, Alt+/ shows the keys,
+Alt+Q quits, Alt+Enter sends an inbox reply, and Alt+arrow moves focus on the
+grid (Alt+Shift+arrow swaps panes, the one three-key chord). `Ctrl belongs to
+what you type into`, so a terminal gets every Ctrl key, bar the few crew keeps
+everywhere (the last table below).
+
+The Mac's three-key chords get a key of their own, so everything is two keys:
+
+| Windows and Linux | Mac | Action |
+|---|---|---|
+| `Alt+U` | Cmd+Shift+T | Reopen the pane you just closed |
+| `Alt+X` | Cmd+Shift+E | Explorer takes the keys |
+| `Alt+M` | Cmd+Shift+M | Send the pane to another tab (`/tab move`) |
+| `F11` | Cmd+M | Maximize the window (Alt+M is taken above) |
+| `Ctrl+PgUp` / `Ctrl+PgDn` | Cmd+{ / Cmd+} | Previous / next tab |
+| `Ctrl+1 … 9` | Cmd+Opt+1 … 9 | Go to tab N |
+| `Alt+PgUp` / `Alt+PgDn` | Cmd+Opt+↑ / ↓ | Previous / next command in a terminal |
+| `Alt+Home` / `Alt+End` | Cmd+Opt+← / → | Previous / next screen |
+| `Alt+L` | Ctrl+Shift+L | Cycle themes |
+| `Alt+B` | Ctrl+Shift+G | Step the background gradient |
+| `Alt+H` | Ctrl+Shift+F | Focus mode |
+| `Alt+Y` | Ctrl+Shift+M | Markdown source in a chat pane |
+
+Ctrl, by where the focus is:
+
+| Focus | Ctrl keys |
+|---|---|
+| Terminal | Every Ctrl key goes to the program, with two exceptions taken from Windows Terminal: `Ctrl+C copies when text is selected` (and sends ^C otherwise), and `Ctrl+V pastes`. |
+| Editor, input bar, settings fields, inbox compose | Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save, Ctrl+A select all, Ctrl+C / X / V, Ctrl+F find, Ctrl+B / I bold and italic in markdown. |
+| Anywhere | Ctrl+Tab / Ctrl+Shift+Tab step panes, Ctrl+PgUp / PgDn step tabs, Ctrl+1 … 9 go to tab N. Ctrl+Click and Ctrl+wheel stand in for Cmd+Click and Cmd+wheel. |
+
+What Alt gives up: `Alt as Meta in a terminal.` Alt+letter used to send
+ESC+letter; now only the letters crew does not use (R and the unused
+punctuation) still reach the shell as Meta, and bash and zsh's Alt+B / Alt+F
+word jumps are crew's. The OS keeps Alt+F4, Alt+Tab, Alt+Space and every
+Win+key; crew never takes them.
 
 ## Input bar
 
@@ -393,7 +424,7 @@ mail to the list's address; a second `u` confirms, and only mail Gmail
 found DKIM-signed is acted on), `r` to **reply to everyone on it in a box under the mail** (its `to` and
 `cc` lines are yours to change; ↓ reaches its row of files, where Enter on
 `+ attach` opens your system's file chooser, or drop files on the pane;
-Cmd+Enter, Ctrl+Enter off a Mac, sends it in the thread; Tab has agent smith
+Cmd+Enter, Alt+Enter off a Mac, sends it in the thread; Tab has agent smith
 write a draft into the box for you to change first; Esc closes it, twice when
 it holds words), `f` to forward the newest mail with its pictures and files, `a` to hand the thread to smith ("what does it want
 from me?"), `t` to open a card under the mail with the `/todo` row

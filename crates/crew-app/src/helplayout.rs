@@ -168,7 +168,7 @@ pub(crate) fn rows_for(needle: &str, cols: u16, mine: Option<&str>) -> Vec<Row> 
                 if alone {
                     out.push(Row::Bind(k, String::new()));
                 }
-                let chars: Vec<char> = d.chars().collect();
+                let chars: Vec<char> = crate::chordglyph::prose_off_mac(d).chars().collect();
                 for (i, (a, b)) in wrap_pretty(&chars, width).into_iter().enumerate() {
                     let text: String = chars[a..b].iter().collect();
                     match i == 0 && !alone {

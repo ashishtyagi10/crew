@@ -106,7 +106,10 @@ impl CrewApp {
     pub(crate) fn step_tab(&mut self, dir: i32) {
         match self.tabs.step(dir) {
             Some(id) => self.activate_tab(id),
-            None => self.set_status("one tab open \u{b7} Cmd+T opens another"),
+            None => self.set_status(
+                crate::chordglyph::prose_off_mac("one tab open \u{b7} Cmd+T opens another")
+                    .into_owned(),
+            ),
         }
     }
 

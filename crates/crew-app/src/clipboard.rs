@@ -94,9 +94,8 @@ impl CrewApp {
             if crate::pastesafe::needs_confirm(&text, false) {
                 let n = crate::pastesafe::line_count(&text);
                 self.held_paste.hold(&text, std::time::Instant::now());
-                self.set_status(format!(
-                    "{n} lines would run here \u{2014} \u{2318}V again to paste"
-                ));
+                let note = format!("{n} lines would run here \u{2014} Cmd+V again to paste");
+                self.set_status(crate::chordglyph::prose(&note).into_owned());
                 self.redraw();
                 return;
             }

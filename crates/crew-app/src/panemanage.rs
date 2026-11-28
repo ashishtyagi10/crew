@@ -38,7 +38,10 @@ impl CrewApp {
         // the pane by number and mark it `+`; neither is a PANES heading on
         // the rail.
         self.set_status(match idx + 1 {
-            n @ 1..=9 => format!("minimized — click its row in the nav, or press Cmd+{n}"),
+            n @ 1..=9 => crate::chordglyph::prose_off_mac(&format!(
+                "minimized — click its row in the nav, or press Cmd+{n}"
+            ))
+            .into_owned(),
             _ => "minimized — click its row in the nav to restore".to_string(),
         });
         self.redraw();

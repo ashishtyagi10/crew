@@ -1,15 +1,18 @@
 //! How a chord is written on this machine: `⇧⌘T` on macOS, the table's
-//! `Cmd+Shift+T` elsewhere — save that a Cmd chord with a Ctrl+Shift stand-in
-//! is written as one (`Cmd+I` → `Ctrl+Shift+I`, [`offmac`]).
+//! `Cmd+Shift+T` in the tables — and off a Mac the key it is pressed with
+//! there: Alt where the Mac has Cmd (`Cmd+I` → `Alt+I`), a key of its own for
+//! the rest (`Cmd+Shift+T` → `Alt+U`, [`offmac`]).
 //!
 //! The welcome card and the settings form already wrote `⌘T` and `⌘S` on a
 //! Mac, and `/keys` and the palette beside them still spelled `Cmd+T` — two
 //! vocabularies for one key on one screen. The tables keep the portable
 //! spelling (the README parity tests read them, and Windows and Linux draw
-//! them as they are); this is the one place a Mac's glyphs are put in, at
+//! them as written); this is the one place a Mac's glyphs are put in, at
 //! draw time.
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
+
+use crate::winkeys::REMAPS;
 
 /// Modifier words in the order a Mac writes their glyphs: ⌃⌥⇧⌘.
 const MODS: [(&str, char); 5] = [
@@ -36,9 +39,10 @@ pub(crate) fn shown(k: &'static str) -> &'static str {
         .or_insert_with(|| Box::leak(native(k).into_boxed_str()))
 }
 
-/// [`shown`] for the document window, whose own keys take Ctrl as Cmd off a
-/// Mac (`docwin::keys`): its `Cmd+B` is `Ctrl+B` there, not the main
-/// window's Ctrl+Shift stand-in.
+/// [`shown`] for the document window and the editors, whose own keys take
+/// Ctrl as Cmd off a Mac (`docwin::keys`, `viewedit`): their `Cmd+B` is
+/// `Ctrl+B` there, not the main window's Alt+B, and redo (`Cmd+Shift+Z`) is
+/// `Ctrl+Y`.
 pub(crate) fn shown_ctrl(k: &'static str) -> &'static str {
     if cfg!(target_os = "macos") || !k.contains("Cmd+") {
         return shown(k);
@@ -48,8 +52,10 @@ pub(crate) fn shown_ctrl(k: &'static str) -> &'static str {
         .get_or_init(Default::default)
         .lock()
         .unwrap_or_else(|e| e.into_inner());
-    memo.entry(k)
-        .or_insert_with(|| Box::leak(k.replace("Cmd+", "Ctrl+").into_boxed_str()))
+    memo.entry(k).or_insert_with(|| {
+        let k = k.replace("Cmd+Shift+Z", "Ctrl+Y").replace("Cmd+", "Ctrl+");
+        Box::leak(k.into_boxed_str())
+    })
 }
 
 /// A sentence as this platform writes the chords in it — a status flash or
@@ -62,10 +68,24 @@ pub(crate) fn prose(s: &str) -> std::borrow::Cow<'_, str> {
     }
 }
 
-/// Whether [`native`] would change `s`: any chord on a Mac, a Cmd one
-/// elsewhere.
+/// [`prose`] for a sentence a Mac already shows as it is written (`press
+/// Cmd+T`, which a Mac has always read as it stands): only off a Mac are its
+/// chords rewritten, so a Mac's text does not change.
+pub(crate) fn prose_off_mac(s: &str) -> std::borrow::Cow<'_, str> {
+    match cfg!(target_os = "macos") {
+        true => std::borrow::Cow::Borrowed(s),
+        false => prose(s),
+    }
+}
+
+/// Whether [`native`] would change `s`: any chord on a Mac, a Cmd one or a
+/// remapped Ctrl+Shift one elsewhere.
 fn rewrites(s: &str) -> bool {
-    s.contains('+') && (cfg!(target_os = "macos") || s.contains("Cmd+"))
+    s.contains('+')
+        && (cfg!(target_os = "macos")
+            || s.contains("Cmd+")
+            || s.contains("Ctrl+Shift+")
+            || s.contains('\u{2318}'))
 }
 
 fn native(s: &str) -> String {
@@ -75,59 +95,56 @@ fn native(s: &str) -> String {
     }
 }
 
-/// Every Cmd chord in `s` as Windows and Linux press it
-/// (the old Ctrl stand-ins, still what the labels say: plan step 6): plain Ctrl for a key a terminal leaves to
-/// crew (`Cmd+T` is `Ctrl+T`), Ctrl+Shift for one it keeps (`Cmd+C` is
-/// `Ctrl+Shift+C`, since a terminal's Ctrl+C interrupts) and for a chord a
-/// Mac shifts (`Cmd+Shift+T`, `Cmd+{`), Alt for the grid's arrows, Ctrl+Alt
-/// for the screens' (`ctrlchord::screen_held`), and plain Ctrl for a click or
-/// the wheel (`events::open_modifier`, `scroll`).
+/// Every chord in `s` as Windows and Linux press it (`winkeys`, plan step 6):
+/// the chords with a key of their own come from [`REMAPS`] — the table the
+/// key press reads too, so a label and its key cannot drift (`Cmd+Shift+T` is
+/// `Alt+U`, `Cmd+M` is `F11`) — and every other Cmd chord is the same key
+/// with Alt where the Mac has Cmd (`Cmd+T` is `Alt+T`). A click or the wheel
+/// keeps Ctrl (`events::open_modifier`, `scroll`).
 pub(crate) fn offmac(s: &str) -> String {
-    s.split(' ').map(off_chord).collect::<Vec<_>>().join(" ")
+    let s = REMAPS
+        .iter()
+        .fold(s.to_string(), |s, (m, w)| swap(&s, m, w));
+    let words: Vec<_> = s.split(' ').map(off_chord).collect();
+    // `\u{2318}/Ctrl+S` names the two keys that save; off a Mac one of them.
+    dedupe(&words.join(" ").replace("\u{2318}/", ""))
 }
 
-/// Keys a terminal keeps for itself from plain Ctrl. Labels only, until the
-/// labels move to `winkeys::REMAPS` (plan step 6).
-const TYPED: &str = "cdzrlaekumjihpn[";
-
-/// Whether `key` is one crew key (the old plain-Ctrl label rule).
-fn plain(key: &str, typed: bool) -> bool {
-    let mut chars = key.chars();
-    let (Some(c), None) = (chars.next(), chars.next()) else {
-        return false;
-    };
-    let c = c.to_ascii_lowercase();
-    (c.is_ascii_alphanumeric() || "=-,./[]".contains(c)) && !(typed && TYPED.contains(c))
+/// `Alt+S / Alt+S` once: a row that listed a Mac's `Cmd+S / Alt+S` pair
+/// (the settings form's) names one key off a Mac.
+fn dedupe(s: &str) -> String {
+    let mut seen: Vec<&str> = Vec::new();
+    for part in s.split(" / ") {
+        if !(part.contains('+') && seen.contains(&part)) {
+            seen.push(part);
+        }
+    }
+    seen.join(" / ")
 }
 
-/// As [`plain`], for the Ctrl+Shift label (not L, G, F, M).
-fn stands_in(key: &str) -> bool {
-    plain(key, false) && !"lgfm".contains(key.to_ascii_lowercase().as_str())
+/// `s` with each whole-chord `from` written `to`: not when it is the tail of
+/// a longer chord (`Cmd+M` inside `Cmd+Shift+M`) or the head of a longer key.
+fn swap(s: &str, from: &str, to: &str) -> String {
+    let (mut out, mut at) = (String::new(), 0);
+    while let Some(i) = s[at..].find(from) {
+        let (a, b) = (at + i, at + i + from.len());
+        let edge = !s[..a].ends_with(|c: char| c.is_alphanumeric() || c == '+')
+            && !s[b..].starts_with(char::is_alphanumeric);
+        out.push_str(&s[at..a]);
+        out.push_str(if edge { to } else { from });
+        at = b;
+    }
+    out + &s[at..]
 }
 
 /// One space-free token of [`offmac`]; a trailing `.`/`,`/`)` rides along.
 fn off_chord(tok: &str) -> String {
-    let Some(rest) = tok.strip_prefix("Cmd+") else {
+    let Some(rest) = tok.strip_prefix("Cmd+").filter(|r| !r.is_empty()) else {
         return tok.to_string();
     };
-    let cut = rest.len() - rest.trim_end_matches([',', ';', ')']).len();
-    let (key, tail) = rest.split_at(rest.len() - cut);
-    let arrows = |k: &str| {
-        !k.is_empty()
-            && k.chars()
-                .all(|c| "\u{2190}\u{2191}\u{2192}\u{2193}".contains(c))
-    };
-    let kept = |k: &str| k.len() == 1 && TYPED.contains(&k.to_ascii_lowercase());
-    match key {
-        "Click" | "click" | "wheel" => format!("Ctrl+{key}{tail}"),
-        k if arrows(k.trim_start_matches("Shift+")) => format!("Alt+{k}{tail}"),
-        k if k.strip_prefix("Opt+").is_some_and(arrows) => format!("Ctrl+Alt+{}{tail}", &k[4..]),
-        "{" => format!("Ctrl+Shift+[{tail}"),
-        "}" => format!("Ctrl+Shift+]{tail}"),
-        "Shift+T" => format!("Ctrl+Shift+T{tail}"),
-        k if kept(k) && stands_in(k) => format!("Ctrl+Shift+{k}{tail}"),
-        k if plain(k, false) => format!("Ctrl+{k}{tail}"),
-        _ => tok.to_string(),
+    match rest.trim_end_matches([',', ';', ')']) {
+        "Click" | "click" | "wheel" => format!("Ctrl+{rest}"),
+        _ => format!("Alt+{rest}"),
     }
 }
 
@@ -164,3 +181,7 @@ fn chord(tok: &str) -> String {
 #[cfg(test)]
 #[path = "chordglyph_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chordsweep_tests.rs"]
+mod sweep_tests;
