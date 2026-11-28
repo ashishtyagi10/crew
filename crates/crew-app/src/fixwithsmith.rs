@@ -134,10 +134,11 @@ impl CrewApp {
     }
 }
 
-#[cfg(test)]
+// Both spawn `/bin/sh` for a real pty: Unix only (Linux CI runs them).
+#[cfg(all(test, unix))]
 #[path = "fixwithsmith_tests.rs"]
 mod tests;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "fixclick_tests.rs"]
 mod click_tests;
