@@ -133,6 +133,16 @@ impl CrewApp {
             return;
         }
 
+        // Off a Mac, plain Ctrl is the pane's: Ctrl+C copies a selection,
+        // Ctrl+V pastes, Ctrl+S saves a form or draft, Ctrl+F finds in an
+        // editor (`ctrlpane`). Not on repeat: a held Ctrl+V would answer the
+        // "paste again?" a multi-line paste asks.
+        let key = crate::ctrlpane::event_key(event);
+        if event.state.is_pressed() && !event.repeat && self.ctrl_pane_key(&key, mstate) {
+            self.redraw();
+            return;
+        }
+
         // When the input bar is focused, all non-super keys go to it.
         if self.input.focused {
             if event.state.is_pressed()

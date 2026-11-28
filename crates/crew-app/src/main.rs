@@ -262,6 +262,7 @@ mod crashlog;
 #[path = "crispshot_tests.rs"]
 mod crispshot_tests;
 mod ctrlchord;
+mod ctrlpane;
 mod ctxlimit;
 mod cursorblink;
 mod cursortrail;

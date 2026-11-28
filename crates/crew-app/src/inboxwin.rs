@@ -142,7 +142,14 @@ impl CrewApp {
                 );
                 // A chord is a command, as in the grid (`keychord`), never the
                 // plain letter: Cmd+D here deleted the thread.
-                match crate::keychord::cmd_chord(&event, m.mods) {
+                let pressed = event.state.is_pressed();
+                let ctrl_v = crate::ctrlpane::paste_chord(
+                    &crate::ctrlpane::event_key(&event),
+                    m.mods,
+                    cfg!(target_os = "macos"),
+                )
+                .filter(|_| pressed && !event.repeat);
+                match crate::keychord::cmd_chord(&event, m.mods).or(ctrl_v) {
                     Some(s) => match chord(&s, enter) {
                         Chord::Close => close = true,
                         Chord::Send => p.send_reply(),

@@ -54,6 +54,17 @@ pub(crate) fn edit_for(
     mods: ModifiersState,
     page: usize,
 ) -> Option<Edit> {
+    edit_on(key, pressed, mods, page, cfg!(target_os = "macos"))
+}
+
+/// [`edit_for`] with `mac` a parameter, so both platforms' keys are tested on one.
+pub(crate) fn edit_on(
+    key: &Key,
+    pressed: bool,
+    mods: ModifiersState,
+    page: usize,
+    mac: bool,
+) -> Option<Edit> {
     if !pressed {
         return None;
     }
@@ -61,7 +72,7 @@ pub(crate) fn edit_for(
     // (`winnav`); an editor taking them as caret moves left no way there.
     let nav = matches!(key, Key::Named(NamedKey::Home | NamedKey::End))
         || matches!(key, Key::Named(NamedKey::PageUp | NamedKey::PageDown));
-    if nav && mods.alt_key() && !cfg!(target_os = "macos") {
+    if nav && mods.alt_key() && !mac {
         return None;
     }
     let cmd = mods.super_key() || mods.control_key();
@@ -111,6 +122,8 @@ pub(crate) fn edit_for(
             "i" => Some(Edit::Wrap("*")),
             "k" => Some(Edit::Link),
             "z" => Some(Edit::Undo),
+            // Windows' redo is Ctrl+Y; the Mac keeps Cmd+Shift+Z alone.
+            "y" if !mac && mods.control_key() => Some(Edit::Redo),
             // Cmd+Shift+Z arrives as the shifted character, exactly like the
             // `{`/`}` and `T` chords the grid uses.
             "Z" => Some(Edit::Redo),
@@ -127,3 +140,7 @@ pub(crate) fn edit_for(
 #[cfg(test)]
 #[path = "keys_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "keyswin_tests.rs"]
+mod win_tests;
