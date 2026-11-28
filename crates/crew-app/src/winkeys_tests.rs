@@ -157,10 +157,11 @@ fn the_table_has_no_duplicates() {
 fn a_remapped_label_binds_the_chord_it_replaces() {
     use crate::chordglyph::offmac;
     let cmd = |s| Some(vec![WinChord::Cmd(s)]);
-    let want: [(&str, Option<Vec<WinChord>>); 12] = [
+    let want: [(&str, Option<Vec<WinChord>>); 13] = [
         ("Cmd+Shift+T", cmd("T")),
         ("Cmd+Shift+E", cmd("E")),
         ("Cmd+Shift+M", cmd("M")),
+        ("Cmd+Shift+C", cmd("C")),
         ("Cmd+M", Some(vec![WinChord::Maximize])),
         (
             "Cmd+{ / Cmd+}",

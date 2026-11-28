@@ -44,6 +44,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Cmd+;",
         "A command failed: open agent smith with it typed in (not sent) \u{2014} or click its red mark",
     ),
+    (
+        "Cmd+Shift+C",
+        "Copy a command's output: the last, or the one you jumped to (needs OSC 133)",
+    ),
     ("Cmd+G / Cmd+Z", "Toggle the nav / zoom the focused pane, or put it on the grid"),
     ("Cmd+S", "Save the settings form (to type into every terminal, use /broadcast)"),
     (

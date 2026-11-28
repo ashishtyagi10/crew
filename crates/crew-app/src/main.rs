@@ -265,6 +265,7 @@ mod composershot_tests;
 pub mod config;
 mod configdefault;
 mod confirm;
+mod copyout;
 mod copytext;
 mod costbars;
 mod crashlog;

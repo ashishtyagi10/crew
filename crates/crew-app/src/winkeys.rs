@@ -64,6 +64,7 @@ const ALT: &[(&str, &str)] = &[
     (",", ","),
     (".", "."),
     (";", ";"), // fix a failed command with smith (`fixwithsmith`)
+    ("'", "C"), // copy a command's output (`copyout`)
     ("/", "/"),
     ("[", "["),
     ("]", "]"),
@@ -83,6 +84,7 @@ pub(crate) const REMAPS: &[(&str, &str)] = &[
     ("Cmd+Shift+T", "Alt+U"),
     ("Cmd+Shift+E", "Alt+X"),
     ("Cmd+Shift+M", "Alt+M"),
+    ("Cmd+Shift+C", "Alt+'"),
     ("Cmd+M", "F11"),
     ("Cmd+{ / Cmd+}", "Ctrl+PgUp / Ctrl+PgDn"),
     ("Cmd+Opt+1 \u{2026} 9", "Ctrl+1 \u{2026} 9"),

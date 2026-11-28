@@ -276,6 +276,7 @@ the command palette write each chord the way that machine presses it.
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | A command failed: open agent smith with its command and output typed in (never sent) — or click the red mark on the pane's left border | **Cmd+;** |
+| Copy a command's output — the last one, or the one Cmd+Opt+↑/↓ jumped to; needs shell integration (OSC 133) | **Cmd+Shift+C** (Alt+' on Windows and Linux) |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder, the files viewed last first | **Cmd+P** |
 | Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, Alt+X) | **Cmd+Shift+E** |

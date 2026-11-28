@@ -29,9 +29,11 @@ pub(crate) fn grid_row(cells: &[RenderCell], row: u16, cols: u16) -> String {
     crate::copytext::line(&row, 0, cols.saturating_sub(1))
 }
 
-/// Walk `pty` from the top of its scrollback to the live bottom, returning the
-/// full text. Leaves the viewport where it found it.
-pub(crate) fn capture_scrollback(pty: &mut PtyTerm, cols: u16, rows: u16) -> String {
+/// Every row of `pty`'s scrollback, top to bottom, each with whether the
+/// program ran past its end onto the next (a soft wrap). Leaves the viewport
+/// where it found it. The flag is what lets a caller put a long line back
+/// together instead of copying it as several.
+pub(crate) fn capture_rows(pty: &mut PtyTerm, cols: u16, rows: u16) -> Vec<(String, bool)> {
     let start = pty.display_offset();
     // Page up until the offset stops growing — i.e. we hit the oldest line.
     loop {
@@ -41,22 +43,37 @@ pub(crate) fn capture_scrollback(pty: &mut PtyTerm, cols: u16, rows: u16) -> Str
             break;
         }
     }
+    let row = |pty: &PtyTerm, r: u16| {
+        let wrapped = pty.wrapped_rows().get(usize::from(r)).copied();
+        (
+            grid_row(&pty.cells(false), r, cols),
+            wrapped.unwrap_or(false),
+        )
+    };
     // The top screen contributes every visible row; then each one-line scroll
     // down reveals exactly one new line at the bottom.
-    let mut lines: Vec<String> = (0..rows)
-        .map(|r| grid_row(&pty.cells(false), r, cols))
-        .collect();
+    let mut lines: Vec<(String, bool)> = (0..rows).map(|r| row(pty, r)).collect();
     while pty.display_offset() > 0 && lines.len() < MAX_LINES {
         pty.scroll(-1);
-        lines.push(grid_row(&pty.cells(false), rows - 1, cols));
+        lines.push(row(pty, rows - 1));
     }
     pty.scroll_to_bottom();
     if start > 0 {
         pty.scroll(start as i32);
     }
-    while lines.last().is_some_and(|l| l.is_empty()) {
+    while lines.last().is_some_and(|l| l.0.is_empty()) {
         lines.pop();
     }
+    lines
+}
+
+/// Walk `pty` from the top of its scrollback to the live bottom, returning the
+/// full text. Leaves the viewport where it found it.
+pub(crate) fn capture_scrollback(pty: &mut PtyTerm, cols: u16, rows: u16) -> String {
+    let mut lines: Vec<String> = capture_rows(pty, cols, rows)
+        .into_iter()
+        .map(|l| l.0)
+        .collect();
     lines.push(String::new()); // trailing newline
     lines.join("\n")
 }
