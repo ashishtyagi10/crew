@@ -7,6 +7,7 @@
 //!   yazi, fzf's previews, notcurses and the kitty-graphics probes recognise
 //!   the terminal before they turn on pictures, synchronized output or
 //!   undercurl. vte has no arm for it, so without this it went unanswered.
+//! - XTSMGRAPHICS colour-register count (256), for sixel tools.
 //! - XTGETTCAP, `DCS + q <hex names> ST`, "what can you do" (see `modelcaps`).
 
 /// The sequences answered here. None holds an ESC past its first byte, which
@@ -14,7 +15,18 @@
 const CELL_QUERY: &[u8] = b"\x1b[16t";
 const XTVERSION: &[u8] = b"\x1b[>q";
 const XTVERSION_0: &[u8] = b"\x1b[>0q";
-const ALL: [&[u8]; 3] = [CELL_QUERY, XTVERSION, XTVERSION_0];
+/// XTSMGRAPHICS, "how many sixel colour registers?": `CSI ? 1 ; 1 ; 0 S`
+/// (current) and `CSI ? 1 ; 4 ; 0 S` (maximum). The geometry query
+/// (`? 2 ; 1 ; 0 S`) is a documented gap and stays unanswered.
+const SIXEL_COLORS: &[u8] = b"\x1b[?1;1;0S";
+const SIXEL_COLORS_MAX: &[u8] = b"\x1b[?1;4;0S";
+const ALL: [&[u8]; 5] = [
+    CELL_QUERY,
+    XTVERSION,
+    XTVERSION_0,
+    SIXEL_COLORS,
+    SIXEL_COLORS_MAX,
+];
 
 /// The XTVERSION reply: `DCS > | name version ST`, as xterm, kitty and
 /// WezTerm send it.
@@ -51,6 +63,8 @@ impl Queries {
             let reply = match self.matched.as_slice() {
                 CELL_QUERY => format!("\x1b[6;{h};{w}t"),
                 XTVERSION | XTVERSION_0 => xtversion_reply(),
+                // `Ps = 0` is success; 256 registers is what `sixel::decode` keeps.
+                SIXEL_COLORS | SIXEL_COLORS_MAX => "\x1b[?1;0;256S".to_string(),
                 _ => continue,
             };
             out.push_str(&reply);
