@@ -101,6 +101,14 @@ cargo build --release -p crew-app
 # Binary is at target/release/crew
 ```
 
+## Headless: `crew exec`
+
+`crew exec "fix the typo in README"` (or `echo "…" | crew exec`) runs one agent task with no
+window and prints the answer to stdout (progress goes to stderr), for scripts, CI and cron.
+Approvals the run asks for are refused unless you pass `--yes`; `--timeout SECS` caps the run.
+Exit codes: 0 ok, 1 failed,
+2 usage error, 3 an approval was refused. Details in `docs/CREW.md`.
+
 ## Updating
 
 How you update depends on how you installed:

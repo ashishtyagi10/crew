@@ -69,8 +69,28 @@ Crew runs as a GUI by default; these command-line modes offer headless operation
 - `crew ask <id|label> "<question>"` — ask the agent in another pane (see below)
 - `crew ask --all|--any "<question>"` — broadcast to every pane (see below)
 - `crew ask <pane>@<instance> "<question>"` — ask a pane in another crew instance
+- `crew exec [--yes] [--timeout SECS] "<prompt>"` — one headless agent run in the current directory (also reads the prompt from stdin); see "Headless: `crew exec`"
 - `crew instances` — list crew instances running on this host (federation)
 - `crew federate` — show federation status (on/off, bind/port) and how to enable it
+
+## Headless: `crew exec`
+
+`crew exec "fix the typo in README"` (or `echo "…" | crew exec`, or `crew exec -`) runs one
+agent smith task with no window, like `claude -p` or `codex exec`, so crew works from scripts,
+CI and cron. The final answer goes to **stdout** and progress (tool lines, status) to
+**stderr**, so `crew exec "…" > out.txt` captures only the answer.
+
+No human is there to approve anything: an approval the run asks for is refused, unless you pass
+`--yes` (alias `--allow-edits`), which allows them. `--timeout SECS` gives up after that many
+seconds (exit 1), so a cron job never hangs on a stuck provider; there is no limit by default.
+The run honours your `task_budget_usd` spend cap, as a pane's broker does.
+
+| exit | meaning |
+| --- | --- |
+| 0 | the task finished ok |
+| 1 | the task failed, was stopped or errored, ended with no answer, timed out, or the broker died |
+| 2 | usage error (no prompt) |
+| 3 | the run needed an approval that was refused (re-run with `--yes`) |
 
 ## Inter-pane ask
 
