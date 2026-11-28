@@ -12,6 +12,8 @@ pub(super) struct Wipes {
     scan: WipeScan,
     pending: Vec<ImageWipe>,
     pub(crate) kitty: modelkitty::KittyStacks,
+    /// How many titles crew holds on the pushed stack (`modeltitle`).
+    title_depth: u8,
 }
 
 impl TermCore {
@@ -35,7 +37,21 @@ impl TermCore {
                     self.kitty_pop(n);
                     continue;
                 }
-                Hit::Reset => self.kitty_reset(),
+                Hit::TitlePush(true) => {
+                    self.title_push();
+                    continue;
+                }
+                Hit::TitlePop(true) if self.title_pop() => continue,
+                // Icon-only, or a pop with nothing of crew's to pop: aborted.
+                Hit::TitlePush(_) | Hit::TitlePop(_) => {
+                    self.parse(b"\x18");
+                    at = end + 1;
+                    continue;
+                }
+                Hit::Reset => {
+                    self.kitty_reset();
+                    self.title_reset();
+                }
                 _ => {}
             }
             let alt = self.term.mode().contains(TermMode::ALT_SCREEN);
@@ -50,7 +66,7 @@ impl TermCore {
                     self.wipe(ImageWipe::All);
                     self.wipe(ImageWipe::Alt(false));
                 }
-                Hit::KittyPush | Hit::KittyPop(_) => {}
+                _ => {}
             }
         }
         self.parse(&bytes[at..]);
@@ -85,6 +101,8 @@ impl TermCore {
 #[path = "modelkitty.rs"]
 mod modelkitty;
 pub(super) use modelkitty::POP_ALL;
+#[path = "modeltitle.rs"]
+mod modeltitle;
 
 #[cfg(test)]
 #[path = "modelwipe_tests.rs"]

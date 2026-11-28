@@ -30,16 +30,24 @@ use alacritty_terminal::term::TermMode;
 
 use super::modelwipe::POP_ALL;
 use super::TermCore;
+use crate::osc::Cut;
 
 impl TermCore {
-    /// Feed `bytes`, cut at the `prompts` offsets (just past each prompt
-    /// mark), leaving the alternate screen at each cut and emptying both
-    /// kitty keyboard stacks when a command ran since the last.
-    pub(super) fn feed_split(&mut self, bytes: &[u8], prompts: &[usize]) {
+    /// Feed `bytes`, cut at the offsets just past each prompt or done mark. At a prompt cut,
+    /// leave the alternate screen and empty both kitty keyboard stacks when a
+    /// command ran since the last; at a done cut, unwind pushed titles.
+    pub(super) fn feed_split(&mut self, bytes: &[u8], cuts: &[(usize, Cut)]) {
         let mut from = 0;
-        for &at in prompts {
+        for &(at, cut) in cuts {
             self.feed_part(&bytes[from..at]);
             from = at;
+            if cut == Cut::Done {
+                // The command is over and the shell's precmd (its fresh
+                // title) comes after this mark: pop a dead program's pushes
+                // now, so they can't land over it (`modeltitle`).
+                self.title_unwind();
+                continue;
+            }
             let pop = self.kitty_pop_due();
             if self.term.mode().contains(TermMode::ALT_SCREEN) {
                 if pop {

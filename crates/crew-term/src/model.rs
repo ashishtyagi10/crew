@@ -187,8 +187,8 @@ impl TermCore {
     }
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
-        let prompts = self.osc7.feed(bytes);
-        self.feed_split(bytes, &prompts);
+        let cuts = self.osc7.feed(bytes);
+        self.feed_split(bytes, &cuts);
     }
 
     /// Everything but the OSC sniff and DECRQSS, for one piece of a chunk

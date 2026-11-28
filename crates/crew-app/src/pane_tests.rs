@@ -85,3 +85,30 @@ fn a_shell_that_will_not_start_names_both_tries_once() {
         "{shown}"
     );
 }
+
+/// A program's title stack never reaches the name the user gave: a pop sets
+/// the OSC title back, and `title_text` reads the name first.
+#[test]
+fn a_user_name_wins_over_a_popped_title() {
+    use crew_term::TermModel;
+    let grid = GridSize { cols: 40, rows: 10 };
+    let mut pane = spawn_pane("sh", "sh", grid, None).unwrap();
+    pane.dir = None;
+    let PaneContent::Terminal(t) = &mut pane.content else {
+        panic!("a shell pane");
+    };
+    t.cmd = None;
+    t.pty
+        .feed(b"\x1b]0;shell\x07\x1b[22;0t\x1b]0;vim\x07\x1b[23;0t");
+    assert_eq!(
+        pane.title_text(),
+        "shell",
+        "the pop brought the shell's back"
+    );
+    pane.name = Some("build".into());
+    let PaneContent::Terminal(t) = &mut pane.content else {
+        unreachable!()
+    };
+    t.pty.feed(b"\x1b[22;0t\x1b]0;vim\x07\x1b[23;0t");
+    assert_eq!(pane.title_text(), "build");
+}
