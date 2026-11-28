@@ -45,3 +45,19 @@ fn a_subtle_flash_asks_for_no_frames_past_its_end() {
     let end = MotionLevel::Subtle.scale_ms(FLASH_MS);
     assert!(live(31_000 + end - 1) && !live(31_000 + end));
 }
+
+#[test]
+fn a_reading_ticking_is_not_new_words() {
+    let _g = crate::app::theme_test_guard();
+    crate::motion::set_level(Full);
+    let say = |w: &'static str, at| {
+        observe_rows(vec![(9, 0, EntryState::Idle, w)].into_iter(), at, true).unwrap()[0]
+    };
+    say("cpu 19% \u{b7} mem 72%", 40_000);
+    assert_eq!(say("cpu 95% \u{b7} mem 71%", 41_000).words_at, None);
+    assert_eq!(
+        say("cpu 95% \u{b7} disk 71%", 42_000).words_at,
+        Some(42_000)
+    );
+    crate::motion::set_level(Off);
+}
