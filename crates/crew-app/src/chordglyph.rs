@@ -76,7 +76,7 @@ fn native(s: &str) -> String {
 }
 
 /// Every Cmd chord in `s` as Windows and Linux press it
-/// ([`crate::keychord::stand_in`]): plain Ctrl for a key a terminal leaves to
+/// (the old Ctrl stand-ins, still what the labels say: plan step 6): plain Ctrl for a key a terminal leaves to
 /// crew (`Cmd+T` is `Ctrl+T`), Ctrl+Shift for one it keeps (`Cmd+C` is
 /// `Ctrl+Shift+C`, since a terminal's Ctrl+C interrupts) and for a chord a
 /// Mac shifts (`Cmd+Shift+T`, `Cmd+{`), Alt for the grid's arrows, Ctrl+Alt
@@ -86,9 +86,27 @@ pub(crate) fn offmac(s: &str) -> String {
     s.split(' ').map(off_chord).collect::<Vec<_>>().join(" ")
 }
 
+/// Keys a terminal keeps for itself from plain Ctrl. Labels only, until the
+/// labels move to `winkeys::REMAPS` (plan step 6).
+const TYPED: &str = "cdzrlaekumjihpn[";
+
+/// Whether `key` is one crew key (the old plain-Ctrl label rule).
+fn plain(key: &str, typed: bool) -> bool {
+    let mut chars = key.chars();
+    let (Some(c), None) = (chars.next(), chars.next()) else {
+        return false;
+    };
+    let c = c.to_ascii_lowercase();
+    (c.is_ascii_alphanumeric() || "=-,./[]".contains(c)) && !(typed && TYPED.contains(c))
+}
+
+/// As [`plain`], for the Ctrl+Shift label (not L, G, F, M).
+fn stands_in(key: &str) -> bool {
+    plain(key, false) && !"lgfm".contains(key.to_ascii_lowercase().as_str())
+}
+
 /// One space-free token of [`offmac`]; a trailing `.`/`,`/`)` rides along.
 fn off_chord(tok: &str) -> String {
-    use crate::keychord::{plain, stands_in, TYPED};
     let Some(rest) = tok.strip_prefix("Cmd+") else {
         return tok.to_string();
     };

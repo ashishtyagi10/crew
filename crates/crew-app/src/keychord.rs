@@ -2,7 +2,9 @@
 //! that names a grid direction, and the chord that toggles a chat pane's
 //! compact view. Both are pure functions over a `winit` key so the mapping is
 //! testable without constructing a `KeyEvent`.
-use winit::keyboard::{Key, ModifiersState, NamedKey};
+use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey};
+
+use crate::winkeys::WinChord;
 
 /// The arrow direction a key names, or `None` for every other key. Kept as a
 /// free function (like [`is_compact_chord`]) so the mapping is testable
@@ -21,119 +23,105 @@ pub(crate) fn arrow_dir(key: &Key) -> Option<crate::panedir::Dir> {
 /// Ctrl+O — the chord that toggles a chat pane's compact transcript view.
 /// Extracted as a pure predicate (mirrors `swarmpane::esc_closes`) so the
 /// match is testable without constructing a winit `KeyEvent`. Modeled on the
-/// Ctrl+Shift+M intercept above: same reach (fires before the input-bar
+/// Ctrl+Shift+M intercept ([`special`]): same reach (fires before the input-bar
 /// early-return), but with no Shift requirement.
 pub(crate) fn is_compact_chord(key: &Key, mods: winit::keyboard::ModifiersState) -> bool {
-    // Not with Shift: off a Mac, Ctrl+Shift+O is Cmd+O (`stand_in`).
     mods.control_key()
         && !mods.shift_key()
         && matches!(key, Key::Character(s) if s.eq_ignore_ascii_case("o"))
 }
 
 /// The Cmd chord a key press makes, if any: the character a held Cmd (Super)
-/// gives — empty for a key that names none, which a held Cmd still swallows
-/// — or, off a Mac, the [`stand_in`] for it. `typed`: a terminal or a line
-/// being typed has the focus (`ctrlchord`).
-pub(crate) fn cmd_chord(
-    event: &winit::event::KeyEvent,
-    mods: ModifiersState,
-    typed: bool,
-) -> Option<String> {
+/// gives on a Mac — empty for a key that names none, which a held Cmd still
+/// swallows — or, off a Mac, what [`crate::winkeys::chord`] makes of the key
+/// (Alt+D is `"d"`). See [`cmd_string`].
+pub(crate) fn cmd_chord(event: &winit::event::KeyEvent, mods: ModifiersState) -> Option<String> {
+    use winit::keyboard::PhysicalKey;
     use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
     if !event.state.is_pressed() {
         return None;
     }
-    if mods.super_key() {
-        return Some(match &event.logical_key {
+    let code = match event.physical_key {
+        PhysicalKey::Code(c) => Some(c),
+        PhysicalKey::Unidentified(_) => None,
+    };
+    let bare = event.key_without_modifiers();
+    cmd_string(
+        &event.logical_key,
+        &bare,
+        code,
+        mods,
+        cfg!(target_os = "macos"),
+    )
+}
+
+/// [`cmd_chord`] over the parts of a key press, with `mac` a parameter so
+/// both platforms' keys are tested on one. `unmodified`: the key as if no
+/// modifier were held; `code`: the physical key.
+pub(crate) fn cmd_string(
+    logical: &Key,
+    unmodified: &Key,
+    code: Option<KeyCode>,
+    mods: ModifiersState,
+    mac: bool,
+) -> Option<String> {
+    if mac {
+        return mods.super_key().then(|| match logical {
             Key::Character(s) => s.to_string(),
             _ => String::new(),
         });
     }
-    stand_in(
-        &event.key_without_modifiers(),
-        mods,
-        cfg!(target_os = "macos"),
-        typed,
-    )
+    match crate::winkeys::chord(unmodified, code, mods) {
+        Some(WinChord::Cmd(s)) => Some(s.to_string()),
+        _ => None,
+    }
 }
 
-/// What a terminal, or a line being typed, keeps for itself from plain Ctrl:
-/// interrupt, end of input, suspend, history search, the previous and next
-/// line (P and N — Cmd+P's go-to-file and Cmd+N's new window must not take
-/// them: they are also fzf's and vim's completion menus' up and down), clear,
-/// line start and end, kill — and the keys that ARE Enter, newline, Tab,
-/// Backspace and Escape to a terminal (M, J, I, H, `[`).
-pub(crate) const TYPED: &str = "cdzrlaekumjihpn[";
-
-/// Off a Mac the Cmd key is the Windows key, and the OS keeps most of its
-/// chords (Win+I opens Settings, Win+T the taskbar). So plain Ctrl+<key> is
-/// Cmd+<key>, as a browser or an editor has it (the user, 2026-10-21: "cmd+t
-/// works on mac but ctrl+t doesn't work on windows"), except a key in
-/// [`TYPED`] while a terminal or a typed line has the focus. Ctrl+Shift+<key>
-/// reaches Cmd+<key> everywhere, as Windows Terminal has it; and where plain
-/// Ctrl already makes a chord a Mac shifts, the shifted one (Ctrl+Shift+T
-/// reopens a pane, as a browser reopens a tab). `unshifted` is the key as if
-/// no modifier were held, so Ctrl+Shift+1 is Cmd+1, not `!`.
-pub(crate) fn stand_in(
-    unshifted: &Key,
+/// The chords `keys.rs` handles before the Cmd chords: quit, and the theme,
+/// gradient, focus-mode and markdown-source walks. On a Mac that is Cmd+Q
+/// (or Ctrl+Q) and Ctrl+Shift+L/G/F/M; off one, Alt+Q/L/B/H/Y
+/// ([`crate::winkeys`]), and plain Ctrl stays with whatever is typed into.
+pub(crate) fn special(
+    logical: &Key,
+    unmodified: &Key,
+    code: Option<KeyCode>,
     mods: ModifiersState,
     mac: bool,
-    typed: bool,
-) -> Option<String> {
-    let ctrl = mods.control_key() && !mods.alt_key() && !mods.super_key();
-    let Key::Character(s) = unshifted else {
+) -> Option<WinChord> {
+    if !mac {
+        return crate::winkeys::chord(unmodified, code, mods).filter(|c| {
+            matches!(
+                c,
+                WinChord::Quit
+                    | WinChord::Theme
+                    | WinChord::Gradient
+                    | WinChord::Focus
+                    | WinChord::MdSource
+            )
+        });
+    }
+    let Key::Character(s) = logical else {
         return None;
     };
-    if mac || !ctrl {
+    if (mods.super_key() || mods.control_key()) && s.as_str() == "q" {
+        return Some(WinChord::Quit);
+    }
+    if !(mods.control_key() && mods.shift_key()) {
         return None;
     }
-    let k = s.to_lowercase();
-    match mods.shift_key() {
-        true if stands_in(&k) => Some(shifted(&k).to_string()),
-        true => None,
-        false if plain(&k, typed) => Some(k),
-        false => None,
+    match s.to_ascii_lowercase().as_str() {
+        "l" => Some(WinChord::Theme),
+        "g" => Some(WinChord::Gradient),
+        "f" => Some(WinChord::Focus),
+        "m" => Some(WinChord::MdSource),
+        _ => None,
     }
-}
-
-/// The chord a Mac makes with Shift on `k`, where plain Ctrl+`k` is taken
-/// by the unshifted one; `k` itself for the rest.
-fn shifted(k: &str) -> &str {
-    match k {
-        "t" => "T",
-        "[" => "{",
-        "]" => "}",
-        k => k,
-    }
-}
-
-/// Whether plain Ctrl+`key` is Cmd+`key`: one key crew's chords use, and not
-/// one a terminal or a typed line keeps ([`TYPED`]) while one has the focus.
-pub(crate) fn plain(key: &str, typed: bool) -> bool {
-    let mut chars = key.chars();
-    let (Some(c), None) = (chars.next(), chars.next()) else {
-        return false;
-    };
-    let c = c.to_ascii_lowercase();
-    (c.is_ascii_alphanumeric() || "=-,./[]".contains(c)) && !(typed && TYPED.contains(c))
-}
-
-/// Whether Cmd+`key` has a Ctrl+Shift stand-in: one unshifted key, and not
-/// one of the Ctrl+Shift chords crew already gives a meaning on every
-/// platform (L themes, G gradient, F focus mode, M markdown source).
-pub(crate) fn stands_in(key: &str) -> bool {
-    let mut chars = key.chars();
-    let (Some(c), None) = (chars.next(), chars.next()) else {
-        return false;
-    };
-    let c = c.to_ascii_lowercase();
-    (c.is_ascii_alphanumeric() || "=-,./[]".contains(c)) && !"lgfm".contains(c)
 }
 
 /// A Ctrl+letter (not AltGr's Ctrl+Alt): no text to type. Far's command line
-/// and a settings field read keys without Ctrl, so one left to them — off a
-/// Mac, a letter a typing pane keeps from crew's chords ([`TYPED`]) — typed
-/// a stray letter.
+/// and a settings field read keys without Ctrl, so one left to them typed a
+/// stray letter. Off a Mac plain Ctrl is no chord at all, so this is what
+/// keeps those panes from typing for it.
 pub(crate) fn ctrl_letter(key: &Key, mods: ModifiersState) -> bool {
     mods.control_key()
         && !mods.alt_key()
@@ -143,3 +131,7 @@ pub(crate) fn ctrl_letter(key: &Key, mods: ModifiersState) -> bool {
 #[cfg(test)]
 #[path = "keychord_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "keychordoff_tests.rs"]
+mod off_tests;

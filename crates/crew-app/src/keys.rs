@@ -4,7 +4,6 @@ use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 
 use crate::app::CrewApp;
 use crate::keychord::is_compact_chord;
-use crate::pane::PaneContent;
 
 impl CrewApp {
     /// Dispatch a single `KeyEvent` from `window_event`.
@@ -45,16 +44,17 @@ impl CrewApp {
             return;
         }
 
-        // Cmd+Q / Ctrl+Q quits — but with panes open, the first press only arms a
-        // confirmation so a stray keystroke can't kill running shells/agents.
-        if event.state.is_pressed()
-            && (mstate.super_key() || mstate.control_key())
-            && matches!(&event.logical_key, Key::Character(s) if s.as_str() == "q")
-        {
-            if self.confirm_quit() {
-                event_loop.exit();
+        // Quit, and the theme / gradient / focus / markdown-source walks
+        // (`keychord::special`: Cmd+Q and Ctrl+Shift+L/G/F/M on a Mac,
+        // Alt+Q/L/B/H/Y off one). Quit with panes open only arms a
+        // confirmation, so a stray keystroke can't kill running shells.
+        if event.state.is_pressed() {
+            if let Some(c) = self.special_chord(event, mstate) {
+                if self.run_special(c) {
+                    event_loop.exit();
+                }
+                return;
             }
-            return;
         }
 
         // Ctrl+Tab / Ctrl+Shift+Tab cycle panes — works even over a focused
@@ -64,55 +64,6 @@ impl CrewApp {
             && matches!(&event.logical_key, Key::Named(NamedKey::Tab))
         {
             self.cycle_tab_panes(if mstate.shift_key() { -1 } else { 1 });
-            self.redraw();
-            return;
-        }
-
-        // Ctrl+Shift+L cycles themes (fixed presets, then rotation modes).
-        if event.state.is_pressed()
-            && mstate.control_key()
-            && mstate.shift_key()
-            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("l"))
-        {
-            self.toggle_theme();
-            return;
-        }
-
-        // Ctrl+Shift+G steps the canvas gradient — the colour's answer to
-        // Ctrl+Shift+L above, and the walk passes through the theme's own
-        // gradient once a lap so the key can always get you back.
-        if event.state.is_pressed()
-            && mstate.control_key()
-            && mstate.shift_key()
-            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("g"))
-        {
-            self.cycle_gradient();
-            return;
-        }
-
-        // Ctrl+Shift+F enters/leaves focus mode — the third of the Ctrl+Shift
-        // walks, and the one that changes what crew is allowed to do rather
-        // than what it looks like.
-        if event.state.is_pressed()
-            && mstate.control_key()
-            && mstate.shift_key()
-            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("f"))
-        {
-            self.toggle_focus_mode();
-            return;
-        }
-
-        // Ctrl+Shift+M toggles markdown source view on the focused chat pane.
-        if event.state.is_pressed()
-            && mstate.control_key()
-            && mstate.shift_key()
-            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("m"))
-        {
-            if let Some(pane) = self.panes.get_mut(self.focused) {
-                if let PaneContent::Chat(c) = &mut pane.content {
-                    c.show_source = !c.show_source;
-                }
-            }
             self.redraw();
             return;
         }
@@ -147,8 +98,8 @@ impl CrewApp {
             return;
         }
 
-        // Super-chords (Cmd+I, Cmd+T, …; Ctrl+I, Ctrl+T … off a Mac) first.
-        if let Some(s) = self.chord_here(event, mstate) {
+        // Super-chords (Cmd+I, Cmd+T, …; Alt+I, Alt+T … off a Mac) first.
+        if let Some(s) = crate::keychord::cmd_chord(event, mstate) {
             if self.handle_super_chord(&s) {
                 event_loop.exit();
             }

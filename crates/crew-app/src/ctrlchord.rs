@@ -1,37 +1,49 @@
-//! Where crew's Cmd chords land on Windows and Linux (`keychord::stand_in`):
-//! whether a plain Ctrl key here belongs to a terminal or a line being typed,
-//! and the modifiers the arrows take. Windows keeps Win+Arrow for snapping
+//! The modifiers crew's arrows take (`winkeys` has the rest of the keys off a
+//! Mac). Windows keeps Win+Arrow for snapping
 //! windows, so off a Mac the arrows walk the grid with Alt, as Windows
 //! Terminal walks its panes, and step the screens with Ctrl+Alt.
 use winit::keyboard::{Key, ModifiersState};
 
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
+use crate::winkeys::WinChord;
 
 impl CrewApp {
-    /// Whether a plain Ctrl key here goes to a program or a typed line: the
-    /// input bar, a terminal, or a pane with a line to type into.
-    pub(crate) fn typing_here(&self) -> bool {
-        let typed = |p: &crate::pane::Pane| {
-            matches!(
-                p.content,
-                PaneContent::Terminal(_)
-                    | PaneContent::Chat(_)
-                    | PaneContent::Todo(_)
-                    | PaneContent::Settings(_)
-                    | PaneContent::Far(_)
-            ) || matches!(&p.content, PaneContent::Inbox(i) if i.composing())
-        };
-        self.input.focused || self.panes.get(self.focused).is_some_and(typed)
-    }
-
-    /// The Cmd chord a key press makes here ([`crate::keychord::cmd_chord`]).
-    pub(crate) fn chord_here(
+    /// The quit or walk chord a key press makes ([`crate::keychord::special`]).
+    pub(crate) fn special_chord(
         &self,
         event: &winit::event::KeyEvent,
         mods: ModifiersState,
-    ) -> Option<String> {
-        crate::keychord::cmd_chord(event, mods, self.typing_here())
+    ) -> Option<WinChord> {
+        use winit::keyboard::PhysicalKey;
+        use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
+        let code = match event.physical_key {
+            PhysicalKey::Code(c) => Some(c),
+            PhysicalKey::Unidentified(_) => None,
+        };
+        let bare = event.key_without_modifiers();
+        let mac = cfg!(target_os = "macos");
+        crate::keychord::special(&event.logical_key, &bare, code, mods, mac)
+    }
+
+    /// Do what a [`Self::special_chord`] names. `true` when crew should quit.
+    pub(crate) fn run_special(&mut self, chord: WinChord) -> bool {
+        match chord {
+            WinChord::Quit => return self.confirm_quit(),
+            WinChord::Theme => self.toggle_theme(),
+            WinChord::Gradient => self.cycle_gradient(),
+            WinChord::Focus => self.toggle_focus_mode(),
+            WinChord::MdSource => {
+                if let Some(PaneContent::Chat(c)) =
+                    self.panes.get_mut(self.focused).map(|p| &mut p.content)
+                {
+                    c.show_source = !c.show_source;
+                }
+                self.redraw();
+            }
+            _ => {}
+        }
+        false
     }
 
     /// An arrow with the modifiers that make it crew's: Cmd+Opt+←/→ steps
