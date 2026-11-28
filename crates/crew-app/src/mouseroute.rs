@@ -48,6 +48,13 @@ impl CrewApp {
         let Some(PaneContent::Terminal(t)) = self.panes.get(i).map(|p| &p.content) else {
             return false;
         };
+        // A press on the open find bar's own row is the bar's: no selection
+        // starts under it and the program is not sent a click.
+        if let (MouseButton::Left, Some(f)) = (b, &t.find) {
+            if row == f.bar_row(t.pty.display_offset(), self.panes[i].grid.rows) {
+                return true;
+            }
+        }
         let m = t.pty.input_modes();
         if !reports_click(&m, mods.shift_key()) {
             return false;

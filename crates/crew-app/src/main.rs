@@ -434,6 +434,9 @@ mod paneeditshot_tests;
 #[cfg(test)]
 #[path = "shotfont_tests.rs"]
 mod shotfont_tests;
+mod termfind;
+mod termfindkeys;
+mod termfindview;
 mod todocli;
 mod todoentry;
 mod todorun;
@@ -635,6 +638,9 @@ mod stage3dshot_tests;
 #[cfg(test)]
 #[path = "tabshot_tests.rs"]
 mod tabshot_tests;
+#[cfg(test)]
+#[path = "termfindshot_tests.rs"]
+mod termfindshot_tests;
 // Only a Windows PowerShell pane starts oh-my-posh (a Mac zsh brings its own
 // prompt); the tests run everywhere.
 mod focuspush;

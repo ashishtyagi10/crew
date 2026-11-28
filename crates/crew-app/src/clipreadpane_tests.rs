@@ -51,6 +51,7 @@ pub(super) fn running(script: &str, sink: Option<&Sink>) -> Pane {
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            find: None,
             images: Default::default(),
         })),
         grid,

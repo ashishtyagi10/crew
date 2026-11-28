@@ -20,6 +20,10 @@ pub fn relayout_one(pane: &mut Pane, rect: Rect, cell_w: f32, cell_h: f32) {
         let new_grid = GridSize { cols, rows };
         if let PaneContent::Terminal(t) = &mut pane.content {
             t.pty.resize(new_grid);
+            // The grid reflowed: an open find bar's coordinates went with it.
+            if let Some(f) = t.find.as_mut() {
+                f.refresh(&t.pty);
+            }
         }
         pane.grid = new_grid;
         // A document being edited re-wrapped: only the caret's byte survives (`docwin::refit`).

@@ -178,6 +178,7 @@ fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            find: None,
             images: Default::default(),
         })),
         grid: FALLBACK_SIZE,

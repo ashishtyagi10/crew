@@ -44,6 +44,8 @@ pub struct TermPane {
     /// Fed only while this pane is focused, so an unfocused program moving its
     /// cursor never asks crew for a frame.
     pub(crate) trail: crate::cursortrail::Trail,
+    /// The Cmd+F find bar, while open ([`crate::termfind`]).
+    pub(crate) find: Option<crate::termfind::TermFind>,
 }
 
 /// Discriminated union of pane kinds. A handful of instances exist at once
@@ -260,6 +262,7 @@ pub fn spawn_pane(
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            find: None,
             images: Default::default(),
         })),
         grid,

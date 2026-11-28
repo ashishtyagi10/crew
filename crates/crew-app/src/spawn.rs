@@ -141,6 +141,7 @@ impl CrewApp {
                         read_at: 0,
                         spans: Default::default(),
                         trail: Default::default(),
+                        find: None,
                         images: Default::default(),
                     })),
                     grid,

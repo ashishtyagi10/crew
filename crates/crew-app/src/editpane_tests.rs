@@ -69,6 +69,7 @@ fn a_spawn_that_pushes_no_pane_does_not_adopt_an_unrelated_panes_born_ms() {
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            find: None,
             images: Default::default(),
         })),
         grid: FALLBACK_SIZE,

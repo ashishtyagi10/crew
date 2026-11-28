@@ -293,7 +293,7 @@ the command palette write each chord the way that machine presses it.
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Agent pane: compact transcript (one line per message) | **Ctrl+O** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |
-| Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
+| Find: the chat transcript (also **Ctrl+F**) or a terminal's scrollback (a find bar on the pane, `3/17`, Enter older, Shift+Enter newer, Esc closes), or `/find` in the bar | **Cmd+F** |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Ctrl+I ≠ Tab, Esc ≠ Alt, Shift+Enter ≠ Enter for nvim, helix, fish 4, Claude Code | automatic: crew speaks the kitty keyboard protocol's disambiguate flag (`CSI … u`) to a program that asks |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
