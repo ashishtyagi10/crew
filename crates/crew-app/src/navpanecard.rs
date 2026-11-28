@@ -31,6 +31,8 @@ pub struct Card {
     pub detail: Option<String>,
     pub glyph: char,
     pub state: EntryState,
+    /// The card's motion ([`crate::navpanemotion`]); `Default` is still.
+    pub fx: crate::navpanemotion::Fx,
 }
 
 /// Whether two-line cards fit `rows` content rows (the PANES rule takes one):
@@ -109,7 +111,9 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
             },
         );
     };
-    let edge = spine(c.state, r.focused);
+    let now = crate::anim::now_ms();
+    let working = c.state == EntryState::Working;
+    let edge = crate::navpanemotion::spine_fg(&c.fx, spine(c.state, r.focused), working, now);
     let bar = if r.focused { "\u{258c}" } else { "\u{258e}" };
     put(bar, 1, row, edge, cols, false);
     put(bar, 1, row + 1, edge, cols, false);
@@ -139,7 +143,8 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     };
     put(&name, name_at, row, name_fg, name_end, r.focused);
     if let (Some(w), Some(x)) = (c.state.word(), word_at) {
-        put(w, x, row, word_fg(c.state), right, false);
+        let fg = crate::navpanemotion::word_fg(&c.fx, word_fg(c.state), now);
+        put(w, x, row, fg, right, false);
     }
     // Line two: the kind (under the number, a column of its own), what it is
     // doing, then its time, `+` and the unread count from the edge in.
@@ -180,7 +185,8 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     if !said.is_empty() {
         let room = rx.saturating_sub(detail_at) as usize;
         let d = crate::navcut::clip(row2, said, room);
-        put(&d, detail_at, row2, t.text_muted, rx, false);
+        let fg = crate::navpanemotion::words_fg(&c.fx, t.text_muted, now);
+        put(&d, detail_at, row2, fg, rx, false);
     }
     for (x, s, fg) in marks {
         put(&s, x, row2, fg, cols, false);
