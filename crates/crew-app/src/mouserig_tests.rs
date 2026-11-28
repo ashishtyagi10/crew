@@ -94,41 +94,54 @@ pub(crate) fn app_on_cell(tag: &str, modes: &[u8]) -> (CrewApp, PathBuf) {
         wait_for(|| ready.exists()),
         "{tag}: the recording shell never came up"
     );
-    if let PaneContent::Terminal(t) = &mut app.panes[0].content {
-        t.pty.feed(b"\x1b[2J\x1b[H\r\n\r\nMARK");
-        t.pty.feed(modes);
+    // The shell's startup, or the pty's first resize catching up under load,
+    // can move what the parser holds by a row after the feed (seen on Linux
+    // CI: MARK on row 3, 2026-11-28). The fixture is "MARK on row 2": redraw
+    // from a cleared screen, at an absolute row, until a built frame shows it
+    // there (bounded) — the test body still proves the routing from that cell.
+    let mut scenes = Vec::new();
+    let mut at = None;
+    for _ in 0..20 {
+        if let PaneContent::Terminal(t) = &mut app.panes[0].content {
+            t.pty.feed(b"\x1b[2J\x1b[3;1HMARK");
+            t.pty.feed(modes);
+        }
+        scenes = app.build_frame();
+        at = scenes
+            .iter()
+            .position(|s| s.cells.iter().any(|c| c.row == 2 && c.c == 'M'));
+        if at.is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
     }
-    let scenes = app.build_frame();
-    let s = scenes
-        .iter()
-        .find(|s| s.cells.iter().any(|c| c.row == 2 && c.c == 'M'))
-        .unwrap_or_else(|| {
-            // Once seen under the release gate and never reproduced since
-            // (2026-11-16): say what the parser holds against what was drawn.
-            let PaneContent::Terminal(t) = &app.panes[0].content else {
-                unreachable!()
-            };
-            let (p, held) = (
-                &app.panes[0],
-                rows(t.pty.cells(false).iter().map(|c| (c.row, c.c))),
-            );
-            let drawn: Vec<_> = scenes
-                .iter()
-                .map(|s| rows(s.cells.iter().map(|c| (c.row, c.c))))
-                .collect();
-            panic!(
-                "{tag}: no MARK on row 2. exited={} grid={:?} rect={:?} hidden={} tab={} \
+    let s = at.map(|i| &scenes[i]).unwrap_or_else(|| {
+        // Once seen under the release gate and never reproduced since
+        // (2026-11-16): say what the parser holds against what was drawn.
+        let PaneContent::Terminal(t) = &app.panes[0].content else {
+            unreachable!()
+        };
+        let (p, held) = (
+            &app.panes[0],
+            rows(t.pty.cells(false).iter().map(|c| (c.row, c.c))),
+        );
+        let drawn: Vec<_> = scenes
+            .iter()
+            .map(|s| rows(s.cells.iter().map(|c| (c.row, c.c))))
+            .collect();
+        panic!(
+            "{tag}: no MARK on row 2. exited={} grid={:?} rect={:?} hidden={} tab={} \
                 motion={:?} density={:?} theme={:?}\nparser: {held:?}\ndrawn: {drawn:?}",
-                t.pty.exited(),
-                p.grid,
-                p.rect,
-                p.hidden,
-                p.tab,
-                crate::motion::level(),
-                crate::density::level(),
-                crew_theme::current_id()
-            )
-        });
+            t.pty.exited(),
+            p.grid,
+            p.rect,
+            p.hidden,
+            p.tab,
+            crate::motion::level(),
+            crate::density::level(),
+            crew_theme::current_id()
+        )
+    });
     app.cursor = (s.x + CELL.0 * 4.5, s.y + CELL.1 * 2.5);
     (app, log)
 }
