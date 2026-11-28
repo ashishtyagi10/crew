@@ -115,10 +115,7 @@ impl CrewApp {
         // The per-task spend cap rides in as the broker's env, read once here:
         // a settings change applies to panes opened after it.
         let mut env = crate::spawn::hydrated_env();
-        env.push((
-            "CREW_TASK_BUDGET_USD".into(),
-            self.config.task_budget_usd.to_string(),
-        ));
+        env.extend(self.config.broker_env());
         match Plugin::spawn_with(cmd, args, Some(&self.cwd), &env) {
             Ok(mut plugin) => {
                 if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {

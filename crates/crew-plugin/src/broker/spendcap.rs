@@ -1,57 +1,54 @@
-//! A per-task spend cap: past it the task pauses and asks, it never runs on.
-//!
-//! WHY: crew showed what a task cost (`$0.214` on the status line, the
-//! receipt) but nothing stopped a looping agent or a wide swarm from spending
-//! without limit overnight. Claude Code's `--max-budget-usd` and Aider's cost
-//! line are the same answer; this one asks first, since a task past $10 may be
-//! worth $20.
-//!
 //! One [`TaskSpend`] is the TASK's, entered on the task's worker thread
-//! ([`enter`], beside `cancelscope`): every agent of a swarm and every hop of
-//! a relay reads and feeds the same meter, so the cap is per task, never per
-//! agent. It is checked before each model call ([`TaskSpend::before_call`],
-//! from `spendcapwrap::Capped`) — between tool rounds and hops, never in the
+//! (`spendscope::enter`, beside `cancelscope`): every agent of a swarm and
+//! every hop of a relay reads and feeds the same meter, so the cap is per
+//! task, never per agent. It is checked before each model call
+//! ([`TaskSpend::before_call`]) — between tool rounds and hops, never in the
 //! middle of a stream.
+//!
+//! Where it is held (each reads the scope on the TASK thread, then carries
+//! the meter to wherever the call runs):
+//! - a relay hop's provider and a swarm's planner and workers
+//!   (`spendcapwrap::wrap`, `wrap_swarm`): asked from inside the call, which
+//!   no bound surrounds;
+//! - the swarm's closing answer, the swarm's judge and the reply judge
+//!   (`swarmanswer`, `swarmverify`, `replyverify`) and an `@a+b` fan-out
+//!   (`fan_out`): a [`Gate`](super::spendgate::Gate) asks BEFORE the call and
+//!   charges after, because a 30 s or 3 min bound around a question that may
+//!   wait five minutes would time out mid-question. The fan's agents were
+//!   built at startup, before any task, so there is no provider to wrap.
 //!
 //! What counts: the cost of each completed call, as the provider reported it,
 //! else the price list's estimate (`pricing::estimate`). A model the list has
 //! never heard of counts 0, so a tokens-only provider cannot reach the cap;
-//! better a missing stop than a made-up price. The advisor's and `sys:explore`'s
-//! own calls go through their own providers and are not counted.
-use std::cell::RefCell;
+//! better a missing stop than a made-up price. A stream cut off by `/stop`
+//! never completes, so its partial cost is not counted: the cap is a floor
+//! under what was spent, not a bill. A fan agent's own tool rounds are one
+//! call to the gate, so a fan can overshoot by an agent's whole turn.
+//!
+//! Not held, on purpose: the advisor (a second-opinion model whose cost
+//! already joins the thread's sums, `advise`) and `sys:explore` (a read-only
+//! sub-agent with limits and a bill of its own, `sysexplore`) dial providers
+//! of their own and are not counted; neither is the cheap routing,
+//! classifier and summary traffic, which costs cents and must still answer
+//! at the cap so the task can say why it stopped.
+//!
+//! A question nobody answers within the approval clock (five minutes, as a
+//! tool approval) is a no: money is not spent on a yes nobody gave. A task
+//! with nobody awake to ask (a trigger) stops at the cap at once.
+//!
+//! A swarm's first ask comes at $1, not at the cap: the old silent $1
+//! governor killed a runaway swarm, asking at the same point lets a good one
+//! go on ([`TaskSpend::first_ask_at`]); a yes then raises by the usual step.
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+pub(crate) use super::spendscope::{current, enter, live, usd};
 
 /// Puts the question to whoever can answer; `false` when nobody can be asked.
 pub(crate) type Ask = Arc<dyn Fn(&str, &str) -> bool + Send + Sync>;
 /// Says one line in the task's pane.
 pub(crate) type Say = Arc<dyn Fn(&str) + Send + Sync>;
-
-/// Dollars a task may spend before it asks, when nothing says otherwise.
-pub(crate) const DEFAULT_USD: f64 = 10.0;
-/// Names the cap in dollars; the app sets it on a broker it spawns from the
-/// settings form's `task_budget_usd`. `0` turns the ask off.
-pub(crate) const ENV: &str = "CREW_TASK_BUDGET_USD";
-
-/// The cap in micro-USD an environment value means: unset or unreadable is
-/// the default, zero or less is off (`0`).
-pub(crate) fn parse(raw: Option<&str>) -> u64 {
-    let usd = raw
-        .and_then(|s| s.trim().parse::<f64>().ok())
-        .filter(|v| v.is_finite())
-        .unwrap_or(DEFAULT_USD);
-    (usd.max(0.0) * 1e6).round() as u64
-}
-
-/// Micro-USD as the dollars a person reads: `$10`, `$10.40`.
-pub(crate) fn usd(micros: u64) -> String {
-    let cents = (micros + 5_000) / 10_000;
-    match cents % 100 {
-        0 => format!("${}", cents / 100),
-        c => format!("${}.{c:02}", cents / 100),
-    }
-}
 
 static NEXT: AtomicU64 = AtomicU64::new(1);
 
@@ -96,6 +93,18 @@ impl TaskSpend {
     pub(crate) fn waiting(mut self: Arc<Self>, wait: Duration) -> Arc<Self> {
         Arc::get_mut(&mut self).expect("not shared yet").wait = wait;
         self
+    }
+
+    /// Make the FIRST question come at `micros` when that is below the cap
+    /// the task began with (a swarm's $1). A no-op once the cap has moved, so
+    /// a second swarm of the same task cannot undo a yes.
+    pub(crate) fn first_ask_at(&self, micros: u64) {
+        let _ = self.cap.compare_exchange(
+            self.step,
+            self.step.min(micros),
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        );
     }
 
     /// A completed call's cost joins the task's.
@@ -153,7 +162,7 @@ impl TaskSpend {
     async fn put(&self) -> Option<bool> {
         let id = format!("cap{}", NEXT.fetch_add(1, Ordering::Relaxed));
         let q = format!(
-            "spent {} of the {} cap \u{2014} continue? Enter or y raises it by {}; Esc or n stops",
+            "spent {} of the {} cap \u{2014} Enter/y continues (+{}) \u{b7} Esc/n stops",
             usd(self.spent()),
             usd(self.cap.load(Ordering::Relaxed)),
             usd(self.step)
@@ -172,60 +181,15 @@ impl TaskSpend {
     }
 }
 
-thread_local! {
-    static CURRENT: RefCell<Option<Arc<TaskSpend>>> = const { RefCell::new(None) };
-}
-
-/// Restores the scope that was there before, when the task's scope ends.
-pub(crate) struct Scope(Option<Arc<TaskSpend>>);
-
-impl Drop for Scope {
-    fn drop(&mut self) {
-        let before = self.0.take();
-        CURRENT.with(|c| *c.borrow_mut() = before);
-    }
-}
-
-/// Make `task` this thread's spend meter until the scope drops.
-pub(crate) fn enter(task: Option<Arc<TaskSpend>>) -> Scope {
-    Scope(CURRENT.with(|c| std::mem::replace(&mut *c.borrow_mut(), task)))
-}
-
-/// The meter of the task running on this thread, if its cap is on.
-pub(crate) fn current() -> Option<Arc<TaskSpend>> {
-    CURRENT.with(|c| c.borrow().clone())
-}
-
-/// This task's meter as the pane's own events carry it: the cap from the
-/// environment, the question as an approval the pane draws, the stop line as
-/// a message. `None` when the cap is off.
-pub(crate) fn live(
-    cancel: Arc<AtomicBool>,
-    emit: Arc<dyn Fn(crate::PluginEvent) + Send + Sync>,
-) -> Option<Arc<TaskSpend>> {
-    let cap = parse(std::env::var(ENV).ok().as_deref());
-    let (asker, teller) = (Arc::clone(&emit), emit);
-    // Whoever the task is for (`approval::Requester`): a trigger has nobody
-    // awake to ask, so it stops at the cap rather than wait out the clock.
-    let who = super::approval::Requester::from_env();
-    let ask: Ask = Arc::new(move |id, question| {
-        let reply_to = who.reply_to();
-        if reply_to.is_empty() {
-            return false;
-        }
-        asker(crate::PluginEvent::Approval {
-            id: id.into(),
-            tool: "spend cap".into(),
-            tier: "read".into(),
-            reply_to: reply_to.into(),
-            question: question.into(),
-        });
-        true
-    });
-    let say: Say = Arc::new(move |line| teller(super::relay::msg("agent smith", line.to_string())));
-    TaskSpend::new(cap, cancel, ask, say)
-}
-
+#[cfg(test)]
+#[path = "spendcover_tests.rs"]
+mod cover_tests;
+#[cfg(test)]
+#[path = "spendkit_tests.rs"]
+pub(crate) mod kit;
 #[cfg(test)]
 #[path = "spendcap_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "spendwalk_tests.rs"]
+mod walk_tests;

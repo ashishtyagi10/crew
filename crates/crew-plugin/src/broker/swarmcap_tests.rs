@@ -96,3 +96,42 @@ fn a_no_stops_the_run_at_the_agent_that_crossed_the_cap() {
     assert_eq!(said, vec!["stopped at the spend cap ($12)".to_string()]);
     assert!(stopped);
 }
+
+/// The closing call (`swarmstream::over`) at a cap already reached, with the
+/// task's gate taken on this thread as `swarmanswer::live` takes it: the
+/// provider's dials made, the questions asked and the answer's result.
+fn closing(yes: bool) -> (usize, usize, bool) {
+    use crate::broker::spendcap::{enter, kit::Priced};
+    let _env = testenv::mock("unused");
+    let asked = Arc::new(AtomicUsize::new(0));
+    let a = Arc::clone(&asked);
+    let ask: Ask = Arc::new(move |id, _| {
+        a.fetch_add(1, Ordering::Relaxed);
+        crate::broker::approval::deliver_answer(id, yes);
+        true
+    });
+    let meter = TaskSpend::new(10_000_000, Arc::default(), ask, Arc::new(|_| {}))
+        .unwrap()
+        .waiting(Duration::from_secs(5));
+    meter.add(10_000_000);
+    let _scope = enter(Some(Arc::clone(&meter)));
+    let model = Priced::of(2_000_000);
+    let answer = swarmstream::over(
+        Arc::clone(&model) as Arc<dyn crew_hive::Provider>,
+        "m".into(),
+        256,
+        crate::broker::spendgate::Gate::here(),
+    );
+    let out = answer("brief", &mut |_| {});
+    (model.made(), asked.load(Ordering::Relaxed), out.is_ok())
+}
+
+#[test]
+fn the_closing_call_at_the_cap_asks_first_and_a_yes_dials_once() {
+    assert_eq!(closing(true), (1, 1, true));
+}
+
+#[test]
+fn the_closing_call_at_the_cap_never_dials_on_a_no() {
+    assert_eq!(closing(false), (0, 1, false));
+}

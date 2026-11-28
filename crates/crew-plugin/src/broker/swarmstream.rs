@@ -25,6 +25,7 @@ use std::time::Instant;
 use crew_hive::{Chunk, ChunkFn, Completion, CompletionRequest, ModelTier, Provider, Spent};
 
 use crate::broker::relay::SMITH_ANSWERS;
+use crate::broker::spendgate::Gate;
 use crate::broker::tick::{text_streaming_enabled, TextGate};
 use crate::protocol::PluginEvent;
 
@@ -43,8 +44,16 @@ pub(crate) type AnswerFn =
 /// 30 s, and a streamed answer cut there is watched half-written and then
 /// replaced by an error. The provider's read timeout still ends a SILENT one.
 /// Billed on the standard tier, the one `swarmanswer::live` resolves it on.
-pub(super) fn over(provider: Arc<dyn Provider>, model: String, max_tokens: u32) -> Box<AnswerFn> {
+pub(super) fn over(
+    provider: Arc<dyn Provider>,
+    model: String,
+    max_tokens: u32,
+    gate: Gate,
+) -> Box<AnswerFn> {
     Box::new(move |brief: &str, sink: &mut dyn FnMut(Chunk<'_>)| {
+        // Asked before the bound below starts, so the question's wait is not
+        // the call's time (`spendgate`).
+        gate.before()?;
         let req = CompletionRequest {
             model: model.clone(),
             prompt: brief.to_string(),
@@ -53,6 +62,7 @@ pub(super) fn over(provider: Arc<dyn Provider>, model: String, max_tokens: u32) 
         };
         let c = streamed(&provider, req, sink)?;
         let spent = Spent::billed(&model, ModelTier::Standard, &c);
+        gate.after(spent.micros_usd);
         Ok((
             crew_hive::provider::cutoff::marked(&c.text, c.truncated),
             spent,

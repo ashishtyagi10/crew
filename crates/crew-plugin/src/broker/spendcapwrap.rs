@@ -32,6 +32,17 @@ pub(crate) fn wrap(inner: Arc<dyn Provider>, model: &str) -> Arc<dyn Provider> {
     }
 }
 
+/// [`wrap`] for a swarm's provider, whose first question comes at the $1 the
+/// old silent governor (`Budget::DEFAULT_MICROS_USD`) killed it at: a wide
+/// swarm spends fastest, so it earns the earliest ask, and a yes goes on by
+/// the configured step as for any task.
+pub(crate) fn wrap_swarm(inner: Arc<dyn Provider>, model: &str) -> Arc<dyn Provider> {
+    if let Some(task) = spendcap::current() {
+        task.first_ask_at(crew_hive::Budget::DEFAULT_MICROS_USD);
+    }
+    wrap(inner, model)
+}
+
 /// What a reply cost: its own figure, else the price list's estimate, else 0
 /// for a model with no price (the cap never fires on what it cannot price).
 pub(crate) fn cost(model: &str, c: &Completion) -> u64 {

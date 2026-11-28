@@ -63,7 +63,7 @@ fn answer(pieces: Vec<Chunk<'static>>, truncated: bool, apart: Option<Duration>)
         truncated,
         apart,
     };
-    over(Arc::new(p), "m".into(), 2048)
+    over(Arc::new(p), "m".into(), 2048, Gate::here())
 }
 
 /// Three independent tasks, all finished: three sinks, so the run wants the

@@ -36,6 +36,7 @@ pub(super) fn live_router() -> Option<impl Fn(&str) -> Result<(String, Spent), S
         INTENT_MAX_TOKENS,
         crew_hive::ModelTier::Cheap,
         CLASSIFY_TIMEOUT,
+        false,
     )
 }
 
@@ -67,7 +68,7 @@ pub(crate) fn live_call_at(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
 ) -> Option<impl Fn(&str) -> Result<(String, Spent), String>> {
-    live_bounded(max_tokens, tier, ONESHOT_TIMEOUT)
+    live_bounded(max_tokens, tier, ONESHOT_TIMEOUT, false)
 }
 
 /// The provider and model a one-shot on `tier` would run on, when one may
@@ -87,15 +88,25 @@ pub(crate) fn live_provider_at(
 /// Every call here, with its round-trip bound stated: the gates live once,
 /// and only the router passes its tighter bound. The reply comes with its
 /// cost, billed the way a swarm worker's round is (`Spent::billed`).
-fn live_bounded(
+pub(super) fn live_bounded(
     max_tokens: u32,
     tier: crew_hive::ModelTier,
     timeout: Duration,
+    capped: bool,
 ) -> Option<impl Fn(&str) -> Result<(String, Spent), String>> {
     let (provider, model) = live_provider_at(tier)?;
+    // A judge is held at the task's cap, asked before the one-shot bound
+    // starts (`spendgate`); the cheap routing calls are not.
+    let gate = capped.then(crate::broker::spendgate::Gate::here);
     Some(move |p: &str| {
+        if let Some(g) = &gate {
+            g.before()?;
+        }
         let c = complete_once(&provider, &model, p, max_tokens, timeout, ONESHOT_EFFORT)?;
         let spent = Spent::billed(&model, tier, &c);
+        if let Some(g) = &gate {
+            g.after(spent.micros_usd);
+        }
         Ok((c.text, spent))
     })
 }

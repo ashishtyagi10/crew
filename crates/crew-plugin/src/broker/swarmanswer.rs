@@ -58,7 +58,10 @@ pub(super) fn live() -> Option<Box<AnswerFn>> {
     // The answer the user reads: the standard model, not the router's.
     let tier = crew_hive::ModelTier::Standard;
     let (provider, model) = crate::broker::intent::live_provider_at(tier)?;
-    Some(swarmstream::over(provider, model, SYNTH_MAX_TOKENS))
+    // Built on the task's thread, so its gate holds the task's cap: asked
+    // before the call's 3 min bound starts (`spendgate`).
+    let gate = crate::broker::spendgate::Gate::here();
+    Some(swarmstream::over(provider, model, SYNTH_MAX_TOKENS, gate))
 }
 
 /// Whether the run needs the lead's answer: two or more tasks finished and

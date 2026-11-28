@@ -77,8 +77,7 @@ pub(super) fn live(wanted: bool) -> Option<Box<SynthFn>> {
         return None;
     }
     // A verdict is judgement: the standard model, not the router's.
-    let call =
-        crate::broker::intent::live_call_at(JUDGE_MAX_TOKENS, crew_hive::ModelTier::Standard)?;
+    let call = crate::broker::intent::live_judge_call(JUDGE_MAX_TOKENS)?;
     let boxed: Box<SynthFn> = Box::new(call);
     Some(boxed)
 }

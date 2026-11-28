@@ -128,6 +128,7 @@ mod chatswarmshot_tests;
 mod chatswarmwhyshot_tests;
 mod completefuzzy;
 mod composeinput;
+mod configenv;
 #[cfg(test)]
 #[path = "errwording_tests.rs"]
 mod errwording_tests;
@@ -150,6 +151,7 @@ mod scrollback;
 mod segment;
 mod shellback;
 mod signoutpick;
+mod spendask;
 
 mod canvas;
 mod cardcomet;

@@ -97,7 +97,7 @@ pub(super) fn backend_at(
             // Every call of the run, the planner's included, is held at the
             // task's spend cap (`spendcap`); the run's own $1 governor below
             // stays only for a task with no cap, so asking replaces killing.
-            let provider = crate::broker::spendcapwrap::wrap(provider, &model);
+            let provider = crate::broker::spendcapwrap::wrap_swarm(provider, &model);
             let planner: Arc<dyn Planner> = Arc::new(
                 LlmPlanner {
                     provider: Arc::clone(&provider),
