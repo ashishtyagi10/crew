@@ -103,6 +103,7 @@ fn spec(hinted: Option<String>) -> TurnSpec {
         effort: None,
         ask: "read it".into(),
         prompt: "TASK: read it\n\nHOW TO REPLY: end with @done".into(),
+        images: Vec::new(),
         hinted,
         shed: None,
         ending: None,

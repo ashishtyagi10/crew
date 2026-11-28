@@ -49,6 +49,7 @@ async fn a_reply_the_ceiling_cut_is_continued_once() {
         effort: None,
         ask: "q".into(),
         prompt: "q".into(),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,

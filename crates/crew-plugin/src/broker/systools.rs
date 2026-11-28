@@ -315,6 +315,9 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
         "read_file" => {
             let path = super::sysworkspace::checked(str_arg(&v, "path")?, tool)?;
+            if let Some(shot) = super::sysimage::read(&path) {
+                return shot;
+            }
             super::sysreadline::read(&path, &v)
         }
         "write_file" => {

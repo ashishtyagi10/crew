@@ -2354,6 +2354,12 @@ longer aim at.
   terminals it uses bracketed paste when the program enabled it. When the
   clipboard holds an **image** (and no text), it's written to a temp PNG and the
   file path is pasted instead — so agent CLIs can read the image by path.
+  crew's own API engine also **sees** it: an image file (png/jpg/jpeg/gif/webp,
+  absolute or relative to the workspace) named in your message is attached to
+  the first request as a picture, beside the path text — up to 5 images of
+  5 MB each, the rest getting an `[image omitted: …]` note. A model without
+  vision (DashScope's `qwen-max`, DeepSeek) gets that note too. The vision
+  list is a table of model ids in `provider/imagevision.rs`, unverified.
 - Programs can copy to the system clipboard via **OSC 52**.
 - Programs can also **read** it via OSC 52 (`ESC ] 52 ; c ; ? BEL` — nvim's
   paste provider over ssh, tmux's `set-clipboard`), but only with
@@ -3508,7 +3514,9 @@ stream, stderr's first, so a build's `error[…]` survives the 6,000-char clip
 on tool results, with the whole output saved to a file the last line names
 (below); and a non-zero exit is a FAILED call — `✗` on the card,
 `is_error` to the provider — whose output still reaches the agent),
-**`sys:read_file`** (UTF-8, one page per call: up to 5,600 bytes, cut at
+**`sys:read_file`** (an image file answers `image: shot.png, 1280x720` and
+the picture itself rides in the tool result, to a vision model, within the
+same 5-image, 5 MB caps; otherwise UTF-8, one page per call: up to 5,600 bytes, cut at
 the last line end — sized so a page and its note pass the 6,000-char clip on
 tool results whole; every row opens with its line number in the file,
 `  41│ text`, the form `sys:edit` shows an edit in, as Claude Code's `Read`

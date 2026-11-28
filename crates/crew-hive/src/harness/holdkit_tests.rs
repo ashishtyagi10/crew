@@ -125,6 +125,7 @@ pub(super) async fn turn_on(holds: Option<u32>, numbered: bool, native: bool) ->
         effort: None,
         ask: "fix it".into(),
         prompt: "fix it".into(),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,

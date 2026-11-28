@@ -283,7 +283,7 @@ the command palette write each chord the way that machine presses it.
 | Zoom the focused pane, or put a zoomed one on the grid | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | `/broadcast` (by name only — **Cmd+S** saves a focused settings form) |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
-| Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
+| Copy the selection (or the visible screen) / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path, which API models see as a picture) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Label every URL, file and hash on the pane (a letter copies, its capital opens) | **Cmd+E** |
 | Open another crew window | **Cmd+N** |
@@ -732,7 +732,7 @@ transcript and jumps to each match.
 Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 120s deadline; a long output reaches the
 agent as its start and its end, and a non-zero exit is a failed call),
-`sys:read_file` (~5 KB
+`sys:read_file` (an image file comes back as a picture; ~5 KB
 pages of whole lines, every row numbered with its line in the file (`41│ `)
 and each page naming its lines and the next offset; `line` starts one at a
 `sys:grep` hit's line, and `lines` stops it after that many),

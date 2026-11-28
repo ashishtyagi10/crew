@@ -120,6 +120,7 @@ pub(super) fn explore(
     let spec = TurnSpec {
         ask: goal.clone(),
         prompt: prompt(&goal, &start),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,

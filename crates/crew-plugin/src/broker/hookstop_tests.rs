@@ -124,6 +124,7 @@ async fn turn(tag: &str, cmd: &str) -> (Ended, Vec<CompletionRequest>, Vec<(bool
         effort: None,
         ask: "fix the bug".into(),
         prompt: "fix the bug".into(),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,

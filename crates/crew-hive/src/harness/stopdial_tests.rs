@@ -42,6 +42,7 @@ async fn a_dial_that_ends_on_the_stop_ends_the_turn_stopped() {
         effort: None,
         ask: "q".into(),
         prompt: "q".into(),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,

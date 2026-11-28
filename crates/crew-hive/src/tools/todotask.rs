@@ -56,6 +56,16 @@ impl Tools for PerTask {
         self.inner.take_spent()
     }
 
+    fn attachments(
+        &self,
+        server: &str,
+        tool: &str,
+        args: &str,
+        output: &str,
+    ) -> Vec<crate::provider::Image> {
+        self.inner.attachments(server, tool, args, output)
+    }
+
     fn specs(&self) -> Vec<ToolSpec> {
         self.inner.specs()
     }

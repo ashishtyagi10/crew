@@ -46,6 +46,9 @@ mod advice_tests;
 #[path = "donerun_tests.rs"]
 mod donerun_tests;
 #[cfg(test)]
+#[path = "imagetool_tests.rs"]
+mod imagetool_tests;
+#[cfg(test)]
 #[path = "stall_tests.rs"]
 mod stall_tests;
 #[cfg(test)]
@@ -78,6 +81,9 @@ pub struct TurnSpec {
     /// the native loop the tools are on the wire, and naming the text
     /// convention beside them invites a model to use both.
     pub prompt: String,
+    /// Pictures the ask names (`provider::images_in`), read once when the turn
+    /// starts so every round resends the same bytes. Empty for most turns.
+    pub images: Vec<crate::provider::Image>,
     /// The same prompt with the `@tool` hint already in place, for an engine
     /// whose prompt has a place for it (the relay's frame: inside its TASK,
     /// above HOW TO REPLY). Only the text loop reads it; `None` puts the hint

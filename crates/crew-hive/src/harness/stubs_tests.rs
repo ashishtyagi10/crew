@@ -23,6 +23,7 @@ fn round(id: &str, input: serde_json::Value, said: &str, result: &str) -> [Turn;
             name: "sys__read_file".into(),
             content: result.into(),
             is_error: false,
+            images: Vec::new(),
         }]),
     ]
 }
@@ -107,4 +108,43 @@ fn when_the_stubs_do_not_come_under_what_fit_only_the_last_round_is_kept() {
     assert_eq!(last, turns[2..], "the last round alone");
     let mut one = turns[2..].to_vec();
     assert!(!shrink(&mut one, 100, 5_000, &label), "nothing left to cut");
+}
+
+/// An old picture is the heaviest thing in the request: a cut drops it from
+/// every earlier round, short result or long, and keeps the last round's.
+#[test]
+fn a_cut_drops_old_pictures_and_keeps_the_last_rounds() {
+    let img = crate::provider::Image::from_bytes("a.png", &crate::provider::image::fake_png(1, 1))
+        .unwrap();
+    let with = |mut turns: [Turn; 2]| {
+        if let Turn::ToolResults(rs) = &mut turns[1] {
+            rs[0].images = vec![img.clone()];
+        }
+        turns
+    };
+    let long = "x".repeat(500);
+    let turns: Vec<Turn> = with(round("1", serde_json::json!({"path": "a.png"}), "", &long))
+        .into_iter()
+        .chain(with(round(
+            "2",
+            serde_json::json!({"path": "b.png"}),
+            "",
+            "image: b.png",
+        )))
+        .chain(with(round(
+            "3",
+            serde_json::json!({"path": "c.png"}),
+            "",
+            "image: c.png",
+        )))
+        .collect();
+    let out = stubbed(&turns, &label);
+    let kept: Vec<usize> = out
+        .iter()
+        .filter_map(|t| match t {
+            Turn::ToolResults(rs) => Some(rs[0].images.len()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(kept, [0, 0, 1]);
 }

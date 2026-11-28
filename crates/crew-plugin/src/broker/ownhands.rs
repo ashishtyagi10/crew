@@ -105,6 +105,15 @@ impl ToolRunner for OwnHands {
     fn repeatable(&self, server: &str, tool: &str) -> bool {
         self.0.repeatable(server, tool)
     }
+    fn attachments(
+        &self,
+        server: &str,
+        tool: &str,
+        args: &str,
+        output: &str,
+    ) -> Vec<crew_hive::provider::Image> {
+        self.0.attachments(server, tool, args, output)
+    }
     fn take_spent(&self) -> crew_hive::Spent {
         self.0.take_spent()
     }

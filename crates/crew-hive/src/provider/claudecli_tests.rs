@@ -60,6 +60,7 @@ fn claude_cli_flattens_turns_into_one_prompt() {
             name: "read".into(),
             content: "contents".into(),
             is_error: false,
+            images: Vec::new(),
         }]),
     ];
     let p = prompt_text(&req);

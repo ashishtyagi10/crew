@@ -71,12 +71,18 @@ pub(super) fn stubbed(turns: &[Turn], label: &dyn Fn(&ToolInvocation) -> String)
                 let cut = |r: &ToolOutcome| {
                     let call = calls.iter().find(|c| c.id == r.id);
                     let content = stub(call.map_or(r.name.clone(), label), call);
+                    // An old picture is dropped either way: it is the heaviest
+                    // thing in the request, and the model can read it again.
                     match content.len() < r.content.len() {
                         true => ToolOutcome {
                             content,
+                            images: Vec::new(),
                             ..r.clone()
                         },
-                        false => r.clone(),
+                        false => ToolOutcome {
+                            images: Vec::new(),
+                            ..r.clone()
+                        },
                     }
                 };
                 out.push(Turn::ToolResults(rs.iter().map(cut).collect()));

@@ -32,6 +32,7 @@ fn tool_req() -> CompletionRequest {
                 name: "weather__current".into(),
                 content: "4C clear".into(),
                 is_error: false,
+                images: Vec::new(),
             }]),
         ],
         ..Default::default()

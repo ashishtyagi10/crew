@@ -117,6 +117,7 @@ async fn turn(native: bool, paths: &[&'static str]) -> (Vec<String>, Vec<String>
         effort: None,
         ask: "fix a.rs".into(),
         prompt: "TASK: fix a.rs".into(),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,

@@ -48,6 +48,9 @@ pub struct ToolOutcome {
     /// A refusal or failure. Providers have a flag for this; without it a
     /// model reads "ERROR: connection refused" as data it should use.
     pub is_error: bool,
+    /// Pictures the tool returned (`sys:read_file` of a PNG), beside `content`.
+    /// Empty for every other result, which then serialises as before.
+    pub images: Vec<super::Image>,
 }
 
 /// One exchange after the opening user prompt.
@@ -78,6 +81,10 @@ pub struct CompletionRequest {
     pub system: Option<String>,
     /// The opening user message.
     pub prompt: String,
+    /// Pictures the opening message carries (`imagetask`). The first user
+    /// message is `prompt`, not a `Turn`, so they ride here; `Turn::User` is
+    /// text, as nothing yet says a picture mid-conversation.
+    pub images: Vec<super::Image>,
     pub max_tokens: u32,
     /// Everything after `prompt`. Empty for a one-shot completion, which is
     /// what every caller but the tool loop wants.

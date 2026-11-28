@@ -45,7 +45,8 @@ fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
     if let Some(sys) = &req.system {
         messages.push(serde_json::json!({"role": "system", "content": sys}));
     }
-    messages.push(serde_json::json!({"role": "user", "content": req.prompt}));
+    let first = super::openrouterimage::user_content(&req.model, &req.prompt, &req.images);
+    messages.push(serde_json::json!({"role": "user", "content": first}));
     for turn in &req.turns {
         match turn {
             Turn::Assistant { text, calls } => {
@@ -86,12 +87,15 @@ fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
                     } else {
                         r.content.clone()
                     };
+                    let content =
+                        super::openrouterimage::tool_text(&req.model, &content, &r.images);
                     messages.push(serde_json::json!({
                         "role": "tool",
                         "tool_call_id": r.id,
                         "content": content,
                     }));
                 }
+                messages.extend(super::openrouterimage::follow_up(&req.model, results));
             }
             Turn::User(text) => {
                 messages.push(serde_json::json!({"role": "user", "content": text}));
@@ -139,6 +143,20 @@ fn build_body(
     report_cost: bool,
     think: Vec<(&'static str, serde_json::Value)>,
 ) -> serde_json::Value {
+    // A picture is given to the model that answers, not the one first asked:
+    // a fallback is rendered afresh (`openrouterimage::carries`).
+    let rebuilt;
+    let messages = match model != req.model && super::openrouterimage::carries(req) {
+        true => {
+            let asked = CompletionRequest {
+                model: model.to_string(),
+                ..req.clone()
+            };
+            rebuilt = build_messages(&asked);
+            &rebuilt[..]
+        }
+        false => messages,
+    };
     let mut body = serde_json::json!({
         "model": model,
         "max_tokens": req.max_tokens,
@@ -323,6 +341,10 @@ impl Provider for OpenRouterProvider {
 #[cfg(test)]
 #[path = "openrouter_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "openrouterimage_tests.rs"]
+mod image_tests;
 
 #[cfg(test)]
 #[path = "openrouterbill_tests.rs"]
