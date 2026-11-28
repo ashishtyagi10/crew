@@ -6,6 +6,7 @@ use crew_lsp::framing::{decode, encode};
 use crew_lsp::servers::Server;
 use crew_lsp::Symbol;
 use std::collections::BTreeMap;
+use std::path::Path;
 
 fn sym(name: &str, kind: &'static str, line: u32) -> Symbol {
     Symbol {
@@ -52,7 +53,28 @@ fn thirty_lines_then_a_count() {
 
 #[test]
 fn nothing_found_says_so() {
-    assert_eq!(text("Nope", vec![]), "no symbols match \"Nope\"");
+    assert!(text("Nope", vec![]).starts_with("no symbols match \"Nope\""));
+}
+
+#[test]
+fn two_servers_naming_one_symbol_print_it_once() {
+    let found = vec![
+        ("/p".into(), sym("ToolBudget", "struct", 1)),
+        ("/p/src".into(), sym("ToolBudget", "struct", 1)),
+    ];
+    assert_eq!(text("ToolBudget", found).lines().count(), 1);
+}
+
+#[test]
+fn each_path_is_relative_to_its_own_servers_root() {
+    let mut other = sym("Tb", "struct", 0);
+    other.uri = crew_lsp::uri::from_path(Path::new("/q/lib/b.rs"));
+    let found = vec![("/p".into(), sym("Ta", "struct", 0)), ("/q".into(), other)];
+    let out = text("T", found);
+    assert!(
+        out.contains("src/a.rs:1") && out.contains("lib/b.rs:1"),
+        "{out}"
+    );
 }
 
 #[test]
@@ -139,10 +161,8 @@ fn asks_workspace_symbol_and_merges_both_result_shapes() {
 fn a_null_reply_is_no_match() {
     let (mut host, file, _heard) = scripted("null", |_| Value::Null);
     let args = json!({"query": "Zzz", "file": file}).to_string();
-    assert_eq!(
-        host.call("symbols", &args).unwrap(),
-        "no symbols match \"Zzz\""
-    );
+    let out = host.call("symbols", &args).unwrap();
+    assert!(out.starts_with("no symbols match \"Zzz\""), "{out}");
 }
 
 #[test]

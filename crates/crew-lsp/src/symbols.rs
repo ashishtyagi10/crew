@@ -83,13 +83,20 @@ impl Symbol {
 /// query (case-insensitive), then the rest — each group in the order the
 /// servers gave, since a server's own fuzzy score is the best signal left.
 pub fn rank(query: &str, mut list: Vec<Symbol>) -> Vec<Symbol> {
-    let q = query.to_lowercase();
-    list.sort_by_key(|s| match () {
-        _ if s.name == query => 0,
-        _ if s.name.to_lowercase().starts_with(&q) => 1,
-        _ => 2,
-    });
+    list.sort_by_key(|s| rank_key(query, s));
     list
+}
+
+/// The group [`rank`] sorts by (0 best), public so a caller holding extra
+/// per-symbol data (the project root) can sort its own pairs the same way.
+pub fn rank_key(query: &str, s: &Symbol) -> u8 {
+    if s.name == query {
+        0
+    } else if s.name.to_lowercase().starts_with(&query.to_lowercase()) {
+        1
+    } else {
+        2
+    }
 }
 
 impl Client {
@@ -106,3 +113,7 @@ impl Client {
 #[cfg(test)]
 #[path = "symbols_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "symbols_live_tests.rs"]
+mod live_tests;

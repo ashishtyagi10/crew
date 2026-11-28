@@ -4502,7 +4502,7 @@ file, refactors, or formats. Two consumers share one client (`crates/crew-lsp`):
 
 - **Agents** get five tools on the `lsp` server — `lsp:hover` (the type,
   signature and docs of the symbol at `{file, line, col}`), `lsp:definition`
-  (where it is declared), `lsp:references` (every use across the project) and
+  (where it is declared), `lsp:references` (every use across the project),
   `lsp:diagnostics` (a file's compiler errors and warnings, without a build) and
   `lsp:symbols` (`{query, file?}`: where a class, function or type is defined, by name,
   as `kind name — path:line`; best match first, 30 lines).

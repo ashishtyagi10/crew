@@ -2,13 +2,13 @@
 //! server's own index (`workspace/symbol`) instead of a grep that also finds
 //! comments, strings and call sites. Kept apart from the position tools: it
 //! takes a query rather than a place, and `file` only picks the server.
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
 use super::{tools, LspHost, TIMEOUT};
 use crate::mcp::McpTool;
-use crew_lsp::symbols::rank;
+use crew_lsp::symbols::rank_key;
 use crew_lsp::{servers, Symbol};
 
 /// Lines in one answer; the rest is a count, so a broad query stays cheap.
@@ -47,21 +47,20 @@ pub(super) fn parse(args: &str) -> Result<(String, Option<String>), String> {
     Ok((query, text("file")))
 }
 
-/// The answer: ranked, cut at [`MAX_LINES`], paths relative to each
-/// symbol's project root.
-pub(super) fn text(query: &str, found: Vec<(PathBuf, Symbol)>) -> String {
+/// The answer: deduped, ranked, cut at [`MAX_LINES`], each path relative to
+/// the root of the server that gave it (two servers can be rooted apart).
+pub(super) fn text(query: &str, mut found: Vec<(PathBuf, Symbol)>) -> String {
     if found.is_empty() {
-        return format!("no symbols match \"{query}\"");
+        return format!(
+            "no symbols match \"{query}\" (a server still indexing a big project answers \
+            with nothing yet \u{2014} try again in a few seconds)"
+        );
     }
-    let root_of = |uri: &str| {
-        found
-            .iter()
-            .find(|(_, f)| f.uri == uri)
-            .map_or(Path::new(""), |(r, _)| r.as_path())
-    };
-    let syms = rank(query, found.iter().map(|(_, s)| s.clone()).collect());
-    let line = |s: &Symbol| {
-        let root = root_of(&s.uri);
+    // Two servers (or two roots) can index the same file and name it twice.
+    let mut seen = std::collections::HashSet::new();
+    found.retain(|(_, s)| seen.insert((s.uri.clone(), s.name.clone(), s.line)));
+    found.sort_by_key(|(_, s)| rank_key(query, s));
+    let line = |(root, s): &(PathBuf, Symbol)| {
         let path = crew_lsp::uri::to_path(&s.uri).map_or_else(
             || s.uri.clone(),
             |p| p.strip_prefix(root).unwrap_or(&p).to_string_lossy().into(),
@@ -71,9 +70,9 @@ pub(super) fn text(query: &str, found: Vec<(PathBuf, Symbol)>) -> String {
             None => format!("{} {} \u{2014} {path}", s.kind, s.name),
         }
     };
-    let mut out: Vec<String> = syms.iter().take(MAX_LINES).map(line).collect();
-    if syms.len() > MAX_LINES {
-        out.push(format!("+{} more", syms.len() - MAX_LINES));
+    let mut out: Vec<String> = found.iter().take(MAX_LINES).map(line).collect();
+    if found.len() > MAX_LINES {
+        out.push(format!("+{} more", found.len() - MAX_LINES));
     }
     out.join("\n")
 }
@@ -109,6 +108,15 @@ impl LspHost {
             };
             match c.workspace_symbols(&query, TIMEOUT) {
                 Ok(list) => found.extend(list.into_iter().map(|s| (key.1.clone(), s))),
+                Err(e) if e.contains("no reply within") => {
+                    // Still indexing: keep the client — dropping it would kill
+                    // the very index the retry waits for.
+                    first_err.get_or_insert(format!(
+                        "the {} language server is still indexing the project \u{2014} \
+                        try lsp:symbols again in a few seconds",
+                        key.0
+                    ));
+                }
                 Err(e) => {
                     // Like the other tools: a failed request drops the client.
                     self.clients.remove(&key);
