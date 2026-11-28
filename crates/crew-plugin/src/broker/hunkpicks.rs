@@ -14,9 +14,18 @@ pub enum Picks {
     Bad(String),
 }
 
+/// The keys line a question ends with when it offers picks. The broker writes it only when
+/// EVERY hunk is on screen (see `hunkshow::show`), and [`declared`] reads picks only from a
+/// question that ends with it: a hunk past the clip can't be chosen unseen, and a model-written
+/// command whose first line happens to end in `— 3 changes` offers nothing.
+pub const PICK_KEYS: &str = "Enter all \u{b7} Esc none \u{b7} type 1 3 to keep those";
+
 /// How many hunks a question offers, from its first line (`edit a.rs — 3 changes · …`); 0 for a
-/// question that is not a file edit, or a new file, which is all-or-nothing.
+/// question that is not a file edit, a new file (all-or-nothing), or one clipped short.
 pub fn declared(question: &str) -> usize {
+    if question.lines().last() != Some(PICK_KEYS) {
+        return 0;
+    }
     let first = question.lines().next().unwrap_or_default();
     let Some((_, tail)) = first.rsplit_once(" \u{2014} ") else {
         return 0;

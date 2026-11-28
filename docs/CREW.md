@@ -3556,11 +3556,14 @@ new), clipped at about 40 rows with a `… N more lines` marker, or `new file, N
 lines` and its first lines for a file that does not exist yet. **Enter** allows
 every hunk and **Esc** none; type hunk numbers and send to keep only those — `1
 3`, `1,3`, or `-2` for all but 2. A number that is not a hunk is said so and the
-question stays open. The file is then written as the original plus only the
+question stays open. Picking is offered only when every hunk is on screen: a
+diff clipped short is Enter-or-Esc, all or nothing. The file is then written as the original plus only the
 chosen hunks, provided it has not changed since the question (if it has,
 nothing is written), and the agent's tool result names which hunks landed and
 which you rejected. The host's `approve` command carries them as an optional
-`hunks` list, so an older host or broker still interoperates.
+`hunks` list: an older host's answer reads as before. (A broker older than the
+host would ignore the list and apply the whole change — crew's app always runs
+its own broker, so the two never differ.)
 
 **Hooks (`hooks.json`).** A command of your own can stand on either side of
 every tool call an agent makes — `sys`, MCP, a language server or an

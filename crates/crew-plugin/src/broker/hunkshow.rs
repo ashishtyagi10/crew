@@ -59,8 +59,10 @@ pub(crate) fn show(old: Option<&str>, new: &str, hunks: &[Hunk]) -> (String, Str
             plural(more, "more line", "more lines")
         ));
     }
-    rows.push(match hunks.len() > 1 && old.is_some() {
-        true => "Enter all \u{b7} Esc none \u{b7} type 1 3 to keep those".to_string(),
+    // Picks only when every hunk is on screen: choosing a change you were never shown is
+    // exactly what this question exists to prevent.
+    rows.push(match hunks.len() > 1 && old.is_some() && more == 0 {
+        true => super::hunkpicks::PICK_KEYS.to_string(),
         false => "Enter allows \u{b7} Esc refuses".to_string(),
     });
     (lead, format!("\n{}", rows.join("\n")))

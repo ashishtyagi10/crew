@@ -43,6 +43,32 @@ fn a_long_diff_is_clipped_at_forty_rows_with_a_marker() {
     let s = shown(&old, &new);
     assert!(s.contains("\u{2026} 21 more lines"), "{s}");
     assert_eq!(s.lines().filter(|l| l.starts_with(['-', '+'])).count(), 39);
+    // Hunks past the clip were never shown, so none can be picked: all or nothing.
+    assert!(s.ends_with("Enter allows \u{b7} Esc refuses"), "{s}");
+}
+
+#[test]
+fn many_hunks_clipped_short_offer_no_picks() {
+    let old: String = (0..25).map(|i| format!("o{i}\nkeep\n")).collect();
+    let new: String = (0..25).map(|i| format!("n{i}\nkeep\n")).collect();
+    let s = shown(&old, &new);
+    assert!(s.starts_with("25 changes"), "{s}");
+    assert!(s.contains("more lines"), "{s}");
+    assert!(s.ends_with("Enter allows \u{b7} Esc refuses"), "{s}");
+}
+
+#[test]
+fn several_hunks_all_on_screen_offer_picks() {
+    let s = shown(
+        "a
+x
+b
+", "A
+x
+B
+",
+    );
+    assert!(s.ends_with(crate::broker::hunkpicks::PICK_KEYS), "{s}");
 }
 
 #[test]

@@ -14,7 +14,11 @@ use crate::chat::ChatPane;
 pub(crate) fn asked(id: &str, question: &str) -> String {
     let rows: Vec<&str> = question.lines().collect();
     match rows.as_slice() {
-        [head, diff @ .., keys] if !diff.is_empty() && !crate::spendask::is_spend(id) => {
+        // Only the broker's own diff question ends in its keys line; a multi-line command is
+        // not a diff and keeps its plain wording.
+        [head, diff @ .., keys]
+            if !diff.is_empty() && keys.starts_with("Enter ") && !crate::spendask::is_spend(id) =>
+        {
             format!(
                 "\u{26a0} allow this? {head}\n````diff\n{}\n````\n{keys}",
                 diff.join("\n")

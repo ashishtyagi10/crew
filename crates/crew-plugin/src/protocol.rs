@@ -25,7 +25,8 @@ pub enum PluginCommand {
     /// [`PluginEvent::Approval`] that opened it.
     ///
     /// `hunks` (1-based) narrows a granted file edit to those hunks of the diff the question
-    /// showed; absent = the whole change, so a host or broker that predates it interoperates.
+    /// showed; absent = the whole change, so an older host's answer parses as before. (An older
+    /// broker would ignore it and apply everything; the app spawns its own broker.)
     Approve {
         id: String,
         granted: bool,
