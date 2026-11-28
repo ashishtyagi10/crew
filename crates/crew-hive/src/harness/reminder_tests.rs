@@ -97,5 +97,5 @@ fn line_wording_and_thresholds() {
     assert!(line(2, 10).is_some() && line(3, 10).is_none() && line(0, 10).is_none());
     // A big budget warns over its last fifth: 100 -> 20 rounds.
     assert!(line(20, 100).is_some() && line(21, 100).is_none());
-    assert!(line(1, 3).is_none() && line(2, 4).is_some());
+    assert!(line(1, 3).is_none() && line(1, 4).is_some() && line(2, 4).is_none());
 }
