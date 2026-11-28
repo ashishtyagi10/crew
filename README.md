@@ -1188,6 +1188,7 @@ theme choose (`crew --list-fonts` shows what it can see).
 
 **Ligatures.** Faces that have programmer ligatures (Lilex, Fira Code,
 JetBrains Mono, Cascadia Code) draw `=>`, `!=`, `->`, `===`, `<=` joined, each
-glyph spanning exactly its cells so the grid never drifts. The cursor's own
-cell is drawn plain, which splits a ligature under the caret. Turn it off with
+glyph spanning exactly its cells so the grid never drifts. A ligature stays
+joined under the caret (forcing a split would pick a narrower face in some
+families and flicker with a blinking cursor). Turn it off with
 `font_ligatures = false` or the "Font ligatures" box in `/settings`.

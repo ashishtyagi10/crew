@@ -344,7 +344,7 @@ enum RunKey {
     /// run's coverage curve and how far, and runs split on both so a bright
     /// badge in a dark theme, and a muted comment beside solid body text, each
     /// get the correction their own colours ask for.
-    Styled((u8, u8, u8), bool, bool, Option<u32>, bool, u8, bool),
+    Styled((u8, u8, u8), bool, bool, Option<u32>, bool, u8),
 }
 
 /// Fill an existing `Buffer` with rich-text spans for `cells` laid out in cols×rows.
@@ -389,10 +389,13 @@ pub(crate) fn fill_rich_text(
         crate::textgamma::amount_for(params.gamma, params.body.0, params.body.1),
         params.dark,
     );
-    let default_attrs = Attrs::new()
-        .family(fam)
-        .weight(base)
-        .cache_key_flags(default_flags);
+    let default_attrs = crate::ligature::shape(
+        Attrs::new()
+            .family(fam)
+            .weight(base)
+            .cache_key_flags(default_flags),
+        params.ligatures,
+    );
 
     // Build the entire buffer text once, recording `(start, end, key)` byte
     // ranges into it; consecutive same-key cells extend the current run.
@@ -437,7 +440,6 @@ pub(crate) fn fill_rich_text(
                             ls.map(f32::to_bits),
                             light,
                             gamma,
-                            cell.cursor.shape != crew_theme::deco::CursorShape::None,
                         );
                         (cell.c, cell.marks, key)
                     }
@@ -468,7 +470,7 @@ pub(crate) fn fill_rich_text(
         .map(|(s, e, key)| {
             let attrs = match key {
                 RunKey::Default => default_attrs.clone(),
-                RunKey::Styled(fg, is_bold, italic, ls, light, gamma, cursor) => {
+                RunKey::Styled(fg, is_bold, italic, ls, light, gamma) => {
                     let mut a = Attrs::new()
                         .family(fam)
                         .color(Color::rgb(fg.0, fg.1, fg.2))
@@ -478,7 +480,7 @@ pub(crate) fn fill_rich_text(
                             *gamma,
                             *light,
                         ));
-                    a = crate::ligature::shape(a, params.ligatures, *cursor);
+                    a = crate::ligature::shape(a, params.ligatures);
                     if *italic {
                         a = a.style(Style::Italic);
                     }

@@ -3,8 +3,14 @@
 //! run of same-style cells — so a face that has them (Lilex, crew's built-in,
 //! does) already draws them, each glyph spanning exactly its cells because
 //! `set_monospace_width` snaps every advance to the cell. What crew owes the
-//! user is the OFF switch and the cursor's rule, both done here.
-use glyphon::cosmic_text::{Attrs, FeatureTag, FontFeatures, Stretch};
+//! user is the OFF switch, done here.
+//!
+//! The caret does not split a ligature (Kitty and WezTerm do). The shaper only
+//! breaks a run on family, stretch, style or weight, and every way to force a
+//! break was worse than a joined glyph: a different `Stretch` picks a narrower
+//! face in families that have one (Iosevka, Monaspace), and a blinking caret
+//! would join and split the glyph on every blink.
+use glyphon::cosmic_text::{Attrs, FeatureTag, FontFeatures};
 
 /// Features that turn every ligature lookup off for the run they ride on.
 fn off() -> FontFeatures {
@@ -19,22 +25,11 @@ fn off() -> FontFeatures {
     f
 }
 
-/// `a`, shaped as the ligature setting and the cursor ask.
-///
-/// Setting off: the features go on every run. Cursor cell: it must not join
-/// its neighbours (Kitty and WezTerm do the same), so the caret sits on the
-/// component character it is really at instead of covering half a joined
-/// glyph. The shaper only breaks a run where family, stretch, style or weight
-/// differ — NOT colour or features, which it takes from the run's first span
-/// — so the cursor cell takes a different `Stretch`. Stretch is not in the
-/// glyph cache key and the embedded face has one width, so it changes
-/// nothing about how the cell is drawn.
-pub(crate) fn shape(mut a: Attrs<'_>, enabled: bool, cursor: bool) -> Attrs<'_> {
-    if !enabled {
-        a = a.font_features(off());
+/// `a`, shaped as the ligature setting asks. Off goes on EVERY span, the
+/// blank ones too: the shaper takes a run's features from its first span.
+pub(crate) fn shape(a: Attrs<'_>, enabled: bool) -> Attrs<'_> {
+    match enabled {
+        true => a,
+        false => a.font_features(off()),
     }
-    if cursor {
-        a = a.stretch(Stretch::SemiCondensed);
-    }
-    a
 }

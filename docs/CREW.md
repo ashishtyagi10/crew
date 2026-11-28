@@ -8,7 +8,9 @@ crates under `crates/` make up the product.
 ## Architecture
 
 - **Rendering** — `winit` + `wgpu` + `glyphon`/`cosmic-text`. Every cell is drawn
-  on the GPU; panes have SDF rounded borders. The rendering model has four
+  on the GPU; panes have SDF rounded borders. Programmer ligatures (`=>`, `!=`)
+  come from the face's own `liga`/`calt`, each spanning exactly its cells;
+  `font_ligatures = false` turns them off. The rendering model has four
   invariants: the **cell box is fixed** at `(0.6, 1.25) × font size`, rounded to
   whole physical pixels and independent of the font family (every glyph advance
   — bold and wide CJK/emoji runs included — snaps to a whole number of cells

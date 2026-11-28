@@ -52,25 +52,19 @@ fn the_face_joins_an_arrow_and_the_grid_holds() {
 }
 
 #[test]
-fn off_means_the_plain_glyphs_and_the_cursor_splits_the_ligature() {
-    let off = shape(false, None);
-    let split = shape(true, Some(2));
-    assert_eq!(split[1], off[1], "`=` beside the caret is drawn plain");
-    assert_eq!(split[2], off[2], "so is the caret's own `>`");
-    assert_eq!(split[3], off[3]);
+fn the_setting_changes_the_attrs_and_the_caret_does_not() {
+    use crate::ligature::shape;
+    use glyphon::Attrs;
+    let base = Attrs::new();
+    assert_eq!(shape(base.clone(), true), base);
+    let off = shape(base.clone(), false);
+    assert!(!off.font_features.features.is_empty());
+    assert!(off.compatible(&base), "features never split a run");
 }
 
 #[test]
-fn the_setting_and_the_cursor_each_change_the_attrs() {
-    use crate::ligature::shape;
-    use glyphon::{Attrs, Stretch};
-    let base = Attrs::new();
-    assert_eq!(shape(base.clone(), true, false), base);
-    assert!(!shape(base.clone(), false, false)
-        .font_features
-        .features
-        .is_empty());
-    let split = shape(base.clone(), true, true);
-    assert_eq!(split.stretch, Stretch::SemiCondensed);
-    assert!(!split.compatible(&base), "the shaper must see a break");
+fn the_caret_leaves_a_ligature_joined() {
+    // No split: a stretch break picks a narrower face in families that have
+    // one, and a blinking caret would join and split it every blink.
+    assert_eq!(shape(true, Some(2)), shape(true, None));
 }
