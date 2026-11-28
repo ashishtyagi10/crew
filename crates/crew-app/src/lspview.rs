@@ -53,7 +53,7 @@ pub(crate) fn listing(rows: &[Row], running: &[(String, PathBuf)]) -> String {
         }
     }
     out.push_str(
-        "\nAgents call lsp:hover, lsp:definition, lsp:references and lsp:diagnostics \
+        "\nAgents call lsp:hover, lsp:definition, lsp:references, lsp:diagnostics and lsp:symbols \
          (read-only, no approval). The viewer marks a code file's diagnostics in the \
          margin when its server is installed; lsp = false in config turns that off.\n",
     );

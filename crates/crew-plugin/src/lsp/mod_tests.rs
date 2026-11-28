@@ -12,14 +12,23 @@ fn table(cmd: &str) -> BTreeMap<String, Server> {
 }
 
 #[test]
-fn the_four_tools_are_listed_only_when_a_server_is_configured() {
+fn the_five_tools_are_listed_only_when_a_server_is_configured() {
     assert!(LspHost::default().tools().is_empty());
     let names: Vec<String> = LspHost::new(table("rust-analyzer"))
         .tools()
         .into_iter()
         .map(|t| t.name)
         .collect();
-    assert_eq!(names, ["hover", "definition", "references", "diagnostics"]);
+    assert_eq!(
+        names,
+        [
+            "hover",
+            "definition",
+            "references",
+            "diagnostics",
+            "symbols"
+        ]
+    );
 }
 
 /// Every descriptor is one the picker can find for a code task: the words
@@ -30,7 +39,8 @@ fn descriptions_lead_with_the_words_a_code_task_uses() {
         let first = t.description.lines().next().unwrap_or("").to_lowercase();
         assert!(first.contains("language server"), "{}: {first}", t.name);
         assert_eq!(t.server, "lsp");
-        assert_eq!(t.input_schema["required"][0], "file");
+        let first_arg = if t.name == "symbols" { "query" } else { "file" };
+        assert_eq!(t.input_schema["required"][0], first_arg);
         assert_eq!(t.input_schema["type"], "object");
     }
     let hover = &tools::descriptors()[0];

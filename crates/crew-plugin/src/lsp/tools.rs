@@ -1,4 +1,4 @@
-//! The four `lsp` tools as the model sees them, and the text they answer
+//! The five `lsp` tools as the model sees them, and the text they answer
 //! with. Descriptions are deliberately rich in the words a code task uses —
 //! symbol, definition, references, type, error, diagnostic — because the
 //! retrieval picker (`broker/toolpick.rs`) scores a tool by its first line
@@ -10,7 +10,13 @@ use serde_json::{json, Value};
 use crate::mcp::McpTool;
 use crew_lsp::{Diagnostic, Location};
 
-pub(super) const NAMES: [&str; 4] = ["hover", "definition", "references", "diagnostics"];
+pub(super) const NAMES: [&str; 5] = [
+    "hover",
+    "definition",
+    "references",
+    "diagnostics",
+    "symbols",
+];
 
 /// `{file, line, col}` — one-based, the way an editor and a compiler print
 /// them; `file` is relative to the project (the broker's cwd) or absolute.
@@ -120,6 +126,7 @@ pub(super) fn descriptors() -> Vec<McpTool> {
              {\"file\": \"src/main.rs\"}",
             false,
         ),
+        super::symbols::descriptor(),
     ]
 }
 

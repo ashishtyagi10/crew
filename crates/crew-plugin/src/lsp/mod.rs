@@ -1,13 +1,14 @@
 //! The `lsp` tool server: language servers, started per project root and
-//! language on first use and kept for the session, answering the four
+//! language on first use and kept for the session, answering the five
 //! read-only questions an agent asks about code — what is this symbol, where
-//! is it defined, where is it used, what is wrong with this file.
+//! is it defined, where is it used, what is wrong with this file, what is named so.
 //!
 //! Shaped like [`crate::mcp::McpHost`]: lazy clients, a tool list the session
 //! merges into its catalog, one `call` the dispatch chain routes to. Unlike
 //! MCP the tools are crew's own, so their tier is declared here as READ
 //! (`broker/tier.rs`) rather than defaulting to "ask".
 mod settle;
+mod symbols;
 mod tools;
 
 use std::collections::BTreeMap;
@@ -108,7 +109,7 @@ impl LspHost {
         }
     }
 
-    /// The four tools, when there is a server table to answer them.
+    /// The five tools, when there is a server table to answer them.
     pub fn tools(&self) -> Vec<McpTool> {
         if self.is_empty() {
             return Vec::new();
@@ -219,6 +220,9 @@ impl LspHost {
     /// Run one `lsp` tool. Every failure is a sentence for the agent; a
     /// failed request also drops the client so the next call starts fresh.
     pub fn call(&mut self, tool: &str, args: &str) -> Result<String, String> {
+        if tool == "symbols" {
+            return self.symbols(args);
+        }
         let a = Args::parse(args)?;
         let path = tools::absolute(&a.file);
         let lang = servers::lang_of(&path)
