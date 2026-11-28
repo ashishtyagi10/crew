@@ -51,6 +51,9 @@ backlog and the shipped table, and each round writes its row there.
   find the drawn word in `build_frame()` cells and press there
   (`navfar_tests::drawn_at` is the pattern) — those prove the hit path the
   user's click takes.
+- **Every subagent runs on Sonnet.** Launch each one (the round's
+  implementer, the diff reviewer, any research or search agent) with
+  `model: "sonnet"`. Left unset, it inherits the session's Opus.
 - **A fresh reviewer reads each round's diff before it merges.** On
   2026-11-23 one read caught four real faults the green suite missed. Check
   every diff for: (1) a test that seeds a process-wide static (a card, a
@@ -222,7 +225,8 @@ on screen, before and after. The `verify` skill drives the live GUI.
    target/debug target-<br>/debug` and `CARGO_TARGET_DIR=target-<br>`; remove
    the worktree and `target-<br>` together once the branch merges. A
    multi-round loop may run TWO lanes — main checkout plus one worktree, an
-   implementer subagent each — merging strictly one at a time.
+   implementer subagent each (`model: "sonnet"`) — merging strictly one at a
+   time.
 3. **Build the smallest honest version.** Module boundaries: window/pane/
    input in `crew-app`, GPU in `crew-render`, PTY/grid in `crew-term`, agents
    and the broker in `crew-plugin` / `crew-hive`. Tests in a sibling
