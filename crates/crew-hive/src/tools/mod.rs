@@ -155,6 +155,14 @@ pub trait Tools: Send + Sync {
         None
     }
 
+    /// What tools that run model calls of their own (`sys:explore`) spent
+    /// since this was last asked, handed over once. The turn's own provider
+    /// never saw those calls, so the engine bills them here — otherwise a
+    /// sub-agent's tokens would be free. Defaults to nothing.
+    fn take_spent(&self) -> crate::Spent {
+        crate::Spent::default()
+    }
+
     /// Whether the turn may end on `answer` ([`StopCheck`]): the user's Stop
     /// hooks, when the surface has any. `held` is true once this turn has
     /// been held already, so a check can let a second try through rather

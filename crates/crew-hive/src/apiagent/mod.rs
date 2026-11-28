@@ -175,7 +175,23 @@ impl Agent for ApiAgent {
             if let (Some(t), Some(a)) = (&tools, &advisor) {
                 turn.advice = Some(Arc::new(advisor_for(&ctx, t, a, after)));
             }
+            let (billed, events, agent) = (tools.clone(), turn.events.clone(), turn.agent.clone());
             let ended = harness::run(turn, spec, provider, tools, steers).await;
+            // What a tool's own model calls cost (`Tools::take_spent`).
+            if let Some(s) = billed.map(|t| t.take_spent()).filter(|s| !s.is_zero()) {
+                let input = u32::try_from(s.input).unwrap_or(u32::MAX);
+                let output = u32::try_from(s.output).unwrap_or(u32::MAX);
+                let agent_id = agent.clone();
+                events.publish(crate::bus::HiveEvent::TokenDelta {
+                    agent: agent_id,
+                    input,
+                    output,
+                });
+                events.publish(crate::bus::HiveEvent::CostDelta {
+                    agent,
+                    micros_usd: s.micros_usd,
+                });
+            }
             attempt_of(ended, task_id)
         })
     }

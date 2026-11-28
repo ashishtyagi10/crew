@@ -154,6 +154,7 @@ impl Broker {
             effort,
         };
         let steers = Steers::new(super::steer::take).with_tail(super::steer::TAIL);
+        let billed = Arc::clone(&runner);
         let ended = rt.block_on(harness::run(
             ctx,
             spec,
@@ -162,6 +163,8 @@ impl Broker {
             Some(steers),
         ));
         (stream.on_thought)(""); // the hop is over: flush the gate's tail
+                                 // A tool's own model calls (`sys:explore`) are the thread's cost too.
+        lock(&tally).stats.spend(&billed.take_spent());
         let tally = std::mem::take(&mut *lock(&tally));
         stats.merge(&tally.stats);
         reply::of(ended, tally, env, sink)

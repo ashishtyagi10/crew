@@ -25,8 +25,9 @@ use super::super::toolcall::ToolRunner;
 use super::super::Adapter;
 
 /// crew's `sys:` tools a file-reading agent has a twin for (Read, Write,
-/// Edit, Bash, Grep, Glob, LS; git runs through Bash).
-const TWINS: [&str; 8] = [
+/// Edit, Bash, Grep, Glob, LS; git runs through Bash; explore is its Task).
+const TWINS: [&str; 9] = [
+    "explore",
     "read_file",
     "write_file",
     "edit",
@@ -103,6 +104,9 @@ impl ToolRunner for OwnHands {
     }
     fn repeatable(&self, server: &str, tool: &str) -> bool {
         self.0.repeatable(server, tool)
+    }
+    fn take_spent(&self) -> crew_hive::Spent {
+        self.0.take_spent()
     }
     fn specs(&self) -> Vec<ToolSpec> {
         mine(self.0.specs())
