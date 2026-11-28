@@ -34,3 +34,12 @@ impl PtyTerm {
         self.core.row_below(focused)
     }
 }
+
+/// The copy-output hook (Cmd+Shift+C), here for `pty.rs`'s 200-line cap.
+impl PtyTerm {
+    /// What the last finished command (or, scrolled back, the one on view)
+    /// printed, by the shell's own marks (see [`crate::CommandOutput`]).
+    pub fn command_output(&self) -> Result<crate::CommandOutput, crate::OutputErr> {
+        self.core.command_output()
+    }
+}
