@@ -4,10 +4,13 @@
 //! Cells cannot move by less than a row, so the entrance is colour, not
 //! geometry (the grid's own slide already carries the pane itself). "New"
 //! is narrow on purpose: the memory ([`crate::navpanememo`]) saw the card
-//! for the first time on a pass *after* it had already seen the section, and
-//! the pane is younger than [`ENTER_MS`]. Panes found when the section came
-//! into view, or at start-up, are seeded silently; a re-ordered or un-hidden
-//! pane is old. At Motion Off the card simply appears.
+//! for the first time on a pass *after* it had already seen the section, the
+//! pass has exactly one card more than the last and it is the LAST pane (a
+//! created pane is pushed to the end), and the pane is younger than
+//! [`ENTER_MS`]. Panes found when the section came into view, or at start-up,
+//! are seeded silently; a tab switch re-stamps `born_ms` on every pane of the
+//! tab, but adds no card, so none re-enters. At Motion Off the card simply
+//! appears.
 use crew_render::CellView;
 
 use crate::motion::MotionLevel;

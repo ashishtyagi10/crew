@@ -91,3 +91,30 @@ fn subtle_is_shorter_and_softer_and_off_is_still() {
     assert_eq!(apply(vec![cell(5, 3)], &fx, 3, 94_010)[0].fg, ink);
     assert!(!live(94_011));
 }
+
+/// A tab switch re-stamps every pane's `born_ms` (`tabsapp::switch_grid`): the keys are all new
+/// and young, but no card was added, so nothing enters. Only the one appended pane does.
+#[test]
+fn a_tab_switch_replays_nothing_and_only_the_appended_pane_enters() {
+    let _g = crate::app::theme_test_guard();
+    crate::motion::set_level(Full);
+    let pass = |rows: Vec<(u64, usize)>, now: u64| {
+        let rows: Vec<_> = rows
+            .into_iter()
+            .map(|(b, i)| (b, i, EntryState::Idle, "w"))
+            .collect();
+        observe_rows(rows.into_iter(), now, true).unwrap()
+    };
+    observe_rows(std::iter::empty(), 1, false);
+    pass(vec![(10, 0), (20, 1)], 100_000);
+    // Switched: same two panes, both re-stamped to now.
+    let fx = pass(vec![(100_050, 0), (100_050, 1)], 100_060);
+    assert!(fx.iter().all(|f| f.born_at.is_none()), "{fx:?}");
+    // A pane created: appended as index 2, the one card more.
+    let fx = pass(vec![(100_050, 0), (100_050, 1), (100_100, 2)], 100_110);
+    assert_eq!(
+        fx.iter().map(|f| f.born_at.is_some()).collect::<Vec<_>>(),
+        [false, false, true]
+    );
+    crate::motion::set_level(Off);
+}
