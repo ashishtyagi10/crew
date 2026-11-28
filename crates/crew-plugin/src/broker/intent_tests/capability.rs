@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 /// [`route_stubbed`], but on a caller-owned session — the commit gate spans
 /// two sends (draft, then confirm), which must share the pending proposal.
-fn route_on(session: &mut Session, task: &str, call: Classifier) -> Vec<PluginEvent> {
+pub(super) fn route_on(session: &mut Session, task: &str, call: Classifier) -> Vec<PluginEvent> {
     let mut evs = Vec::new();
     route_with(
         task,
