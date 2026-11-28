@@ -455,7 +455,7 @@ at the cell under the pointer — so htop, mc, lazygit, tmux and vim's
 `mouse=a` work by mouse. Moves follow where the program asked for them: a
 drag with a button held under 1002, every move under 1003 (once per cell
 crossed, so btop and k9s light what the pointer hovers), and the wheel carries
-its Shift and Alt bits. Right-click pastes only where no program asked.
+its Shift and Alt bits. Right-click pastes only where no program asked; a middle click there pastes the focused pane's selection (select in one pane, middle-click in another — the X11 habit), else the clipboard.
 **Shift** keeps crew's own click: Shift+drag selects and copies as before.
 Crew's own targets — the border buttons, the scroll gutter, the legend row,
 a toast — still win.
