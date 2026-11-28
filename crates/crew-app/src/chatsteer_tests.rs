@@ -73,6 +73,8 @@ fn send_line(text: &str) -> String {
     serde_json::to_string(&PluginCommand::Send {
         channel: "crew".into(),
         text: text.into(),
+        // Typed in the composer, so its message is the first one numbered.
+        seq: 1,
     })
     .unwrap()
 }

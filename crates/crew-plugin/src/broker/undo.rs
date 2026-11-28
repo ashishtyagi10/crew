@@ -45,6 +45,15 @@ pub(crate) fn lock(u: &SharedUndo) -> std::sync::MutexGuard<'_, Option<Pending>>
     u.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+/// The checkpoints as `undo #N` counts them: newest first, so `#1` is the
+/// last one taken. `checkpoint::list` is oldest first; indexing it with `#N`
+/// put "undo that" on the OLDEST of up to 25.
+pub(crate) fn numbered(dir: &std::path::Path) -> Vec<(String, String)> {
+    let mut items = super::checkpoint::list(dir).unwrap_or_default();
+    items.reverse();
+    items
+}
+
 /// The router's one call: everything about undo, decided here.
 ///
 /// Checked before every other gate and before any model call, because this
@@ -75,10 +84,7 @@ pub(crate) fn offer(
     let Ok(dir) = std::env::current_dir() else {
         return say(emit, "undo needs a working directory");
     };
-    let items = match super::checkpoint::list(&dir) {
-        Ok(items) => items,
-        Err(e) => return say(emit, &format!("undo failed: {e}")),
-    };
+    let items = numbered(&dir);
     let Some((sha, label)) = items.get(nth).cloned() else {
         return say(
             emit,

@@ -116,6 +116,7 @@ impl Bridge {
         let cmd = serde_json::to_string(&PluginCommand::Send {
             channel: CHANNEL.to_string(),
             text: text.to_string(),
+            seq: 0,
         })
         .map_err(|e| e.to_string())?;
         match reg.send(&route.session, &cmd) {

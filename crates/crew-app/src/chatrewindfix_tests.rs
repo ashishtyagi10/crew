@@ -46,11 +46,19 @@ pub(crate) fn say(p: &mut ChatPane, sender: &str, ts: &str, text: &str) {
     });
 }
 
-pub(crate) fn started(p: &mut ChatPane, id: u64, label: &str) {
+/// The user's message goes out, as `send_now` numbers it.
+pub(crate) fn user(p: &mut ChatPane, ts: &str, text: &str) -> u64 {
+    say(p, "user", ts, text);
+    p.rewind_stamp(text)
+}
+
+/// The broker started task `id` for the send numbered `seq`.
+pub(crate) fn started(p: &mut ChatPane, id: u64, seq: u64) {
     p.rewind_hears(&PluginEvent::Task {
         id,
-        label: label.into(),
+        label: String::new(),
         running: true,
+        seq,
     });
     p.absorb_task(id, true);
     p.absorb_task(id, false);
@@ -59,13 +67,13 @@ pub(crate) fn started(p: &mut ChatPane, id: u64, label: &str) {
 /// Two tasks and one slash command answered inline, with replies between.
 pub(crate) fn history() -> (ChatPane, std::path::PathBuf) {
     let (mut p, file) = pane();
-    say(&mut p, "user", "100", "fix the parser");
-    started(&mut p, 1, "fix the parser");
+    let n = user(&mut p, "100", "fix the parser");
+    started(&mut p, 1, n);
     say(&mut p, "coder", "101", "done, parser fixed");
-    say(&mut p, "user", "200", "/diff");
+    user(&mut p, "200", "/diff"); // answered inline: no task starts for it
     say(&mut p, "agent smith", "201", "no changes");
-    say(&mut p, "user", "300", "now add tests");
-    started(&mut p, 2, "now add tests");
+    let n = user(&mut p, "300", "now add tests");
+    started(&mut p, 2, n);
     say(&mut p, "coder", "301", "tests added");
     (p, file)
 }
@@ -80,9 +88,31 @@ pub(crate) fn answer(
     PluginEvent::Rewind {
         task,
         files,
+        names: Vec::new(),
+        yours: Vec::new(),
         outside,
+        unsure: false,
+        stamp: "S".into(),
+        pin: 0,
         applied,
         error: error.into(),
+    }
+}
+
+/// An ask's answer naming `names`, of which `yours` were edited outside crew.
+pub(crate) fn listed(task: u64, names: &[&str], yours: &[&str], unsure: bool) -> PluginEvent {
+    let own = |l: &[&str]| l.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    PluginEvent::Rewind {
+        task,
+        files: names.len() as u32,
+        names: own(names),
+        yours: own(yours),
+        outside: !yours.is_empty(),
+        unsure,
+        stamp: "S".into(),
+        pin: 0,
+        applied: false,
+        error: String::new(),
     }
 }
 

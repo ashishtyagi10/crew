@@ -79,6 +79,7 @@ impl ChatPane {
     pub(crate) fn absorb_steered(&mut self, text: String) {
         if let Some(i) = self.queued.iter().position(|q| *q == text) {
             self.queued.remove(i);
+            self.rewind_unqueued(&text, false); // it never becomes a task of its own
         }
         if self.scroll > 0 {
             self.unread += 1;

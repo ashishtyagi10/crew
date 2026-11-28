@@ -35,7 +35,7 @@ impl ChatPane {
         if let Some(e) = &self.keyentry {
             return Some(e.card(cols));
         }
-        if let Some(c) = crate::chatrewind::card(&self.rewind, cols) {
+        if let Some(c) = crate::chatrewindcard::card(&self.rewind, cols) {
             return Some(c);
         }
         if let Some(f) = &self.find {

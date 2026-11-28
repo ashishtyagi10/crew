@@ -152,3 +152,35 @@ fn an_ordinary_task_is_not_a_gate_even_with_an_offer_held() {
     );
     assert!(pending(&session), "the offer should still be waiting");
 }
+
+/// `#1` is the newest checkpoint, as the list is numbered: with several
+/// taken, "undo that" must not reach for the oldest of them.
+#[test]
+fn undo_that_is_the_newest_checkpoint_and_the_number_counts_down_from_it() {
+    let dir = repo("order");
+    let session = Session::default();
+    let (_said, mut emit) = capture();
+    let a = dir.join("a.txt");
+    in_dir(&dir, || {
+        for (label, text) in [("one", "v1\n"), ("two", "v2\n"), ("three", "v3\n")] {
+            std::fs::write(&a, text).unwrap();
+            super::super::checkpoint::snapshot(&dir, label).unwrap();
+        }
+        std::fs::write(&a, "now\n").unwrap();
+        gate("undo that", &session, &mut emit).unwrap().unwrap();
+        gate("yes", &session, &mut emit).unwrap().unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&a).unwrap(),
+            "v3\n",
+            "not the newest"
+        );
+        gate("undo #3", &session, &mut emit).unwrap().unwrap();
+        gate("yes", &session, &mut emit).unwrap().unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&a).unwrap(),
+            "v1\n",
+            "#3 is the third newest"
+        );
+    });
+    std::fs::remove_dir_all(&dir).ok();
+}

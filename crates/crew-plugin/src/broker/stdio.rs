@@ -47,6 +47,7 @@ fn announce_crash(out: &Out, id: u64, why: &(dyn std::any::Any + Send)) {
         id,
         label: String::new(),
         running: false,
+        seq: 0,
     };
     let _ = emit(out, &ended);
 }
@@ -125,7 +126,9 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
         };
         match cmd {
             PluginCommand::Hello { .. } => hello(&out, &session)?,
-            PluginCommand::Send { text, .. } => send(text, &out, &mut session, &mut tasks)?,
+            PluginCommand::Send { text, seq, .. } => {
+                send((text, seq), &out, &mut session, &mut tasks)?
+            }
             PluginCommand::Subscribe { .. } => {}
             // An answer to a question the gate asked. The tool call that raised it is blocked
             // on a worker thread waiting for exactly this, so it only has to reach the mailbox.
@@ -139,11 +142,21 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             // The pane's Shift+Tab: the gate reads it at the next tool call.
             PluginCommand::Mode { approval } => super::approval::set_mode(approval),
             // Ctrl+B in the pane: ask what going back costs, or go (`rewind`).
-            PluginCommand::Rewind { task, confirm } => {
+            PluginCommand::Rewind {
+                task,
+                confirm,
+                seen,
+            } => {
                 tasks.reap();
                 if let Ok(dir) = std::env::current_dir() {
                     let mut say = |ev| emit(&out, &ev);
-                    super::rewind::handle(&session, &dir, tasks.len(), (task, confirm), &mut say)?;
+                    super::rewind::handle(
+                        &session,
+                        &dir,
+                        tasks.len(),
+                        (task, confirm, &seen),
+                        &mut say,
+                    )?;
                 }
             }
         }
@@ -261,7 +274,7 @@ fn fresh_start(session: &Session) {
 /// answer inline; every other task spawns a NEW background worker (up to the
 /// cap), so several run at once.
 fn send(
-    text: String,
+    (text, seq): (String, u64),
     out: &Out,
     session: &mut Session,
     tasks: &mut super::tasks::Tasks,
@@ -384,6 +397,7 @@ fn send(
             id,
             label: label.clone(),
             running: true,
+            seq,
         },
     )?;
     let handle = std::thread::spawn(move || {
@@ -423,6 +437,7 @@ fn send(
                         id,
                         label: String::new(),
                         running: false,
+                        seq: 0,
                     };
                     let _ = emit(&out_thread, &end);
                     return;
@@ -534,6 +549,7 @@ fn send(
                     id,
                     label: String::new(),
                     running: false,
+                    seq: 0,
                 },
             );
         }));

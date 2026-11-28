@@ -84,6 +84,31 @@ fn every_task_announces_its_start_and_its_end() {
     assert!(labelled, "no start event carried its label: {ev:?}");
 }
 
+/// The pane tells identical messages apart by the number it sent each with:
+/// the task a send starts answers with that number, whatever its label says.
+#[test]
+fn a_tasks_start_echoes_the_number_its_send_carried() {
+    let dir = unique_dir("tasks-seq");
+    seed_specialists(&dir, &["planner"]);
+    let mock = ("CREW_BROKER_MOCK_REPLY", "did it\n@done");
+    let a = r#"{"type":"send","channel":"crew","text":"@planner same words","seq":7}"#;
+    let b = r#"{"type":"send","channel":"crew","text":"@planner same words","seq":9}"#;
+    let ev = run_broker(&dir, &[mock], &[a, b]);
+    let seqs: Vec<(u64, u64)> = ev
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::Task {
+                id,
+                seq,
+                running: true,
+                ..
+            } => Some((*id, *seq)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(seqs, [(1, 7), (2, 9)], "{ev:?}");
+}
+
 // Coverage boundary: an e2e can't deterministically cancel a RUNNING mock task
 // here — the mock provider replies and `@done`s instantly, so the task is reaped
 // before the next queued stdin line (`/stop`) is even read, making any

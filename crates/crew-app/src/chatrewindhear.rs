@@ -4,73 +4,83 @@
 use crew_plugin::{PluginCommand, PluginEvent};
 
 use crate::chat::ChatPane;
-use crate::chatrewind::{shown, Ask, Mark, LABEL};
+use crate::chatrewind::shown;
+use crate::chatrewindmarks::Ask;
 
 impl ChatPane {
     /// Every broker event, for the two that matter here: a task start binds
-    /// to the oldest message it was made from, and an answer to our ask.
+    /// to the send that carried its number, and an answer to our ask.
     pub(crate) fn rewind_hears(&mut self, ev: &PluginEvent) {
         match ev {
             PluginEvent::Task {
                 id,
-                label,
+                seq,
                 running: true,
-            } => {
-                let made_from = |m: &&mut Mark| {
-                    m.task.is_none()
-                        && label.starts_with(&m.text.trim().chars().take(LABEL).collect::<String>())
-                };
-                if let Some(m) = self.rewind.marks.iter_mut().find(made_from) {
-                    m.task = Some(*id);
-                }
-            }
-            PluginEvent::Rewind {
-                task,
-                files,
-                outside,
-                applied,
-                error,
-            } if self
-                .rewind
-                .want
-                .as_ref()
-                .is_some_and(|w| w.task == Some(*task)) =>
+                ..
+            } => self.rewind_bind(*seq, *id),
+            PluginEvent::Rewind { task, .. }
+                if self
+                    .rewind
+                    .want
+                    .as_ref()
+                    .is_some_and(|w| w.task == Some(*task)) =>
             {
-                self.rewind_answer(*task, (*files, *outside, *applied), error);
+                self.rewind_answer(ev);
             }
             _ => {}
         }
     }
 
-    fn rewind_answer(
-        &mut self,
-        task: u64,
-        (files, outside, applied): (u32, bool, bool),
-        error: &str,
-    ) {
+    fn rewind_answer(&mut self, ev: &PluginEvent) {
+        let PluginEvent::Rewind {
+            task,
+            files,
+            names,
+            yours,
+            outside,
+            unsure,
+            stamp,
+            pin,
+            applied,
+            error,
+        } = ev
+        else {
+            return;
+        };
         if !error.is_empty() {
             self.rewind.want = None;
             return self.push_note(format!("rewind: {error}"));
         }
-        if applied {
-            return self.rewind_done(files);
+        if *applied {
+            return self.rewind_done(*files, *pin);
         }
-        if files == 0 {
-            return self.rewind_send(task, true); // the conversation alone: no file step
+        if *files == 0 {
+            return self.rewind_send(*task, (true, stamp)); // the conversation alone: no file step
         }
         self.rewind.ask = Some(Ask {
-            task,
-            files,
-            outside,
+            task: *task,
+            files: *files,
+            names: names.clone(),
+            yours: yours.clone(),
+            outside: *outside,
+            unsure: *unsure,
+            stamp: stamp.clone(),
         });
     }
 
-    pub(crate) fn rewind_send(&mut self, task: u64, confirm: bool) {
-        let _ = self.plugin.send(&PluginCommand::Rewind { task, confirm });
+    /// Ask the broker (`confirm` false) or tell it yes to the list `seen`.
+    pub(crate) fn rewind_send(&mut self, task: u64, (confirm, seen): (bool, &str)) {
+        let seen = seen.to_string();
+        let _ = self.plugin.send(&PluginCommand::Rewind {
+            task,
+            confirm,
+            seen,
+        });
     }
 
     /// Cut the transcript before the picked message and hand its text back.
-    fn rewind_done(&mut self, files: u32) {
+    /// The queue is left alone: a rewind is refused while one waits.
+    fn rewind_done(&mut self, files: u32, pin: u32) {
         let Some(m) = self.rewind.want.take() else {
             return;
         };
@@ -89,7 +99,7 @@ impl ChatPane {
         if let Some(i) = self.rewind.marks.iter().position(|x| x.ts == m.ts) {
             self.rewind.marks.truncate(i);
         }
-        (self.streaming, self.queued) = Default::default();
+        self.streaming = Default::default();
         (self.find, self.palette, self.mention) = (None, None, None);
         (self.checklist, self.scroll, self.caret_back) = (Vec::new(), 0, 0);
         self.input = m.text.clone();
@@ -100,8 +110,16 @@ impl ChatPane {
                 crate::wording::count(n as usize, "file")
             ),
         };
+        // Where the tree it replaced is kept: `undo #N` counts checkpoints
+        // newest first, and this one is the newest until a task makes another.
+        let kept = match pin {
+            0 => String::new(),
+            n => format!(
+                "; your files before this are pinned: say \u{201c}undo #{n}\u{201d} (a new task moves it down one)"
+            ),
+        };
         self.push_note(format!(
-            "rewound to \u{201c}{}\u{201d}{back}",
+            "rewound to \u{201c}{}\u{201d}{back}{kept}",
             shown(&m.text)
         ));
     }

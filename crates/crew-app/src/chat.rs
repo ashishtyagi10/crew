@@ -171,7 +171,7 @@ pub struct ChatPane {
     /// an all-zero stat never leaks a trailer.
     pub(crate) pending_reply_usage: Option<(String, u64, u64, u64)>,
     /// Ctrl+B: the messages sent, the open list, the confirmation (`chatrewind`).
-    pub(crate) rewind: crate::chatrewind::Rewind,
+    pub(crate) rewind: crate::chatrewindmarks::Rewind,
     /// What this pane has already sent, for the composer's Up/Down recall
     /// (see `chathistory`). Not derived from `messages`: those are display
     /// records that fold, get restored from a session log and include replies,

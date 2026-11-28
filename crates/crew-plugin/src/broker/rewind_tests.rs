@@ -3,7 +3,7 @@ use super::*;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn repo(tag: &str) -> PathBuf {
+pub(super) fn repo(tag: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
         "crew-rewind-{tag}-{}-{}",
         std::process::id(),
@@ -37,20 +37,42 @@ fn repo(tag: &str) -> PathBuf {
     dir
 }
 
-fn tree(dir: &Path) -> String {
+pub(super) fn tree(dir: &Path) -> String {
     super::super::checkpoint::worktree_tree(dir).unwrap()
 }
 
 /// A session whose task `id` began now on the tree `dir` holds.
-fn began(session: &Session, dir: &Path, id: u64, at_ms: u64) {
+pub(super) fn began(session: &Session, dir: &Path, id: u64, at_ms: u64) {
     let mut log = lock(&session.rewind);
     log.begin(id, at_ms);
     log.began_on(id, &tree(dir));
 }
 
+/// Ask, and — when `go` — confirm with the stamp that ask answered with, as
+/// the pane does.
 fn ask(session: &Session, dir: &Path, running: usize, id: u64, go: bool) -> PluginEvent {
+    let asked = ask_seen(session, dir, running, (id, false), "");
+    let seen = match &asked {
+        PluginEvent::Rewind { stamp, .. } => stamp.clone(),
+        _ => String::new(),
+    };
+    if go {
+        ask_seen(session, dir, running, (id, true), &seen)
+    } else {
+        asked
+    }
+}
+
+/// One Rewind command with an explicit `seen`.
+pub(super) fn ask_seen(
+    session: &Session,
+    dir: &Path,
+    running: usize,
+    (id, go): (u64, bool),
+    seen: &str,
+) -> PluginEvent {
     let mut got = Vec::new();
-    handle(session, dir, running, (id, go), &mut |ev| {
+    handle(session, dir, running, (id, go, seen), &mut |ev| {
         got.push(ev);
         Ok(())
     })
@@ -58,7 +80,7 @@ fn ask(session: &Session, dir: &Path, running: usize, id: u64, go: bool) -> Plug
     got.pop().expect("one answer")
 }
 
-fn answer(ev: PluginEvent) -> (u32, bool, bool, String) {
+pub(super) fn answer(ev: PluginEvent) -> (u32, bool, bool, String) {
     match ev {
         PluginEvent::Rewind {
             files,
@@ -78,6 +100,7 @@ fn asking_counts_the_files_that_would_go_back_and_touches_nothing() {
     began(&s, &dir, 1, 10);
     std::fs::write(dir.join("a.txt"), "two\n").unwrap();
     std::fs::write(dir.join("b.txt"), "new\n").unwrap();
+    lock(&s.rewind).ended_on(1, tree(&dir));
     let (files, outside, applied, error) = answer(ask(&s, &dir, 0, 1, false));
     assert_eq!(
         (files, outside, applied, error.as_str()),
@@ -98,10 +121,10 @@ fn confirming_puts_the_tree_back_and_pins_the_one_it_replaced() {
     assert!(applied && files == 2, "{error}");
     assert_eq!(std::fs::read_to_string(dir.join("a.txt")).unwrap(), "one\n");
     assert!(!dir.join("b.txt").exists(), "a file the task made stayed");
-    let items = super::super::checkpoint::list(&dir).unwrap();
-    assert_eq!(items.last().unwrap().1, "before rewind to #1");
+    let items = super::super::undo::numbered(&dir);
+    assert_eq!(items[0].1, "before rewind to #1", "`undo #1` is the pin");
     // "undo that" would therefore undo the rewind: the pinned tree has the edit.
-    super::super::checkpoint::restore(&dir, &items.last().unwrap().0).unwrap();
+    super::super::checkpoint::restore(&dir, &items[0].0).unwrap();
     assert_eq!(std::fs::read_to_string(dir.join("a.txt")).unwrap(), "two\n");
     let _ = std::fs::remove_dir_all(&dir);
 }
