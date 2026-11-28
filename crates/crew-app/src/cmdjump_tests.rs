@@ -94,12 +94,14 @@ fn the_screens_chord_up_scrolls_the_focused_terminal_to_a_command() {
     let from = t.pty.lines_seen() - 10 - 30;
     t.spans.started("build".into(), from, 0);
     app.focused = 0;
-    let mods = match cfg!(target_os = "macos") {
-        true => ModifiersState::SUPER | ModifiersState::ALT,
-        false => ModifiersState::CONTROL | ModifiersState::ALT,
-    };
+    // The Mac's Cmd+Opt+↑; off a Mac the same jump is Alt+PgUp (`winnav`),
+    // which runs `jump_command` itself.
     let up = Key::Named(NamedKey::ArrowUp);
-    assert!(app.arrow_chord(&up, mods), "the chord is crew's");
+    let taken = match cfg!(target_os = "macos") {
+        true => app.arrow_chord(&up, ModifiersState::SUPER | ModifiersState::ALT),
+        false => app.jump_command(true),
+    };
+    assert!(taken, "the chord is crew's");
     assert_eq!(app.focused, 0, "focus did not move");
     let PaneContent::Terminal(t) = &app.panes[0].content else {
         unreachable!()
