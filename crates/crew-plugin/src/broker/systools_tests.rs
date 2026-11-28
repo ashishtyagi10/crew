@@ -28,7 +28,8 @@ fn tools_lists_the_sys_surface() {
             "outline",
             "git",
             "todo",
-            "list_dir"
+            "list_dir",
+            "explore"
         ]
     );
     assert!(t.iter().all(|t| t.server == "sys"));

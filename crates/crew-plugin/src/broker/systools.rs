@@ -86,7 +86,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         description: desc.into(),
         input_schema: schema,
     };
-    vec![
+    let mut all = vec![
         mk(
             "run",
             "run a shell command, non-interactive: {\"cmd\": \"zip -r out.zip docs/\"}",
@@ -294,7 +294,9 @@ pub(crate) fn tools() -> Vec<McpTool> {
                 "properties": {"path": {"type": "string", "default": "."}},
             }),
         ),
-    ]
+    ];
+    all.push(super::sysexplore::tool());
+    all
 }
 
 /// Dispatch one `sys` call. Errors return to the agent as `ERROR: …`.
@@ -356,9 +358,10 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "search" => super::syssearch::search(str_arg(&v, "q")?),
         // The list is the task's, so the task's surface answers it
         // (`SessionTools::call`); here there is no task to keep it for.
+        "explore" => Err("sys:explore runs inside a task, and this call is not in one".into()),
         "todo" => Err("sys:todo keeps a checklist for a task, and this call is not in one".into()),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools, todo"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools, todo, explore"
         )),
     }
 }

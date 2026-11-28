@@ -52,6 +52,10 @@ impl Tools for PerTask {
         self.inner.repeatable(server, tool)
     }
 
+    fn take_spent(&self) -> crate::Spent {
+        self.inner.take_spent()
+    }
+
     fn specs(&self) -> Vec<ToolSpec> {
         self.inner.specs()
     }

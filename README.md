@@ -749,6 +749,11 @@ git lists, so nothing `.gitignore` names crowds out the project's own code),
 its Markdown headings, each on a row with its line number for `sys:read_file`'s
 `line` to open, the way Aider's repo map shows a file: its shape in one call
 rather than five pages),
+`sys:explore` (an open-ended search across several files handed to a fresh
+read-only agent on the cheap tier (else the standard one), up to 8 tool rounds and a 3-minute deadline, a run cut off by it returning no findings, that answers in a short
+summary citing `path:line`; the caller gets only that and a count of the files
+read and searches made, never the files, the way Claude Code's Explore agent
+keeps a search out of the main context),
 `sys:todo` (a checklist of up to 12 steps the agent keeps for a task with
 three or more of them, sent whole each time, shown back to it above every
 round's tool results so shortening never drops it, and the steps left undone

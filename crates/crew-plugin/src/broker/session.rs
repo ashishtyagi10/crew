@@ -328,6 +328,8 @@ struct SessionTools {
     /// The user's tool hooks (`hooks`), read afresh on every call. `None` with `CREW_HOOKS=0`,
     /// and under test, where no suite may run what the developer's own `hooks.json` says.
     hooks: Option<hooks::Source>,
+    /// What `sys:explore`'s nested turns cost, until the engine bills it.
+    explored: super::sysexplore::Bill,
 }
 
 impl SessionTools {
@@ -361,6 +363,7 @@ impl SessionTools {
             todo: crew_hive::tools::todo::Checklist::new(),
             cancel: Arc::new(AtomicBool::new(false)),
             hooks: (!cfg!(test)).then(hooks::Source::live).flatten(),
+            explored: Default::default(),
         }
     }
 
@@ -495,6 +498,10 @@ impl super::toolcall::ToolRunner for SessionTools {
             && !matches!((server, tool), ("lsp", "diagnostics") | ("sys", "todo"))
     }
 
+    fn take_spent(&self) -> crew_hive::Spent {
+        self.explored.take()
+    }
+
     /// The task's checklist, while the `sys` surface that writes it is on.
     fn checklist(&self) -> Option<&crew_hive::tools::todo::Checklist> {
         self.sys.then_some(self.todo.as_ref())
@@ -582,6 +589,9 @@ impl super::toolcall::ToolRunner for SessionTools {
                 &toolselect::search_query(args),
                 super::toolpick::BUDGET,
             ))
+        } else if server == "sys" && tool == "explore" && self.sys {
+            // Kept here: it needs this task's stop flag and bills the turn that asked.
+            super::sysexplore::run(args, &self.cancel, &self.explored, self.hooks.clone())
         } else if server == "sys" && tool == "todo" && self.sys {
             // Kept here rather than in `systools`: the list is the task's, and this surface is.
             self.todo.write(args)

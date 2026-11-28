@@ -124,6 +124,8 @@ mod streamhold;
 mod sunsetsaid;
 mod swarm;
 mod sysedit;
+mod sysexplore;
+mod sysexplorekit;
 mod sysfetch;
 pub(crate) mod sysfetchtext;
 mod sysgit;
