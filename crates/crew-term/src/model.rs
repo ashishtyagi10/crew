@@ -105,24 +105,11 @@ pub(crate) struct TermCore {
     evicted: u64,
     /// How many lines of scrollback the primary screen keeps.
     history_cap: usize,
+    /// Where each OSC 133 mark landed (`markpos`).
+    marks: crate::markpos::Marks,
     /// Whether a focused pane draws its cursor this frame: false only in the
     /// dark half of a blink, which the app times (see `cursorblink`).
     cursor_lit: bool,
-}
-
-/// A picture the program asked for, and where in the buffer it goes.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlacedImage {
-    /// Absolute buffer line: every line ever scrolled into the history (kept
-    /// or since evicted) plus the cursor's row. Stable as the screen scrolls,
-    /// which a viewport row is not; `TermCore::screen_line` is the top row's.
-    pub line: u64,
-    pub col: u16,
-    /// How many columns and rows of the grid it covers.
-    pub cells: (u16, u16),
-    /// Placed on the alternate screen: shown only there (see `wipescan`).
-    pub alt: bool,
-    pub cmd: crate::graphicscmd::ImageCmd,
 }
 
 impl TermCore {
@@ -161,6 +148,7 @@ impl TermCore {
             evicted: 0,
             history_cap,
             cursor_lit: true,
+            marks: Default::default(),
         };
         core.publish_size();
         core
@@ -255,7 +243,7 @@ impl TermCore {
             cols: size.cols as usize,
             rows: size.rows as usize,
         };
-        self.term.resize(dims);
+        self.resize_marking(dims);
         self.publish_size();
     }
 
@@ -295,12 +283,17 @@ mod modelfind;
 pub use modelfind::{FindSpan, FIND_CAP};
 #[path = "modelimage.rs"]
 mod modelimage;
+pub use modelimage::PlacedImage;
+#[path = "modelcopy.rs"]
+mod modelcopy;
 #[path = "modellast.rs"]
 mod modellast;
 #[path = "modelmodes.rs"]
 mod modelmodes;
 #[path = "modelprompt.rs"]
 mod modelprompt;
+#[path = "modelrows.rs"]
+mod modelrows;
 #[path = "modelrqss.rs"]
 mod modelrqss;
 #[path = "modelrqsssgr.rs"]

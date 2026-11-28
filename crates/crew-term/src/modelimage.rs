@@ -6,6 +6,21 @@ use alacritty_terminal::term::TermMode;
 
 use super::TermCore;
 
+/// A picture the program asked for, and where in the buffer it goes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlacedImage {
+    /// Absolute buffer line: every line ever scrolled into the history (kept
+    /// or since evicted) plus the cursor's row. Stable as the screen scrolls,
+    /// which a viewport row is not; `TermCore::screen_line` is the top row's.
+    pub line: u64,
+    pub col: u16,
+    /// How many columns and rows of the grid it covers.
+    pub cells: (u16, u16),
+    /// Placed on the alternate screen: shown only there (see `wipescan`).
+    pub alt: bool,
+    pub cmd: crate::graphicscmd::ImageCmd,
+}
+
 impl TermCore {
     /// Record where a picture goes, and move the cursor past it.
     ///

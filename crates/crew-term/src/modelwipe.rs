@@ -60,9 +60,13 @@ impl TermCore {
                     line: self.screen_line(),
                     alt,
                 }),
-                Hit::EraseSaved => self.wipe(ImageWipe::All),
+                Hit::EraseSaved => {
+                    self.forget_history();
+                    self.wipe(ImageWipe::All);
+                }
                 Hit::AltScreen(on) => self.wipe(ImageWipe::Alt(on)),
                 Hit::Reset => {
+                    self.forget_history();
                     self.wipe(ImageWipe::All);
                     self.wipe(ImageWipe::Alt(false));
                 }

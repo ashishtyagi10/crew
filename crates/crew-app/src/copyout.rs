@@ -3,17 +3,28 @@
 //! Pasting a failed build into an issue or a chat meant dragging a selection
 //! over a scrollback and hoping the edges landed right. kitty's
 //! `copy_last_command_output`, iTerm2's "Select Output of Last Command" and
-//! Warp's block "Copy output" do it with the shell's own marks; crew already
-//! has them (OSC 133, [`crate::cmdspan`]), so this is a chord over the same
-//! cut `??` and fix-with-smith use ([`crate::failctx`]).
+//! Warp's block "Copy output" do it with the shell's own marks; crew reads
+//! the same ones (OSC 133).
 //!
-//! The command is the last finished one, or — when the view has been jumped
-//! up to an earlier one (Cmd+Opt+↑, [`crate::cmdjump`]) — the one on screen.
-//! Without shell integration there are no marks to cut by, and guessing from
-//! the process poll would copy the wrong text confidently: it says so instead.
+//! The range comes from the buffer line the cursor was on when each mark
+//! ARRIVED (`crew_term::PtyTerm::command_output`, which also says why the
+//! rule is what it is), not from the once-a-second process poll that names
+//! the spans on the border: the poll misses a command that is over before
+//! it looks (`ls`), and notices the others up to a second late, which cut the
+//! head off heavy output. So `ls` after `cargo test` copies `ls`.
+//!
+//! The command is the last finished one, or — scrolled back, by the wheel or
+//! by Cmd+Opt+↑/↓ ([`crate::cmdjump`]) — the newest whose command line is at
+//! or above the view's top row. Without shell integration there are no marks,
+//! and guessing would copy the wrong text confidently: it says so instead.
+//! Likewise when a full-screen program was up, the width changed since, or
+//! the output was scrolled away: a notice, never wrong text.
+//!
+//! Not yet switched over: fix-with-smith ([`crate::failctx`]) still cuts by
+//! the poll's spans.
 use crate::app::CrewApp;
-use crate::cmdspan::{Span, Spans};
 use crate::pane::PaneContent;
+use crew_term::OutputErr;
 
 /// Said when no command can be cut out, so the user learns what to set up
 /// rather than that "it did nothing".
@@ -23,78 +34,57 @@ pub(crate) const NO_MARKS: &str =
 /// Longest command line quoted in the notice before it is cut with `…`.
 const NAME_CHARS: usize = 40;
 
-/// The index in `spans` of the command to copy. `top` is the buffer line on
-/// the window's top row while scrolled back, `None` on the live screen.
-/// Only commands the shell reported finished (OSC 133 `D;code`) count: a
-/// polled span has no honest end. Scrolled back, the newest one that began at
-/// or above the top row is the command being read.
-pub(crate) fn pick(spans: &Spans, top: Option<usize>) -> Option<usize> {
-    let done = |s: &Span| s.exit.is_some();
-    let at = spans
-        .0
-        .iter()
-        .rposition(|s| done(s) && top.is_none_or(|t| s.from <= t));
-    at
-}
-
-/// The `[from, to)` rows of `rows` as text: a soft-wrapped row continues the
-/// next without a newline, and trailing blank lines are dropped (the prompt's
-/// gap, not the command's output).
-pub(crate) fn join(rows: &[(String, bool)], from: usize, to: usize) -> String {
-    let to = to.min(rows.len());
-    let mut out = String::new();
-    for (i, (line, wrapped)) in rows[from.min(to)..to].iter().enumerate() {
-        out.push_str(line);
-        if i + from + 1 < to && !wrapped {
-            out.push('\n');
-        }
-    }
-    out.trim_end().to_string()
-}
-
-/// `name` for the notice: redacted (a flag can carry a secret), one line,
-/// and short.
-fn quoted(span: &Span) -> String {
-    let line = span.line.clone().unwrap_or_else(|| span.name.clone());
-    let line = crate::failredact::redact(&line).replace('\n', " ");
-    match line.chars().count() > NAME_CHARS {
-        true => format!(
+/// The command for a notice: redacted (a flag can carry a secret), one
+/// line, and short.
+fn quoted(command: &str) -> String {
+    let line = crate::failredact::redact(command).replace('\n', " ");
+    match (line.is_empty(), line.chars().count() > NAME_CHARS) {
+        (true, _) => "the command".into(),
+        (_, true) => format!(
             "{}\u{2026}",
             line.chars().take(NAME_CHARS).collect::<String>()
         ),
-        false => line,
+        _ => line,
+    }
+}
+
+/// What to tell the user when `why` left nothing to copy.
+fn refusal(why: OutputErr) -> String {
+    let dash = "\u{2014}";
+    match why {
+        OutputErr::NoMarks => NO_MARKS.into(),
+        OutputErr::AltScreen => format!(
+            "copy: a full-screen program is up or ran there {dash} its screen is not output"
+        ),
+        OutputErr::Resized => format!(
+            "copy: the pane was resized since {dash} its lines were rewrapped, nothing copied"
+        ),
+        OutputErr::Unsure => {
+            format!("copy: a screen update held back where it ended {dash} nothing copied")
+        }
+        OutputErr::Nothing(c) => format!("{} printed nothing {dash} nothing copied", quoted(&c)),
+        OutputErr::Gone(c) => format!(
+            "{}'s output is gone from scrollback {dash} nothing copied",
+            quoted(&c)
+        ),
     }
 }
 
 impl CrewApp {
-    /// The focused terminal's chosen command as `(its name, its output)`.
+    /// The focused terminal's chosen command: its output, the notice
+    /// suffix ` of <cmd>'s output…`, or why there is none.
     pub(crate) fn command_output(&mut self) -> Result<(String, String), String> {
         let pane = self.panes.get_mut(self.focused).ok_or("no pane focused")?;
-        let (cols, rows) = (pane.grid.cols, pane.grid.rows);
         let PaneContent::Terminal(t) = &mut pane.content else {
             return Err("copy: focus a terminal pane".into());
         };
-        let (now, off) = (t.pty.lines_seen(), t.pty.display_offset());
-        let top = (off > 0).then(|| now.saturating_sub(usize::from(rows)).saturating_sub(off));
-        let Some(span) = pick(&t.spans, top).map(|i| t.spans.0[i].clone()) else {
-            return Err(NO_MARKS.into());
-        };
-        let lines = crate::dump::capture_rows(&mut t.pty, cols, rows);
-        // Anchored on the end: the capture is capped, so its numbering can
-        // start later than the buffer's own.
-        let drop = now.saturating_sub(lines.len());
-        // As `failctx::failure_of`: a span's numbers sit one past the rows
-        // they bound, because the cursor is on the blank line after a newline.
-        let (from, to) = Spans::range(&span, now);
-        let (from, to) = (from.saturating_sub(1), to.saturating_sub(1));
-        let text = join(&lines, from.saturating_sub(drop), to.saturating_sub(drop));
-        match text.is_empty() {
-            true => Err(format!(
-                "{} printed nothing \u{2014} nothing copied",
-                quoted(&span)
-            )),
-            false => Ok((quoted(&span), text)),
+        let got = t.pty.command_output().map_err(refusal)?;
+        let mut note = format!(" of {}'s output", quoted(&got.command));
+        if got.dropped > 0 {
+            let n = got.dropped;
+            note += &format!(" (first {n} lines were dropped from scrollback)");
         }
+        Ok((note, got.text))
     }
 
     /// The chord. `put` is the clipboard (a parameter so tests never touch
@@ -102,13 +92,10 @@ impl CrewApp {
     pub(crate) fn copy_command_output_to(&mut self, put: &mut dyn FnMut(String) -> bool) {
         match self.command_output() {
             Err(why) => self.set_status(why),
-            Ok((name, text)) => {
+            Ok((note, text)) => {
                 let lines = text.lines().count();
                 match put(text) {
-                    true => self.set_status(crate::wording::copied(
-                        lines,
-                        &format!(" of {name}'s output"),
-                    )),
+                    true => self.set_status(crate::wording::copied(lines, &note)),
                     false => self.set_status("clipboard unavailable"),
                 }
             }

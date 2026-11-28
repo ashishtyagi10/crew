@@ -178,6 +178,8 @@ mod fgpid;
 mod focusreport;
 #[path = "promptmodes.rs"]
 mod promptmodes;
+#[path = "ptycopy.rs"]
+mod ptycopy;
 #[path = "ptyimage.rs"]
 mod ptyimage;
 #[path = "ptyscan.rs"]

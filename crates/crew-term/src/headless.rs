@@ -60,6 +60,11 @@ impl HeadlessTerm {
         self.core.take_shell()
     }
 
+    /// What the last finished command printed (see [`crate::CommandOutput`]).
+    pub fn command_output(&self) -> Result<crate::CommandOutput, crate::OutputErr> {
+        self.core.command_output()
+    }
+
     pub fn take_cwd(&mut self) -> Option<std::path::PathBuf> {
         self.core.take_cwd()
     }

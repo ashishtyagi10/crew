@@ -87,6 +87,37 @@ impl TermCore {
         self.screen_line() + self.term.grid().screen_lines() as u64
     }
 
+    /// Resize the grid without losing count of the lines it throws away.
+    /// A shorter screen pushes lines into the history, and a full history
+    /// evicts them where `parse` cannot see (it is the only place with the
+    /// spare room), which would slide every absolute line (`markpos`) by the
+    /// difference. Run with the spare room, then trim and count. A change of
+    /// width rewraps the text, so the lines recorded before it mean nothing.
+    pub(super) fn resize_marking(&mut self, dims: super::Dims) {
+        let cols = self.term.grid().columns();
+        let live = !self.alt();
+        if live {
+            self.term
+                .grid_mut()
+                .update_history(self.history_cap + SPARE);
+        }
+        self.term.resize(dims);
+        if live {
+            self.fit_history();
+        }
+        if cols != self.term.grid().columns() {
+            self.marks.reflowed();
+        }
+    }
+
+    /// `ESC[3J` / RIS empty the history: those lines are gone, not
+    /// un-numbered, so every line still on screen keeps its number.
+    pub(super) fn forget_history(&mut self) {
+        if !self.alt() {
+            self.evicted += self.term.grid().history_size() as u64;
+        }
+    }
+
     /// Set how many lines of scrollback the pane keeps (the `scrollback`
     /// setting, live). On the alternate screen the primary is out of reach:
     /// alacritty keeps it as a private `inactive_grid`, and `grid_mut` would
