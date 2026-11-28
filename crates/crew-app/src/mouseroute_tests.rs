@@ -72,3 +72,18 @@ fn a_bare_move_reaches_only_a_program_that_asked_for_every_move() {
     app.cursor.0 += CELL.0;
     assert!(!app.report_motion());
 }
+
+#[test]
+fn a_press_on_the_find_bar_row_is_swallowed() {
+    let (mut app, log) = app_on_cell("findbar", b"\x1b[?1000h\x1b[?1006h");
+    assert!(app.term_find_open());
+    // Row 2 is not the bar's (row 0): the program still gets that click.
+    assert!(app.report_press(MouseButton::Left));
+    assert!(app.mouse.held.is_some());
+    app.mouse.held = None;
+    app.cursor.1 -= CELL.1 * 2.0;
+    assert!(app.report_press(MouseButton::Left), "swallowed on the bar");
+    assert!(app.mouse.held.is_none(), "and nothing was reported");
+    assert!(app.drag.is_none(), "no selection starts under it");
+    let _ = std::fs::remove_file(&log);
+}

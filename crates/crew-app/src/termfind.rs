@@ -107,7 +107,12 @@ impl TermFind {
         match (self.query.is_empty(), self.matches.len()) {
             (true, _) => None,
             (false, 0) => Some(("no matches".into(), true)),
-            (false, n) => Some((format!("{}/{n}", self.sel + 1), false)),
+            // The search keeps only the newest FIND_CAP, so a full list is a
+            // floor, not a total: say so rather than claim an exact count.
+            (false, n) => {
+                let more = if n == crew_term::FIND_CAP { "+" } else { "" };
+                Some((format!("{}/{n}{more}", self.sel + 1), false))
+            }
         }
     }
 

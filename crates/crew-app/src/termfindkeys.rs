@@ -12,6 +12,18 @@ use crate::pane::{PaneContent, TermPane};
 use crate::termfind::{FindKey, TermFind};
 use winit::keyboard::{Key, ModifiersState, NamedKey};
 
+/// Keys that are never the query's: Ctrl+Tab walks panes, and Shift+PageUp /
+/// PageDown / Home / End scroll the buffer being searched.
+fn passes_through(key: &Key, mods: ModifiersState) -> bool {
+    match key {
+        Key::Named(NamedKey::Tab) => mods.control_key(),
+        Key::Named(NamedKey::PageUp | NamedKey::PageDown | NamedKey::Home | NamedKey::End) => {
+            mods.shift_key()
+        }
+        _ => false,
+    }
+}
+
 impl CrewApp {
     /// The focused pane's terminal, when the find bar is open on it and the
     /// keys are not somewhere else (the input bar, the nav list).
@@ -57,10 +69,17 @@ impl CrewApp {
         pressed: bool,
         mods: ModifiersState,
     ) -> bool {
+        self.close_find_off_focus();
         if self.find_term().is_none() {
             return false;
         }
         if crate::ctrlchord::cmd_held(mods, cfg!(target_os = "macos")) {
+            return false;
+        }
+        // Scrolling and pane-walking keys stay the app's (Ghostty scrolls
+        // during a search): without this they would fall to `Other` and be
+        // eaten, and the bar hooks in before `shift_scroll_key`.
+        if passes_through(key, mods) {
             return false;
         }
         if !pressed {

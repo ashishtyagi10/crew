@@ -193,3 +193,6 @@ fn composed_text_goes_to_the_query_not_the_program() {
     assert_eq!(term(&app).find.as_ref().unwrap().query, "\u{65e5}\u{672c}");
     assert!(sent.lock().unwrap().is_empty());
 }
+
+#[path = "termfindpass_tests.rs"]
+mod pass;

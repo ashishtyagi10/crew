@@ -106,3 +106,24 @@ fn reveal_scrolls_only_when_the_match_is_out_of_view() {
     assert_eq!(f.bar_row(to, rows), if row == 0 { rows - 1 } else { 0 });
     assert_eq!(f.reveal(to, rows, hist), None, "and then stays put");
 }
+
+#[test]
+fn a_full_list_counts_as_a_floor_not_a_total() {
+    let at = |i: usize| crew_term::FindSpan {
+        line: i as i32,
+        col: 0,
+        end_line: i as i32,
+        end_col: 2,
+    };
+    let f = TermFind {
+        query: "x".into(),
+        matches: (0..crew_term::FIND_CAP).map(at).collect(),
+        ..Default::default()
+    };
+    assert_eq!(f.count(), Some(("1/5000+".into(), false)));
+    let f = TermFind {
+        matches: (0..crew_term::FIND_CAP - 1).map(at).collect(),
+        ..f
+    };
+    assert_eq!(f.count(), Some(("1/4999".into(), false)));
+}
