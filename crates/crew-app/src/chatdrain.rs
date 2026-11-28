@@ -19,6 +19,7 @@ impl ChatPane {
         (self.plan_pending, self.asking) = (false, Default::default());
         self.pending_reply_usage = None; // it must not tag the next broker's reply
         self.thoughts.drop_live(); // no broker will finish it
+        self.rewind = Default::default(); // the new broker renumbers its tasks
     }
 
     /// End an in-flight browser sign-in, and SAY SO. The single place a live

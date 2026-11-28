@@ -113,6 +113,7 @@ impl ChatPane {
     fn clear_conversation(&mut self) {
         self.drop_queue();
         self.messages.clear();
+        self.rewind = Default::default();
         self.streaming.clear();
         self.swarm = None;
         self.folded = 0;

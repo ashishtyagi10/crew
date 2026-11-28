@@ -56,6 +56,7 @@ impl ChatPane {
         self.watch.phase.hear(ev, now);
         self.watch.strip.hear(ev, now);
         self.watch.proof.hear(ev);
+        self.rewind_hears(ev);
         match ev {
             PluginEvent::Alive {} => self.watch.beats = true,
             _ => (self.watch.last_work, self.watch.noted) = (now, None),

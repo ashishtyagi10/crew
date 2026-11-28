@@ -61,6 +61,7 @@ impl ChatPane {
     /// the Esc-interrupt note below) so the cap can't drift out of sync
     /// between them.
     pub(crate) fn push_capped(&mut self, m: Message) {
+        self.note_sent(&m);
         self.messages.push(m);
         if self.messages.len() <= Self::TRANSCRIPT_CAP {
             return;

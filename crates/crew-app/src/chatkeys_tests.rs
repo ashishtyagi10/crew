@@ -104,3 +104,11 @@ fn typed_characters_and_edits_are_classified() {
         ChatInput::Backspace
     );
 }
+
+#[test]
+fn ctrl_b_asks_to_rewind_and_a_plain_b_still_types() {
+    use winit::keyboard::SmolStr;
+    let b = Key::Character(SmolStr::new("b"));
+    assert_eq!(chat_key(&b, true, false, true), ChatInput::Rewind);
+    assert_eq!(chat_key(&b, true, false, false), ChatInput::Char('b'));
+}

@@ -432,6 +432,7 @@ the command palette write each chord the way that machine presses it.
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
+| Rewind to a message you sent (files + conversation) | **Ctrl+B** on an empty, idle composer; ↑/↓ pick, Enter, Esc closes |
 | Find in the chat transcript | **Cmd+F** (or **Ctrl+F**; Enter/Ctrl+F step older, Up newer) |
 | Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
@@ -3187,6 +3188,20 @@ and a typo gets a **did-you-mean** suggestion):
   snapshot. The match is EXACT and made before any model call, so “undo the
   nav change” is still a task for the agents and no misclassification can
   reach your tree; `/restore` answers with the phrasing and does nothing.
+  **Rewind** (**Ctrl+B**, on an empty composer with nothing running — Esc is
+  taken: it interrupts a run and closes an idle pane) reaches further back than
+  “undo that”, and takes the conversation with it. It lists the messages you
+  sent that started a task, newest first; Enter on one asks the broker what
+  going back would cost and shows one line — `rewind to “fix the parser…”? 3
+  files go back · Enter rewinds · Esc keeps`, naming edits made outside crew
+  when there are some. Yes puts the working tree back to the tree that task
+  began on (the current one is pinned first, so “undo that” undoes the rewind),
+  cuts the transcript before that message, makes the broker's thread carry
+  forget every turn answered since, and puts the message's text in the
+  composer. A message whose task left no file to put back skips the file step
+  and the question. It is refused while a task runs (`/stop` first), and the
+  list is as long as the broker remembers (the last 40 tasks of this broker).
+  The on-disk session log still holds the rewound turns.
 - **skills, no command** — the model chooses which loaded playbooks a task
   follows (at most two, announced as `skill <name> · chose · …`); a task
   that names one picks it up by itself when the model cannot be asked, and

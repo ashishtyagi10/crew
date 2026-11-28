@@ -64,6 +64,7 @@ impl ChatPane {
             tools: crate::chattool::ToolLines::default(),
             thoughts: crate::chatthought::Thoughts::default(),
             pending_reply_usage: None,
+            rewind: Default::default(),
             history: crate::chathistory::History::default(),
             warm: crate::chatwarm::WarmLatch::default(),
         }

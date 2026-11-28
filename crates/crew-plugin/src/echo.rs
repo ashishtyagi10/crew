@@ -21,6 +21,7 @@ pub fn respond(cmd: &PluginCommand) -> Vec<PluginEvent> {
         | PluginCommand::Approve { .. }
         | PluginCommand::Warm {}
         | PluginCommand::Steer { .. }
+        | PluginCommand::Rewind { .. }
         | PluginCommand::Mode { .. } => vec![],
     }
 }

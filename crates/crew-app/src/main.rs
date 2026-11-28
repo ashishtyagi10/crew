@@ -184,6 +184,8 @@ mod chatreplayshot_tests;
 mod chatreveal;
 mod chatrevealpane;
 mod chatrevive;
+mod chatrewind;
+mod chatrewindhear;
 mod chatroster;
 mod chatscroll;
 mod chatsend;

@@ -145,6 +145,10 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
         "Approval mode: auto-approve \u{2192} accept edits \u{2192} ask first \u{2192} plan only \u{2192} yolo",
     ),
     ("Ctrl+R", "Reverse-search prompts you've sent"),
+    (
+        "Ctrl+B",
+        "Rewind files and conversation to just before a message you sent",
+    ),
     ("Cmd+F / Ctrl+F", "Find in the transcript, jump per match"),
     ("Ctrl+Shift+M", "Markdown preview \u{2194} raw source"),
     ("Ctrl+O", "Compact transcript \u{2014} one line per message"),

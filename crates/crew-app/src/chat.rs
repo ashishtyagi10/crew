@@ -78,8 +78,7 @@ pub struct ChatPane {
     /// which takes it down with everything else. Not when the prompt is merely
     /// hidden: see `close_hidden_keyentry`.
     pub(crate) oauth: Option<std::sync::mpsc::Receiver<crate::oauth::OauthOutcome>>,
-    /// When true, show raw message text instead of markdown rendering.
-    /// Toggled with Ctrl+Shift+M; not persisted.
+    /// Raw message text instead of markdown (Ctrl+Shift+M); not persisted.
     pub(crate) show_source: bool,
     /// When true, each transcript message renders its header line plus only
     /// the first body line, with a muted ` … +N` suffix noting how many
@@ -171,6 +170,8 @@ pub struct ChatPane {
     /// when the stat reported real usage (see `chatflow::absorb_stats`), so
     /// an all-zero stat never leaks a trailer.
     pub(crate) pending_reply_usage: Option<(String, u64, u64, u64)>,
+    /// Ctrl+B: the messages sent, the open list, the confirmation (`chatrewind`).
+    pub(crate) rewind: crate::chatrewind::Rewind,
     /// What this pane has already sent, for the composer's Up/Down recall
     /// (see `chathistory`). Not derived from `messages`: those are display
     /// records that fold, get restored from a session log and include replies,

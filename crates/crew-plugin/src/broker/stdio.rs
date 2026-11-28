@@ -138,6 +138,14 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             }
             // The pane's Shift+Tab: the gate reads it at the next tool call.
             PluginCommand::Mode { approval } => super::approval::set_mode(approval),
+            // Ctrl+B in the pane: ask what going back costs, or go (`rewind`).
+            PluginCommand::Rewind { task, confirm } => {
+                tasks.reap();
+                if let Ok(dir) = std::env::current_dir() {
+                    let mut say = |ev| emit(&out, &ev);
+                    super::rewind::handle(&session, &dir, tasks.len(), (task, confirm), &mut say)?;
+                }
+            }
         }
     }
     // stdin closed (pane gone / EOF): let running tasks finish streaming
@@ -355,6 +363,7 @@ fn send(
     let out_thread = Arc::clone(out);
     let is_cmd = super::commands::is_command(&trimmed);
     let id = tasks.reserve();
+    super::rewind::lock(&session.rewind).begin(id, super::thread::now_ms());
     // No "task started" line: the agent's own streamed output is the
     // acknowledgment (Opencode-style). Only exceptional endings (error/stop)
     // are announced, below.
@@ -451,7 +460,7 @@ fn send(
                     Arc::clone(&out_thread),
                 );
                 std::thread::spawn(move || {
-                    auto_checkpoint(&s, &label_for_ckpt, &out);
+                    auto_checkpoint(&s, &label_for_ckpt, id, &out);
                     s.ckpt.open();
                 })
             };
@@ -498,6 +507,9 @@ fn send(
             snap.bg.reap();
             let _ = ckpt.join();
             let changed = report_changes(&snap, id, &out_thread, ending.as_deref());
+            if let Ok(dir) = std::env::current_dir() {
+                super::rewind::finish(&snap, &dir, id);
+            }
             let done = match (ending.as_deref(), changed) {
                 (None, _) => None,
                 (Some("stopped"), true) => None,
@@ -595,13 +607,18 @@ pub(crate) fn roster_for(reg: &Registry, provider: bool) -> String {
 /// This replaced `/checkpoint`. Asking a user to predict which task is the one
 /// worth protecting is asking them to be right in advance; the safety net is
 /// worth more when nobody has to think about it.
-fn auto_checkpoint(session: &Session, label: &str, out: &Out) {
+fn auto_checkpoint(session: &Session, label: &str, id: u64, out: &Out) {
     let Ok(dir) = std::env::current_dir() else {
         return;
     };
     let took = {
         let mut last = session.last_tree.lock().unwrap_or_else(|e| e.into_inner());
-        super::checkpoint::auto_snapshot(&dir, &format!("before: {label}"), &mut last)
+        let took = super::checkpoint::auto_snapshot(&dir, &format!("before: {label}"), &mut last);
+        // The tree this task begins on, for a rewind (`rewind`).
+        if let (Ok(_), Some(tree)) = (&took, last.as_deref()) {
+            super::rewind::lock(&session.rewind).began_on(id, tree);
+        }
+        took
     };
     // Say it ONCE, the first time one is actually written. Before that there
     // is nothing to restore and the note would be a promise; after it, a note
