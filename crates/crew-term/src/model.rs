@@ -197,6 +197,10 @@ impl TermCore {
     fn feed_piece(&mut self, bytes: &[u8]) {
         // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
         self.pointer.feed(bytes);
+        let was_alt = self
+            .term
+            .mode()
+            .contains(alacritty_terminal::term::TermMode::ALT_SCREEN);
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
         replies.push_str(&self.query_replies(bytes));
         if !replies.is_empty() {
@@ -214,6 +218,11 @@ impl TermCore {
             }
         }
         self.graphics = scanner;
+        // A TUI that leaves the alternate screen takes its hand with it, even
+        // when no shell mark is ever seen (ssh, tmux, no integration).
+        if was_alt && !self.input_modes().alt_screen {
+            self.pointer.clear();
+        }
     }
 
     /// Publish the frame's cell size (pictures' rows, size reports).

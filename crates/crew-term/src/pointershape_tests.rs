@@ -56,3 +56,14 @@ fn queries_and_overlong_or_cancelled_sequences_leave_it_alone() {
 fn kitty_equals_form_sets() {
     assert_eq!(fed(&[b"\x1b]22;=help\x07"]).name(), Some("help"));
 }
+
+#[test]
+fn plain_text_between_sequences_is_skipped_and_split_escapes_reassemble() {
+    let mut s = fed(&[b"plain text only"]);
+    assert_eq!(s.name(), None);
+    s.feed(b"lots of text \x1b");
+    s.feed(b"]22;pointer\x07 and more text");
+    assert_eq!(s.name(), Some("pointer"));
+    s.feed(b"text \x1bc more");
+    assert_eq!(s.name(), None);
+}

@@ -33,6 +33,21 @@ impl CrewApp {
     }
 }
 
+impl CrewApp {
+    /// Re-answer the pointer every poll tick, with the mouse still: a program
+    /// that sets its shape under a motionless pointer would otherwise show the
+    /// old one until the next mouse event. Only a pointer over a terminal
+    /// cell is asked, and the full sync runs only when the answer changed.
+    pub(crate) fn pointer_refresh(&mut self) {
+        if self.cursor_in
+            && self.cursor_term_cell().is_some()
+            && self.cursor_icon != super::icon(self.pointer_over())
+        {
+            self.pointer_sync();
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "pointerprog_tests.rs"]
 mod tests;

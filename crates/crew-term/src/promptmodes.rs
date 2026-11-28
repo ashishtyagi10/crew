@@ -136,6 +136,6 @@ mod cursor_tests;
 #[path = "promptkitty_tests.rs"]
 mod kitty_tests;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "promptshape_tests.rs"]
 mod shape_tests;

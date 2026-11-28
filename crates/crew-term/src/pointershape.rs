@@ -38,10 +38,26 @@ impl PointerShape {
         self.name.as_deref()
     }
 
+    /// Back to the default pointer (the program left the alternate screen).
+    pub(crate) fn clear(&mut self) {
+        self.name = None;
+    }
+
     /// Scan a chunk of PTY output. State persists across calls, so a
     /// sequence split across reads reassembles.
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
-        for &b in bytes {
+        let mut bytes = bytes;
+        while let Some((&b, rest)) = bytes.split_first() {
+            // Almost every byte of output is plain text: in Ground, jump to
+            // the next ESC instead of stepping the machine per byte.
+            if matches!(self.state, State::Ground) && b != 0x1b {
+                match bytes.iter().position(|&c| c == 0x1b) {
+                    Some(at) => bytes = &bytes[at..],
+                    None => return,
+                }
+                continue;
+            }
+            bytes = rest;
             self.state = match std::mem::take(&mut self.state) {
                 State::Ground | State::Esc if b == 0x1b => State::Esc,
                 State::Ground => State::Ground,

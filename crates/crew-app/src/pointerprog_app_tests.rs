@@ -172,3 +172,19 @@ fn a_selection_drag_keeps_the_text_cursor() {
     assert!(app.drag.is_some_and(|d| d.moved));
     assert_eq!(app.pointer_over(), Over::Text);
 }
+
+/// A program that sets its shape under a motionless pointer: the poll step,
+/// not a mouse event, must put the hand on.
+#[test]
+fn a_shape_set_under_a_still_pointer_is_applied_by_the_poll_refresh() {
+    let _g = crate::app::theme_test_guard();
+    let _h = crate::linkhover::test_guard();
+    let mut app = setup();
+    point(&mut app, "p.example", (1, 1));
+    app.pointer_sync();
+    assert_eq!(app.cursor_icon, CursorIcon::Text);
+    feed(&mut app, 0, b"\x1b]22;pointer\x07");
+    assert_eq!(app.cursor_icon, CursorIcon::Text, "no mouse event yet");
+    app.pointer_refresh();
+    assert_eq!(app.cursor_icon, CursorIcon::Pointer);
+}

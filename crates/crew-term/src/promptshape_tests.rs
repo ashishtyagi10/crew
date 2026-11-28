@@ -1,3 +1,4 @@
+#![cfg(unix)]
 use super::*;
 use crate::GridSize;
 use std::io::Write;
@@ -42,4 +43,15 @@ fn the_alternate_screen_keeps_its_pointer_shape() {
     assert!(pump_until(&mut term, |t| t.pointer_shape().is_some()));
     assert!(!term.release_leftover_modes());
     assert_eq!(term.pointer_shape(), Some("grab"));
+}
+
+/// A TUI that leaves the alternate screen takes its hand with it, with no
+/// shell mark involved.
+#[test]
+fn leaving_the_alternate_screen_clears_the_program_shape() {
+    let mut term = PtyTerm::spawn(GridSize { cols: 60, rows: 8 }, "sh").unwrap();
+    term.core.feed(b"\x1b[?1049h\x1b]22;pointer\x07");
+    assert_eq!(term.pointer_shape(), Some("pointer"));
+    term.core.feed(b"\x1b[?1049l");
+    assert_eq!(term.pointer_shape(), None);
 }

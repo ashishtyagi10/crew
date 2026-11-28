@@ -652,8 +652,8 @@ impl CrewApp {
         if any_changed || actions_ran {
             self.redraw();
         }
-        // OSC 52 from terminal programs: copies, and reads behind the gate.
-        self.serve_pane_clipboard();
+        self.pointer_refresh();
+        self.serve_pane_clipboard(); // OSC 52: copies, reads behind the gate
         self.sync_window_title();
         self.save_window_size_if_settled();
 
