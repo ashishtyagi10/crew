@@ -43,7 +43,7 @@ pub(crate) fn workspace_only_from(mode: Option<&str>) -> bool {
 }
 
 /// The block message when a MUTATING tool is used in read-only mode, else None.
-fn read_only_block(tool: &str, read_only: bool) -> Option<String> {
+pub(super) fn read_only_block(tool: &str, read_only: bool) -> Option<String> {
     if read_only && super::tier::blocked_by_read_only(tool) {
         Some(format!(
             "sys:{tool} blocked \u{2014} CREW_SYS_MODE=readonly (set CREW_SYS_MODE=full to enable)"
@@ -296,6 +296,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
     ];
     all.push(super::sysexplore::tool());
+    all.extend(super::sysbgtools::tools());
     all
 }
 
@@ -361,7 +362,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
         "explore" => Err("sys:explore runs inside a task, and this call is not in one".into()),
         "todo" => Err("sys:todo keeps a checklist for a task, and this call is not in one".into()),
         other => Err(format!(
-            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools, todo, explore"
+            "unknown sys tool \u{201c}{other}\u{201d} \u{2014} available: run, read_file, write_file, edit, list_dir, grep, glob, outline, git, fetch, search, find_tools, todo, explore, spawn, logs, kill"
         )),
     }
 }

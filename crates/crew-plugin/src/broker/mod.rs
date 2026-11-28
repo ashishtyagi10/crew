@@ -123,6 +123,13 @@ mod steer;
 mod streamhold;
 mod sunsetsaid;
 mod swarm;
+#[cfg(unix)]
+mod sysbg;
+#[cfg(unix)]
+mod sysbgbuf;
+#[cfg(unix)]
+mod sysbgproc;
+mod sysbgtools;
 mod sysedit;
 mod sysexplore;
 mod sysexplorekit;

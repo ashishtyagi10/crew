@@ -754,6 +754,12 @@ read-only agent on the cheap tier (else the standard one), up to 8 tool rounds a
 summary citing `path:line`; the caller gets only that and a count of the files
 read and searches made, never the files, the way Claude Code's Explore agent
 keeps a search out of the main context),
+`sys:spawn`, `sys:logs` and `sys:kill` (a dev server or watcher the agent
+starts in the background with `{"cmd": …, "wait_for": "listening"}`, reads the
+latest output of (the last 256 KB, one stream for stdout and stderr), and stops
+with the process group it started (a program that detaches itself with
+`setsid`, as some daemons do, is not tracked); Unix only, at most 4 live per task, asks like
+`sys:run`, and every one is killed when the task ends or crew exits),
 `sys:todo` (a checklist of up to 12 steps the agent keeps for a task with
 three or more of them, sent whole each time, shown back to it above every
 round's tool results so shortening never drops it, and the steps left undone

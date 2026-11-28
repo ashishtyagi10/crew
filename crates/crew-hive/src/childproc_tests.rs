@@ -24,6 +24,7 @@ const ALLOWED: &[(&str, &str)] = &[
     // `#[cfg(unix)]` paths — see the modules' own docs.
     ("sysrun.rs", "Command::new(\"/bin/sh\")"),
     ("sysrun.rs", "Command::new(\"/bin/kill\")"),
+    ("sysbg.rs", "Command::new(\"/bin/sh\")"),
     ("host.rs", "Command::new(\"kill\")"),
     // macOS-only (`#[cfg(target_os = "macos")]`): a pane with no locale
     // asks `defaults` for the Mac's own; never compiled on Windows.
