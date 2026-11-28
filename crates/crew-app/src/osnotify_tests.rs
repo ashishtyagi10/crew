@@ -79,8 +79,10 @@ fn script_takes_text_from_argv_not_interpolation() {
 
 #[test]
 fn notify_posts_once_when_away_and_throttles_the_repeat() {
-    let mut app = crate::app::CrewApp::default();
-    app.win_focus = Some(false);
+    let mut app = crate::app::CrewApp {
+        win_focus: Some(false),
+        ..Default::default()
+    };
     sent::take();
     for _ in 0..2 {
         app.notify(
