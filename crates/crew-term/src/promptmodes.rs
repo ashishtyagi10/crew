@@ -54,6 +54,9 @@ use super::PtyTerm;
 /// then the cursor shown (DECTCEM).
 const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031;2048l\x1b[?25h";
 
+/// OSC 22 with an empty name: the default pointer.
+const CLEAR_SHAPE: &[u8] = b"\x1b]22;\x1b\\";
+
 /// [`RESET`], then every kitty keyboard push popped (`modelkitty::POP_ALL`).
 const RESET_KITTY: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031;2048l\x1b[?25h\x1b[<65535u";
 
@@ -96,12 +99,25 @@ impl PtyTerm {
         self.release(true)
     }
 
+    /// The pointer shape the program in the pane asked for with OSC 22.
+    pub fn pointer_shape(&self) -> Option<&str> {
+        self.core.pointer_shape()
+    }
+
     fn release(&mut self, marked: bool) -> bool {
         // 2048 rides the scheme flag: both are scanner-only modes with one reset.
         let scheme = self.core.scheme_notify_enabled() || self.core.inband_enabled();
         let hidden = self.core.cursor_hidden();
-        let Some(reset) = leftover_reset(self.core.input_modes(), scheme, hidden, marked) else {
-            return false;
+        let modes = self.core.input_modes();
+        // A killed lazygit must not leave its hand over the prompt: the shape
+        // goes with the mouse (not on the alternate screen, where a program
+        // may still own it).
+        let shape = !modes.alt_screen && self.core.pointer_shape().is_some();
+        if shape {
+            self.core.feed(CLEAR_SHAPE);
+        }
+        let Some(reset) = leftover_reset(modes, scheme, hidden, marked) else {
+            return shape;
         };
         self.core.feed(reset);
         true
@@ -119,3 +135,7 @@ mod cursor_tests;
 #[cfg(test)]
 #[path = "promptkitty_tests.rs"]
 mod kitty_tests;
+
+#[cfg(test)]
+#[path = "promptshape_tests.rs"]
+mod shape_tests;

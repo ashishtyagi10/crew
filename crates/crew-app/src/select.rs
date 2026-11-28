@@ -17,7 +17,8 @@ pub(crate) struct Drag {
     /// of a drag is also the answer to "did that press find content, or the
     /// card's border?".
     pub(crate) anchor: (u16, u16),
-    moved: bool,
+    /// [`crate::pointer::prog`] reads it: a drag in progress keeps the I-beam.
+    pub(crate) moved: bool,
     block: bool,
 }
 

@@ -77,6 +77,8 @@ pub(crate) struct TermCore {
     osc7: crate::osc::OscScanner,
     /// Sniffs DECSET 2031 (color-scheme notifications), invisible to the parser.
     scheme: crate::schemenotify::SchemeNotify,
+    /// Sniffs OSC 22 (the pointer shape a program asks for), invisible to the parser.
+    pointer: crate::pointershape::PointerShape,
     /// DECRQSS, answered from the state at the request (`modelrqss`).
     rqss: modelrqss::Rqss,
     /// Answers `CSI 16 t`, XTVERSION and XTGETTCAP, which the parser does not dispatch.
@@ -145,6 +147,7 @@ impl TermCore {
             events,
             osc7: crate::osc::OscScanner::default(),
             scheme: crate::schemenotify::SchemeNotify::default(),
+            pointer: Default::default(),
             rqss: Default::default(),
             sel_anchor: None,
             graphics: crate::graphics::GraphicsScanner::default(),
@@ -193,6 +196,7 @@ impl TermCore {
     /// DECRQSS).
     fn feed_piece(&mut self, bytes: &[u8]) {
         // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
+        self.pointer.feed(bytes);
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
         replies.push_str(&self.query_replies(bytes));
         if !replies.is_empty() {
@@ -221,6 +225,11 @@ impl TermCore {
     /// Whether the program enabled DECSET 2031 (wants scheme-change reports).
     pub(crate) fn scheme_notify_enabled(&self) -> bool {
         self.scheme.enabled()
+    }
+
+    /// The OSC 22 pointer shape the program asked for, if any.
+    pub(crate) fn pointer_shape(&self) -> Option<&str> {
+        self.pointer.name()
     }
 
     pub(crate) fn resize(&mut self, size: GridSize) {

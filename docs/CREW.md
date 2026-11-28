@@ -5057,6 +5057,15 @@ resize, once the pty's own size (`TIOCGWINSZ`, same pixel numbers) is set, so
 neovim and libvaxis apps redraw without waiting for SIGWINCH. A program killed
 with it on is cleared when the shell is back, like the mouse; RIS and DECSTR
 clear it too.
+**Pointer shape** (`OSC 22 ; <css name> ST`, BEL or ST; `pointer`, `text`,
+`crosshair`, `grab`, `not-allowed`, `ew-resize`, `wait`, `help`, `move`,
+`zoom-in`... as in CSS) lets lazygit, yazi, helix and textual apps show a hand
+over their own buttons. Crew wears it over that pane's cells only when nothing
+of its own is under the pointer (a link, a scroll gutter, a resize edge, a
+card's legend row or a control all win) and no selection drag is under way. An
+empty name, `default`, or RIS puts it back; so does the shell getting the pane
+back after a killed program. An unknown name keeps crew's own pointer; kitty's
+`?`, `>` and `<` forms are ignored.
 And what a setting is now: **DECRQSS** (`DCS $ q <setting> ST`) answers ` q`
 (the cursor's DECSCUSR shape, which vim asks at start-up) and `m` (the SGR new
 text gets, in xterm's form — `0;1;31;48:2::1:2:3`, the colon form nvim's
