@@ -32,6 +32,9 @@ fail() { say "FAILED: $1"; notify "$1"; exit 1; }
 
 [[ $(git rev-parse --abbrev-ref HEAD) == main ]] || stop "not on main ($(git rev-parse --abbrev-ref HEAD))"
 [[ -z $(git status --porcelain) ]] || stop "uncommitted edits on main"
+# A change merged in steps can hold the release until its last step lands: a committed
+# .release-hold names why; deleting it (in the step that finishes) lets the next run ship.
+[[ ! -f .release-hold ]] || stop "held: $(head -1 .release-hold)"
 git fetch -q --tags origin || fail "could not reach origin"
 
 TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
