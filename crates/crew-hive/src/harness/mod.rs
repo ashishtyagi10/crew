@@ -32,6 +32,7 @@ mod native;
 mod note;
 mod overflow;
 mod pending;
+mod reminder;
 mod steered;
 mod stubs;
 mod text;
