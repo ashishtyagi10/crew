@@ -133,6 +133,13 @@ impl CrewApp {
             return;
         }
 
+        // Off a Mac, plain Ctrl is the pane's: Ctrl+C copies a selection,
+        // Ctrl+V pastes, Ctrl+S saves a form or draft (`ctrlpane`).
+        if event.state.is_pressed() && self.ctrl_pane_key(&event.logical_key, mstate) {
+            self.redraw();
+            return;
+        }
+
         // When the input bar is focused, all non-super keys go to it.
         if self.input.focused {
             if event.state.is_pressed()
