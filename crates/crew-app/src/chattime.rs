@@ -58,6 +58,7 @@ pub(crate) fn task_tag(meta: &str) -> Option<u64> {
 /// fold a subagent's section) goes with them: it is addressed to the
 /// renderer, not to the reader of a transcript.
 pub(crate) fn strip_task_tag(meta: &str) -> &str {
+    let meta = crate::chatstrip::unstamped(meta);
     let Some(rest) = meta.strip_prefix("task:") else {
         return crew_plugin::metatag::strip_sub(meta);
     };
