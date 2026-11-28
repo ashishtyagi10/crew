@@ -28,6 +28,8 @@ pub(crate) enum ChatInput {
     /// Ctrl+F — open the transcript find popup, or step to the next older
     /// match while it is open (see `chatfind`; Cmd+F opens it app-side).
     FindNext,
+    /// Ctrl+B — list the messages you sent and go back to one (`chatrewind`).
+    Rewind,
     /// Shift+Tab — step the pane's approval mode (see `chatapprove`).
     CycleMode,
     /// Ctrl+C — clear the composer, or interrupt a running turn (`chatctrl`).
@@ -81,6 +83,7 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
                 "c" => ChatInput::Cancel,
                 "d" => ChatInput::EndOfInput,
                 "j" => ChatInput::Newline,
+                "b" => ChatInput::Rewind,
                 "a" => ChatInput::Caret(Op::LineStart),
                 "e" => ChatInput::Caret(Op::LineEnd),
                 "k" => ChatInput::Caret(Op::KillEnd),

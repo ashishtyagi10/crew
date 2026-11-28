@@ -83,6 +83,12 @@ impl Thread {
         self.turns.clear();
     }
 
+    /// Forget every turn answered at or after `ms` — a rewind to the moment
+    /// a task began keeps what was said before it and nothing after.
+    pub(crate) fn keep_before(&mut self, ms: u64) {
+        self.turns.retain(|t| t.when_ms < ms);
+    }
+
     fn bytes(&self) -> usize {
         self.turns
             .iter()
@@ -154,7 +160,7 @@ pub(crate) fn clip_chars(s: &str, max: usize) -> String {
     format!("{head}\u{2026} [clipped {} chars]", total - max)
 }
 
-fn now_ms() -> u64 {
+pub(crate) fn now_ms() -> u64 {
     let since = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH);
     since.map(|d| d.as_millis() as u64).unwrap_or_default()
 }

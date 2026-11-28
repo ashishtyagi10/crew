@@ -96,6 +96,7 @@ pub(crate) fn take_back(pane: &mut ChatPane) -> bool {
     }
     match pane.queued.pop_back() {
         Some(text) => {
+            pane.rewind_unqueued(&text, true);
             pane.input = text;
             true
         }

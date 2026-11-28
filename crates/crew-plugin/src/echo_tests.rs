@@ -23,6 +23,7 @@ fn send_yields_message() {
     let evs = respond(&PluginCommand::Send {
         channel: "general".into(),
         text: "hi".into(),
+        seq: 0,
     });
     assert_eq!(evs.len(), 1);
     match &evs[0] {

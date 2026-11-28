@@ -22,11 +22,16 @@ pub(crate) type Change = (char, String);
 /// and every branch are untouched. An empty list means the task changed
 /// nothing, which is the common case for a question.
 pub(crate) fn since(dir: &Path, base: &str) -> Result<Vec<Change>, String> {
-    let now = worktree_tree(dir)?;
+    between(dir, base, &worktree_tree(dir)?)
+}
+
+/// What differs between two trees, minus crew's own files — [`since`] with
+/// the far side given, so a rewind can compare two moments it recorded.
+pub(crate) fn between(dir: &Path, base: &str, now: &str) -> Result<Vec<Change>, String> {
     if now == base {
         return Ok(Vec::new());
     }
-    let out = git(dir, &["diff-tree", "-r", "--name-status", base, &now], None)?;
+    let out = git(dir, &["diff-tree", "-r", "--name-status", base, now], None)?;
     Ok(parse(&out)
         .into_iter()
         .filter(|(_, p)| !is_crew_artifact(p))

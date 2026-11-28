@@ -23,6 +23,7 @@ fn send_returns_message_and_two_spawn_panes() {
     let events = plan(&PluginCommand::Send {
         channel: "plan".into(),
         text: "build X".into(),
+        seq: 0,
     });
     assert_eq!(events.len(), 3);
 

@@ -35,6 +35,9 @@ impl ChatPane {
         if let Some(e) = &self.keyentry {
             return Some(e.card(cols));
         }
+        if let Some(c) = crate::chatrewindcard::card(&self.rewind, cols) {
+            return Some(c);
+        }
         if let Some(f) = &self.find {
             return Some(crate::chatfind::card(f, &self.visible_messages(), cols));
         }
@@ -54,8 +57,11 @@ impl ChatPane {
     /// (a field, not a list) and when nothing is open. Same precedence as
     /// [`Self::popup`], so a row the mouse resolves is a row that was drawn.
     fn popup_list(&self) -> Option<(usize, usize)> {
-        if self.keyentry.is_some() {
+        if self.keyentry.is_some() || self.rewind.ask.is_some() {
             return None;
+        }
+        if let Some(sel) = self.rewind.sel {
+            return Some((self.rewind.picks().len().max(1), sel));
         }
         if let Some(f) = &self.find {
             return Some((f.matches.len().max(1), f.sel));
@@ -90,7 +96,9 @@ impl ChatPane {
     /// Make item `i` the selection, as an arrow would — a section title is
     /// not a choice and is skipped. `true` when the selection moved.
     fn popup_select(&mut self, i: usize) -> bool {
-        let sel = if let Some(f) = &mut self.find {
+        let sel = if let Some(s) = &mut self.rewind.sel {
+            s
+        } else if let Some(f) = &mut self.find {
             &mut f.sel
         } else if let Some(h) = &mut self.histsearch {
             &mut h.sel

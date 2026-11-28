@@ -15,6 +15,11 @@ pub enum PluginCommand {
     Send {
         channel: String,
         text: String,
+        /// The pane's number for this send, echoed on the [`PluginEvent::Task`]
+        /// it starts. A label is not an identity: the same words sent twice
+        /// (the first refused, say) are told apart only by this. 0 = none.
+        #[serde(default, skip_serializing_if = "is_zero")]
+        seq: u64,
     },
     /// Answer an approval the broker is blocked on. `id` comes from the
     /// [`PluginEvent::Approval`] that opened it.
@@ -44,6 +49,23 @@ pub enum PluginCommand {
     Mode {
         approval: ApprovalMode,
     },
+    /// Rewind to just before task `task` ran (the pane's Ctrl+B list). With
+    /// `confirm` false it only ASKS what that would cost; with it true the
+    /// files and the broker's memory of the conversation go back. Two steps
+    /// because putting files back deletes work, and the pane must show the
+    /// count before anyone says yes (see `broker::rewind`).
+    Rewind {
+        task: u64,
+        confirm: bool,
+        /// The `stamp` of the answer the user was shown. A confirm is refused
+        /// when the files now differ from it: yes was said to THAT list.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        seen: String,
+    },
+}
+
+fn is_zero(n: &u64) -> bool {
+    *n == 0
 }
 
 /// How freely a pane's tool calls run, cycled with Shift+Tab in the pane
@@ -196,6 +218,38 @@ pub enum PluginEvent {
         #[serde(default, skip_serializing_if = "String::is_empty")]
         label: String,
         running: bool,
+        /// The [`PluginCommand::Send`] `seq` that started it (start only).
+        #[serde(default, skip_serializing_if = "is_zero")]
+        seq: u64,
+    },
+    /// The answer to [`PluginCommand::Rewind`]. `applied` false: what going
+    /// back to `task` would change — `files` of them, the first few `names`
+    /// (the ones edited outside crew first), which of those are `yours`, and
+    /// whether any file at all is `outside` crew's own edits or that cannot be
+    /// ruled out (`unsure`). `stamp` fingerprints the whole list: the confirm
+    /// hands it back. `applied` true: it is done, and `pin` is where the tree
+    /// it replaced sits in the checkpoint list (`undo #pin`; 0 = none taken).
+    /// A non-empty `error` means nothing happened, and says why.
+    Rewind {
+        task: u64,
+        #[serde(default)]
+        files: u32,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        names: Vec<String>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        yours: Vec<String>,
+        #[serde(default)]
+        outside: bool,
+        #[serde(default)]
+        unsure: bool,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        stamp: String,
+        #[serde(default)]
+        pin: u32,
+        #[serde(default)]
+        applied: bool,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        error: String,
     },
     /// Mid-reply progress: `agent` has produced roughly `tokens` output
     /// tokens so far in its in-flight reply. Advisory — the end-of-hop

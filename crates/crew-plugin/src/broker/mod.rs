@@ -95,6 +95,8 @@ mod reviewguard;
 mod reviewlevel;
 mod reviewrun;
 mod reviewverify;
+mod rewind;
+mod rewindfiles;
 mod rosterev;
 mod roundloop;
 mod route;

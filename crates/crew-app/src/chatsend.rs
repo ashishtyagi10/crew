@@ -12,16 +12,23 @@ impl ChatPane {
     /// direct send and a queue flush — both are "the broker gets this text
     /// now", just reached from different callers.
     pub(crate) fn send_now(&mut self, text: String) {
+        // Numbered so the task it starts can be matched to the message
+        // (`chatrewindmarks`); not by its words, which two sends may share.
+        let seq = self.rewind_stamp(&text);
         let cmd = PluginCommand::Send {
             channel: self.channel.clone(),
             text,
+            seq,
         };
         if matches!(&cmd, PluginCommand::Send { text, .. } if text.trim() == "/stop") {
             self.watch.stop_asked = Some(crate::anim::now_ms()); // `chatwatch` holds it to it
         }
         match self.plugin.send(&cmd) {
             Ok(()) => self.awaiting = true, // wait for the reply
-            Err(e) => eprintln!("crew-app: plugin send error: {e}"),
+            Err(e) => {
+                eprintln!("crew-app: plugin send error: {e}");
+                self.rewind_unsent(seq);
+            }
         }
     }
 
@@ -53,6 +60,7 @@ impl ChatPane {
             return None;
         }
         self.queued.clear();
+        self.rewind_unqueue_all();
         Some(format!(
             "dropped {n} queued message{}",
             if n == 1 { "" } else { "s" }

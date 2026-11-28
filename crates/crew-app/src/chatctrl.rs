@@ -17,6 +17,9 @@ impl ChatPane {
         k: &ChatInput,
         cwd: &std::path::Path,
     ) -> Option<Option<ChatAction>> {
+        if let Some(done) = self.rewind_key(k) {
+            return Some(done);
+        }
         if let Some(done) = self.approval_key(k).or_else(|| self.slash_key(k)) {
             return Some(done);
         }

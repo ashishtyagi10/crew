@@ -7,7 +7,7 @@ pub fn respond(cmd: &PluginCommand) -> Vec<PluginEvent> {
             provider: "echo".into(),
             channels: vec!["general".into()],
         }],
-        PluginCommand::Send { channel, text } => vec![PluginEvent::Message {
+        PluginCommand::Send { channel, text, .. } => vec![PluginEvent::Message {
             channel: channel.clone(),
             sender: "echo".into(),
             text: text.clone(),
@@ -21,6 +21,7 @@ pub fn respond(cmd: &PluginCommand) -> Vec<PluginEvent> {
         | PluginCommand::Approve { .. }
         | PluginCommand::Warm {}
         | PluginCommand::Steer { .. }
+        | PluginCommand::Rewind { .. }
         | PluginCommand::Mode { .. } => vec![],
     }
 }

@@ -294,6 +294,7 @@ the command palette write each chord the way that machine presses it.
 | Agent pane: markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Agent pane: compact transcript (one line per message) | **Ctrl+O** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |
+| Rewind: pick a message you sent; files and conversation go back to just before it. Every file that differs is put back, edits you made yourself included (the confirmation names them); ignored files (`.env`, `node_modules`, `target`) and folders outside git are not rewound; `undo #N` brings the replaced files back | **Ctrl+B** (on an empty composer, nothing running, nothing queued) |
 | Find: the chat transcript (also **Ctrl+F**) or a terminal's scrollback (a find bar on the pane, `3/17`, Enter older, Shift+Enter newer, Esc closes), or `/find` in the bar | **Cmd+F** |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Ctrl+I ≠ Tab, Esc ≠ Alt, Shift+Enter ≠ Enter for nvim, helix, fish 4, Claude Code | automatic: crew speaks the kitty keyboard protocol's disambiguate flag (`CSI … u`) to a program that asks |
@@ -827,7 +828,10 @@ until you say "stop planning"),
 as a hidden commit under
 `refs/crew/` without touching HEAD or your index; say "undo that" and crew
 names what would come back and waits for your "yes" — à la Cline's
-checkpoints and Claude Code's rewind, with no command to remember),
+checkpoints and Claude Code's rewind, with no command to remember;
+**Ctrl+B** goes further back than the newest one — it lists the messages you
+sent, and picking one puts the files AND the conversation back to just before
+it, then hands its text back to the composer to edit),
 **a check on its own work** (put one command in `.crew/check` — or let crew
 read the one your `AGENTS.md` already tells contributors to run — and it runs
 after every task that changes files, reporting `passed` or the first lines of

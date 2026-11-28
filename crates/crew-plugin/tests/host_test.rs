@@ -65,6 +65,7 @@ fn echo_roundtrip() {
     p.send(&PluginCommand::Send {
         channel: "general".into(),
         text: "ping".into(),
+        seq: 0,
     })
     .unwrap();
     assert!(drain_until(&p, |e| matches!(

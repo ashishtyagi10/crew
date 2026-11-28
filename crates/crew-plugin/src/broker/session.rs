@@ -82,6 +82,8 @@ pub(crate) struct Session {
     /// changed nothing does not write an identical restore point. Shared with
     /// worker snapshots because the checkpoint is taken ON the worker.
     pub last_tree: Arc<Mutex<Option<String>>>,
+    /// Where each task began — its tree, its time — so a rewind can go back to it (`rewind`).
+    pub rewind: super::rewind::SharedLog,
     /// The approval gate, owned by the SESSION rather than by each broker.
     ///
     /// It has to be one gate per pane, not one per construct and certainly not
@@ -144,6 +146,7 @@ impl Default for Session {
             // the crate's own `.crew/`. The broker opens the real one.
             recall: Arc::new(Mutex::new(super::recall::Recall::default())),
             last_tree: Arc::new(Mutex::new(None)),
+            rewind: Default::default(),
             gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
             announced_changes: Arc::new(AtomicBool::new(false)),
@@ -185,6 +188,7 @@ impl Session {
             thread: Arc::clone(&self.thread),
             recall: Arc::clone(&self.recall),
             last_tree: Arc::clone(&self.last_tree),
+            rewind: Arc::clone(&self.rewind),
             gate: Arc::clone(&self.gate),
             announced_ckpt: Arc::clone(&self.announced_ckpt),
             announced_changes: Arc::clone(&self.announced_changes),
