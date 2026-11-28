@@ -46,7 +46,7 @@ fn the_strip_lands_on_the_first_row_and_costs_no_row() {
     strip_on(&mut r, [20_000, 10_000, 2_000, 10_000], 80);
     assert_eq!(r.len(), before);
     let t = text(&r[0]);
-    assert!(t.ends_with(" 42s"), "{t}");
+    assert!(t.ends_with(" 42s · 47% thinking"), "{t}");
     assert_eq!(t.matches(BLOCK).count(), MAX);
     assert!(r[0].len() < 80);
 }
@@ -83,5 +83,11 @@ fn a_stamped_receipt_draws_its_strip_through_the_card_and_row_count_holds() {
     let meta = crate::chatstrip::stamp("task:3", [20_000, 10_000, 2_000, 10_000]);
     let drawn = full_body(&m(meta), 80, View::default());
     assert_eq!(drawn.len(), plain.len());
-    assert!(text(&drawn[0]).ends_with(" 42s"), "{}", text(&drawn[0]));
+    assert!(text(&drawn[0]).contains(" 42s · "), "{}", text(&drawn[0]));
+}
+
+#[test]
+fn the_phase_that_held_most_is_named_with_its_share() {
+    let (k, said) = most([1_000, 2_000, 0, 7_000]).unwrap();
+    assert_eq!((k, said.as_str()), (Kind::Run, "70% running"));
 }
