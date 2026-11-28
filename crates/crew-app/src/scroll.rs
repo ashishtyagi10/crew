@@ -173,6 +173,7 @@ impl CrewApp {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_key(pane, |m| crate::altscroll::page_bytes(m, up)) {
                 let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
+                crate::scrollglide::forget_wheel(pane);
                 crate::scrollglide::start(pane, if up { page } else { -page });
             }
             self.redraw();
@@ -184,6 +185,7 @@ impl CrewApp {
     pub(crate) fn scroll_focused_end(&mut self, to_top: bool) {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_key(pane, |m| crate::altscroll::end_bytes(m, to_top)) {
+                crate::scrollglide::forget_wheel(pane);
                 crate::scrollglide::start_end(pane, to_top);
             }
             self.redraw();

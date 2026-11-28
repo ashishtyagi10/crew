@@ -86,7 +86,7 @@ impl InboxPane {
         let lines = wrap(&c.body.text, usize::from(tw));
         let (row, col) = place(&c.body.text, c.body.at, usize::from(tw));
         // The caret's rows, or where the wheel left the words.
-        let first = super::composeview::first(c, lines.len(), row, room);
+        let first = super::composeview::first(c, lines.len(), row, room, usize::from(tw));
         for (i, line) in lines.iter().enumerate().skip(first).take(room) {
             cv.text(g.words + (i - first) as u16, X, end, line, t.ink, false);
         }

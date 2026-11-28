@@ -77,7 +77,7 @@ pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16))
             let text = &c.body.text;
             let (now, _) = place(text, c.body.at, w);
             let total = super::draw::wrap(text, w).len();
-            let first = super::composeview::first(c, total, now, usize::from(g.room));
+            let first = super::composeview::first(c, total, now, usize::from(g.room), w);
             let (line, col) = (
                 first + usize::from(row - g.words),
                 usize::from(col.saturating_sub(X)),
@@ -88,6 +88,9 @@ pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16))
                 r == line && k <= col
             });
             c.body.at = at.next_back().unwrap_or(n);
+            if c.view.is_some() {
+                super::composeview::keep(c, first, w, usize::from(g.room));
+            }
         }
         On::To | On::Cc | On::Subject => {
             let value = super::composehead::value(c);

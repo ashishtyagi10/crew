@@ -143,6 +143,7 @@ impl InboxPane {
         let Some(answer) = answer else {
             return "nothing in this thread to reply to";
         };
+        self.motion.wheel_at = None;
         self.compose = Some(Compose::of(kind, answer, forward));
         ""
     }
@@ -151,6 +152,7 @@ impl InboxPane {
     /// line.
     pub(crate) fn open_new(&mut self) {
         if self.compose.is_none() && self.todo.is_none() {
+            self.motion.wheel_at = None;
             self.compose = Some(Compose::of(Kind::New, Answer::default(), None));
         }
     }

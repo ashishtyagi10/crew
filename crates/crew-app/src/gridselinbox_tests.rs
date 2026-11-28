@@ -10,7 +10,7 @@ use crate::inbox::worker::Worker;
 use crate::inbox::{InboxPane, Reading, Stage};
 use crate::pane::{Pane, PaneContent};
 
-fn pane() -> Pane {
+pub(crate) fn pane() -> Pane {
     let (tx, _) = mpsc::channel();
     let (_, rx) = mpsc::channel();
     let mut p = InboxPane::with(Stage::Ready(Worker { tx, rx }));

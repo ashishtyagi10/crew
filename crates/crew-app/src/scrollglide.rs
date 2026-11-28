@@ -26,6 +26,15 @@
 use crate::pane::{Pane, PaneContent};
 pub(crate) use crate::scrollstate::{ScrollGlide, OMEGA, TRACK_OMEGA};
 
+/// A key is about to scroll `pane`: forget where the wheel last was, or a
+/// later glide step would still read it as "over the reply box" and move the
+/// reply's words instead of the mail.
+pub(crate) fn forget_wheel(pane: &mut Pane) {
+    if let PaneContent::Inbox(p) = &mut pane.content {
+        p.motion.wheel_at = None;
+    }
+}
+
 /// Scroll `pane` by `lines`: queued on its glide while motion is on, at once
 /// when it is off.
 pub(crate) fn start(pane: &mut Pane, lines: i32) {

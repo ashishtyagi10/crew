@@ -103,6 +103,7 @@ impl InboxPane {
         c.files = draft.files;
         c.draft = Some(draft.id);
         c.on = On::Body;
+        self.motion.wheel_at = None;
         self.compose = Some(c);
         self.note = format!(
             "your draft \u{b7} {SAVE} saves it, {} sends it",
