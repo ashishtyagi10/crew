@@ -515,6 +515,20 @@ impl super::toolcall::ToolRunner for SessionTools {
         self.explored.take()
     }
 
+    /// The picture a `sys:read_file` of an image returned (`sysimage`).
+    fn attachments(
+        &self,
+        server: &str,
+        tool: &str,
+        args: &str,
+        output: &str,
+    ) -> Vec<crew_hive::provider::Image> {
+        match self.sys && (server, tool) == ("sys", "read_file") {
+            true => super::sysimage::attach(args, output),
+            false => Vec::new(),
+        }
+    }
+
     /// The task's checklist, while the `sys` surface that writes it is on.
     fn checklist(&self) -> Option<&crew_hive::tools::todo::Checklist> {
         self.sys.then_some(self.todo.as_ref())
@@ -670,6 +684,10 @@ pub(crate) mod sessiontest;
 #[cfg(test)]
 #[path = "session_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "sessionimage_tests.rs"]
+mod image_tests;
 
 #[cfg(test)]
 #[path = "sessiontodo_tests.rs"]

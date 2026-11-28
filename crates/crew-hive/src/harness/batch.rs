@@ -46,12 +46,33 @@ pub(super) async fn run(
         error: |e| e,
     };
     let ran = pending::run(ctx, tools, seen, &asked, rules).await;
-    for (i, (ok, text)) in at.into_iter().zip(ran) {
+    let mut room = crate::provider::MAX_IMAGES;
+    for (k, (i, (ok, text))) in at.into_iter().zip(ran).enumerate() {
+        let mut content = clip(&text, RESULT_CAP);
+        let mut images = Vec::new();
+        if ok {
+            let c = &asked[k];
+            for img in tools.attachments(&c.server, &c.tool, &c.args, &text) {
+                // The round's pictures are bounded as a task's are: a batch of
+                // reads must not put a request over the API's size limit.
+                match room {
+                    0 => content.push_str(&format!(
+                        "\n{}",
+                        crate::provider::omitted(&img.name, "only 5 images per round")
+                    )),
+                    _ => {
+                        room -= 1;
+                        images.push(img);
+                    }
+                }
+            }
+        }
         results[i] = Some(ToolOutcome {
             id: calls[i].id.clone(),
             name: calls[i].name.clone(),
-            content: clip(&text, RESULT_CAP),
+            content,
             is_error: !ok,
+            images,
         });
     }
     // The person watching gets each refusal too: with no `ToolCall` for it,
@@ -91,6 +112,7 @@ fn runnable(
             name: call.name.clone(),
             content: super::past_bound(),
             is_error: true,
+            images: Vec::new(),
         });
     }
     let Some((server, tool)) = catalog.resolve(&call.name) else {

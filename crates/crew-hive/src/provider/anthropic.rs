@@ -215,7 +215,9 @@ impl AnthropicProvider {
 /// assistant turn is rejected outright — so the conversation is rebuilt in
 /// full on every request rather than sending only the newest exchange.
 pub(crate) fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
-    let mut messages = vec![serde_json::json!({"role": "user", "content": req.prompt})];
+    let req = &*super::imagecap::capped(req);
+    let first = super::anthropicimage::user_content(&req.model, &req.prompt, &req.images);
+    let mut messages = vec![serde_json::json!({"role": "user", "content": first})];
     for turn in &req.turns {
         match turn {
             Turn::Assistant { text, calls } => {
@@ -242,7 +244,8 @@ pub(crate) fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> 
                         serde_json::json!({
                             "type": "tool_result",
                             "tool_use_id": r.id,
-                            "content": r.content,
+                            "content": super::anthropicimage::result_content(
+                                &req.model, &r.content, &r.images),
                             "is_error": r.is_error,
                         })
                     })
@@ -459,6 +462,10 @@ impl Provider for AnthropicProvider {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "anthropicimage_tests.rs"]
+mod image_tests;
 
 #[cfg(test)]
 #[path = "anthropicstream_tests.rs"]

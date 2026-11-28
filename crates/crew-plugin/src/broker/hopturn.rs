@@ -135,9 +135,11 @@ impl Broker {
             cancel: self.stop_flag(),
             advice: Some(Arc::new(advisor)),
         };
+        let (prompt, images) = super::hopshots::attach(engine.is_some(), ask, prompt);
         let spec = TurnSpec {
             ask: ask.to_string(),
             prompt,
+            images,
             hinted: Some(hinted),
             // The recalled turns are the frame's to lose first.
             shed: Some(super::recall::cut),

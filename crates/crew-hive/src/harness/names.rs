@@ -20,6 +20,7 @@ pub(super) fn outcome_for_unknown(call: &ToolInvocation, catalog: &ToolCatalog) 
         name: call.name.clone(),
         content: crate::tools::near::unknown("tool", &call.name, &known, tail),
         is_error: true,
+        images: Vec::new(),
     }
 }
 

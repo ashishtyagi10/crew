@@ -28,6 +28,7 @@ pub(super) fn refusal(call: &ToolInvocation, cut: bool) -> Option<ToolOutcome> {
         name: call.name.clone(),
         content,
         is_error: true,
+        images: Vec::new(),
     })
 }
 

@@ -16,6 +16,7 @@ fn a_transcript_writes_each_call_with_its_result() {
         name: String::new(),
         content: content.into(),
         is_error: false,
+        images: Vec::new(),
     };
     let turns = [
         Turn::Assistant {

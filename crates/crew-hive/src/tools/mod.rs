@@ -148,6 +148,22 @@ pub trait Tools: Send + Sync {
         None
     }
 
+    /// Pictures a call that ran ok returned beside its text (`sys:read_file`
+    /// of a PNG), read when asked, from the call and the `output` it answered:
+    /// the text path and every other tool never see them. Per call, not a
+    /// drain, because read batches run together and pair by call id. A wrapper
+    /// MUST forward this, or the picture vanishes with every test still green.
+    /// Defaults to none.
+    fn attachments(
+        &self,
+        _server: &str,
+        _tool: &str,
+        _args: &str,
+        _output: &str,
+    ) -> Vec<crate::provider::Image> {
+        Vec::new()
+    }
+
     /// The task's checklist (`sys:todo`, [`todo`](mod@todo)), when this surface keeps
     /// one: the loops head each follow-up prompt with it and name what it left
     /// undone under the answer. Defaults to none, which leaves both as they were.

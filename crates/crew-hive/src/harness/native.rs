@@ -62,6 +62,7 @@ pub(super) async fn run(
 ) -> Ended {
     let TurnSpec {
         prompt,
+        images,
         shed,
         ending,
         system,
@@ -103,6 +104,7 @@ pub(super) async fn run(
             model: model_id.clone(),
             system: system.clone(),
             prompt: prompt.clone(),
+            images: images.clone(),
             max_tokens,
             turns: turns.clone(),
             tools: catalog.defs().to_vec(),

@@ -159,6 +159,7 @@ impl Agent for ApiAgent {
             let spec = TurnSpec {
                 ask: ctx.task.prompt.clone(),
                 prompt: build_prompt(&ctx.task.prompt, &ctx.deps),
+                images: Vec::new(),
                 hinted: None,
                 shed: None,
                 ending: None,

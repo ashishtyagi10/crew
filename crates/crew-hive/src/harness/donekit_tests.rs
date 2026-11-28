@@ -135,6 +135,7 @@ pub(super) async fn turn_with(
         effort: None,
         ask: "fix a.rs".into(),
         prompt: "TASK: fix a.rs".into(),
+        images: Vec::new(),
         hinted: None,
         shed: None,
         ending: None,
