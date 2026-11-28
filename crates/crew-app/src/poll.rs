@@ -71,6 +71,7 @@ impl CrewApp {
             || crate::attention::any_pulsing(&self.panes, now)
             || self.toasts.any_live(now)
             || self.glide_active
+            || crate::navpanememo::live(now)
             || crate::cursortrail::any_live(&self.panes, now)
             // A picture a document named, still being read on a worker: the
             // frame it lands in is owed to it, and the wait is bounded.

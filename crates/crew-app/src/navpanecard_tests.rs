@@ -22,6 +22,7 @@ fn card(name: &str, detail: Option<&str>, state: EntryState) -> Card {
         detail: detail.map(str::to_string),
         glyph: '✳',
         state,
+        fx: Default::default(),
     }
 }
 

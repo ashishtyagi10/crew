@@ -132,6 +132,19 @@ impl CrewApp {
         // One hit-test per frame, not one per row.
         let hovered = self.pane_at_panes_list();
         let cards = self.pane_cards();
+        let states: Vec<_> = self
+            .panes
+            .iter()
+            .map(|p| crate::panestate::state_of(p, now))
+            .collect();
+        let details: Vec<_> = self.panes.iter().map(crate::panestate::detail_of).collect();
+        let rows = self.panes.iter().enumerate().map(|(i, p)| {
+            let said = details[i]
+                .as_deref()
+                .map_or("", |d| crate::panegist::split_time(d).0);
+            (p.born_ms, i, states[i], said)
+        });
+        let fx = crate::navpanememo::observe_rows(rows, now, cards);
         self.panes
             .iter()
             .enumerate()
@@ -157,9 +170,10 @@ impl CrewApp {
                 hovered: hovered == Some(i),
                 card: cards.then(|| crate::navpanecard::Card {
                     name: crate::panestate::name_of(p),
-                    detail: crate::panestate::detail_of(p),
+                    detail: details[i].clone(),
                     glyph: crate::panestate::glyph_of(p),
-                    state: crate::panestate::state_of(p, now),
+                    state: states[i],
+                    fx: fx.as_ref().map_or_else(Default::default, |f| f[i]),
                 }),
             })
             .collect()

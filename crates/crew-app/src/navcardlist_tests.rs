@@ -20,6 +20,7 @@ fn row(index: usize, name: &str) -> PaneRow {
             detail: Some(format!("{name} detail")),
             glyph: '❯',
             state: EntryState::Idle,
+            fx: Default::default(),
         }),
     }
 }

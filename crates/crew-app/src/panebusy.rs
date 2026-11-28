@@ -96,7 +96,9 @@ impl crate::app::CrewApp {
     /// motion beside the wash drift, and fenced the same way on OS focus:
     /// repainting a window nobody is looking at is the whole cost.
     pub(crate) fn ambient_breath(&self) -> bool {
-        self.win_focus.unwrap_or(true) && self.panes.iter().any(pane_breathing)
+        self.win_focus.unwrap_or(true)
+            && (self.panes.iter().any(pane_breathing)
+                || crate::navpanememo::breathing(crate::anim::now_ms()))
     }
 
     /// At Motion Off, whether a working pane's clocks owe a frame: once per
