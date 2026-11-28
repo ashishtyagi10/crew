@@ -82,11 +82,23 @@ pub(crate) fn observe_rows<'a>(
     }
     let end = level.scale_ms(FLASH_MS);
     Some(MEMOS.with_borrow_mut(|m| {
+        let rows: Vec<_> = rows.collect();
+        // A created pane is pushed to the END and is the one card the last pass did not have.
+        // `born_ms` alone can't say it: a tab switch and an un-hide re-stamp it, and every
+        // card of the tab would replay the entrance (review, round 32).
+        let last = rows.iter().map(|r| r.1).max();
+        let unmatched = rows.iter().filter(|r| !m.contains_key(&(r.0, r.1))).count();
+        let grew = rows.len() == m.len() + 1 && unmatched == 1;
         let mut seen = HashMap::new();
         let fxs = rows
+            .into_iter()
             .map(|(born, i, state, words)| {
                 let old = m.remove(&(born, i));
-                let fresh = old.is_none() && SEEDED.get() && crate::navpanenter::is_new(born, now);
+                let fresh = old.is_none()
+                    && grew
+                    && Some(i) == last
+                    && SEEDED.get()
+                    && crate::navpanenter::is_new(born, now);
                 let mut memo = observe(old, state, words, now, level);
                 if fresh && memo.fx.on {
                     memo.fx.born_at = Some(now);
