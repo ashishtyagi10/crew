@@ -51,6 +51,8 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     cy += 3;
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
+    rects.push((Field::Ligatures, Rect::new(ix, cy, iw, 1)));
+    cy += 1;
     cy + 1 - y
 }
 

@@ -78,6 +78,7 @@ impl CrewConfig {
             font_smooth: self.font_smooth,
             // Same for the gamma correction: the whole 0–255 range is legal.
             font_gamma: self.font_gamma,
+            font_ligatures: self.font_ligatures,
             usage_budget_5h: self.usage_budget_5h.max(10_000),
             usage_budget_7d: self.usage_budget_7d.max(10_000),
             // Dollars; a negative or unreadable cap is "off", never a refund.

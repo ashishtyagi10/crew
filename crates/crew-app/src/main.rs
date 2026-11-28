@@ -1072,4 +1072,6 @@ mod indicpixel_tests;
 #[cfg(test)]
 mod indicshot_tests;
 #[cfg(test)]
+mod ligshot_tests;
+#[cfg(test)]
 mod markcells_tests;

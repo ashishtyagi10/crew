@@ -15,6 +15,7 @@ fn edits(f: Field) -> &'static str {
         Field::FontSize => "font_size",
         Field::Smooth => "font_smooth",
         Field::FontGamma => "font_gamma",
+        Field::Ligatures => "font_ligatures",
         Field::NavWidth => "nav_width",
         Field::ShowNav => "show_nav",
         Field::Theme => "theme",

@@ -13,6 +13,7 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::BorderMarks => d.border_marks = !d.border_marks,
         Field::Invisibles => d.invisibles = !d.invisibles,
         Field::Lsp => d.lsp = !d.lsp,
+        Field::Ligatures => d.font_ligatures = !d.font_ligatures,
         Field::Maximized => d.maximized = !d.maximized,
         Field::OptionMeta => d.option_as_meta = !d.option_as_meta,
         Field::Notify => d.notify = !d.notify,

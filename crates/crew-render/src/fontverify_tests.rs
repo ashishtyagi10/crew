@@ -119,6 +119,7 @@ fn no_chrome_symbol_is_drawn_as_a_colour_bitmap() {
         weight: 500,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     };
@@ -204,6 +205,7 @@ fn a_family_crew_cannot_draw_on_the_grid_is_never_shaped() {
             weight: 500,
             smooth: 0,
             gamma: 0,
+            ligatures: true,
             dark: true,
             body: ((255, 255, 255), (0, 0, 0)),
         };

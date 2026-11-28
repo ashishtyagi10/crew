@@ -20,6 +20,7 @@ fn params(font_size: f32, smooth: u8) -> FontParams {
         weight: 500,
         smooth,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     }

@@ -137,6 +137,7 @@ fn a_frame_gets_its_faces_rules() {
         weight: 500,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     };

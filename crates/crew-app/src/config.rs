@@ -175,6 +175,10 @@ pub struct CrewConfig {
     /// bright page too much; `/gamma` tunes the correction.
     #[serde(default = "default_font_gamma")]
     pub font_gamma: u8,
+    /// Whether the font's programmer ligatures (`=>`, `!=`, `->`) draw joined. On;
+    /// off shapes every glyph on its own, as before.
+    #[serde(default = "default_true")]
+    pub font_ligatures: bool,
     /// Token budgets for the footer's rolling usage windows (the `%` the
     /// bars are drawn against). Approximate by nature — tune to taste.
     #[serde(default = "default_usage_budget_5h")]
@@ -256,6 +260,7 @@ impl Default for CrewConfig {
             font_weight: default_font_weight(),
             font_smooth: default_font_smooth(),
             font_gamma: default_font_gamma(),
+            font_ligatures: true,
             usage_budget_5h: default_usage_budget_5h(),
             usage_budget_7d: default_usage_budget_7d(),
             task_budget_usd: default_task_budget_usd(),

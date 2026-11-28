@@ -149,6 +149,7 @@ impl CrewApp {
                 renderer.set_font_weight(Some(self.config.font_weight));
                 renderer.set_text_smoothing(Some(self.config.font_smooth));
                 renderer.set_text_gamma(Some(self.config.font_gamma));
+                renderer.set_ligatures(self.config.font_ligatures);
                 renderer.set_glass(self.config.glass_level());
                 renderer.set_window_opacity(self.window_opacity());
                 if self.config.maximized {

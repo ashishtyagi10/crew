@@ -129,6 +129,8 @@ pub struct CellGrid {
     /// Text-gamma amount override (0–255, 0 = off). `None` follows
     /// [`crate::textgamma::DEFAULT_TEXT_GAMMA`].
     gamma_override: Option<u8>,
+    /// Programmer ligatures on (the default) or off; see [`crate::ligature`].
+    ligatures: bool,
     /// Whether the render target is sRGB (colours must be fed linear).
     srgb: bool,
     /// Arms the glyph-atlas prewarm: set at construction and by every
@@ -208,6 +210,7 @@ impl CellGrid {
             weight_override: None,
             smooth_override: None,
             gamma_override: None,
+            ligatures: true,
             srgb: format.is_srgb(),
             needs_prewarm: true,
         }
@@ -233,6 +236,7 @@ impl CellGrid {
             gamma: self
                 .gamma_override
                 .unwrap_or(crate::textgamma::DEFAULT_TEXT_GAMMA),
+            ligatures: self.ligatures,
             // Per-frame theme read, same as the weight above: the polarity
             // the coverage curve bends toward IS the page's.
             dark: crew_theme::theme().dark,
@@ -321,6 +325,12 @@ impl CellGrid {
         self.gamma_override = amount;
         self.swash.image_cache.clear();
         self.needs_prewarm = true;
+    }
+
+    /// Turn the font's ligatures on or off. The pane signature carries it, so
+    /// every buffer reshapes next frame.
+    pub fn set_ligatures(&mut self, on: bool) {
+        self.ligatures = on;
     }
 
     /// Set the frosted-glass strength. Applied next frame.

@@ -9,6 +9,7 @@ fn params(family: Option<String>) -> FontParams {
         weight: 400,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     }
@@ -82,6 +83,7 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         weight: 400,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     };
@@ -122,6 +124,7 @@ fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
         weight: 500,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     };
@@ -166,6 +169,7 @@ fn semibold_weight_glyphs_snap_to_the_same_cell_advance() {
         weight: 600,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     };
@@ -211,6 +215,7 @@ fn a_heavier_weight_rasterizes_more_ink() {
             weight,
             smooth: 0,
             gamma: 0,
+            ligatures: true,
             dark: true,
             body: ((255, 255, 255), (0, 0, 0)),
         };
@@ -429,6 +434,7 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
             weight: 400,
             smooth: 0,
             gamma: 0,
+            ligatures: true,
             dark: true,
             body: ((255, 255, 255), (0, 0, 0)),
         };

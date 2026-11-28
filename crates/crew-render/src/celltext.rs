@@ -30,6 +30,8 @@ pub(crate) struct FontParams {
     /// blend's gamma error [`crate::textgamma`] takes back. Rides in the
     /// cache-key flags beside `smooth`, for the same reason.
     pub gamma: u8,
+    /// Whether the font's own ligature lookups run (see [`crate::ligature`]).
+    pub ligatures: bool,
     /// Whether the PAGE is dark, i.e. its own ink is light. Styled runs
     /// derive their polarity from their own fg/bg instead (a bright badge
     /// in a dark theme wants the bright answer); this is what blank cells
@@ -387,10 +389,13 @@ pub(crate) fn fill_rich_text(
         crate::textgamma::amount_for(params.gamma, params.body.0, params.body.1),
         params.dark,
     );
-    let default_attrs = Attrs::new()
-        .family(fam)
-        .weight(base)
-        .cache_key_flags(default_flags);
+    let default_attrs = crate::ligature::shape(
+        Attrs::new()
+            .family(fam)
+            .weight(base)
+            .cache_key_flags(default_flags),
+        params.ligatures,
+    );
 
     // Build the entire buffer text once, recording `(start, end, key)` byte
     // ranges into it; consecutive same-key cells extend the current run.
@@ -475,6 +480,7 @@ pub(crate) fn fill_rich_text(
                             *gamma,
                             *light,
                         ));
+                    a = crate::ligature::shape(a, params.ligatures);
                     if *italic {
                         a = a.style(Style::Italic);
                     }

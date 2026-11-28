@@ -115,6 +115,11 @@ impl Renderer {
         self.cell_grid.set_text_gamma(amount);
     }
 
+    /// Programmer ligatures on or off (`font_ligatures`).
+    pub fn set_ligatures(&mut self, on: bool) {
+        self.cell_grid.set_ligatures(on);
+    }
+
     /// Theme-switch crossfade: how strongly the LAST presented frame still
     /// covers the new theme's frame (1 → all old). Pass `None` (or ≤ 0) once
     /// settled. The caller owns the fade timeline; this is the per-frame value.

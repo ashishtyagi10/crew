@@ -13,6 +13,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::FontSize => "Font size",
         Field::Smooth => "Smoothing",
         Field::FontGamma => "Text gamma",
+        Field::Ligatures => "Font ligatures",
         Field::NavWidth => "Nav width",
         Field::ShowNav => "Show nav",
         Field::Theme => "Theme",
@@ -99,6 +100,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::BorderMarks => (onoff(p.draft.border_marks), false),
         Field::Invisibles => (onoff(p.draft.invisibles), false),
         Field::Lsp => (onoff(p.draft.lsp), false),
+        Field::Ligatures => (onoff(p.draft.font_ligatures), false),
         Field::Glass => (
             format!("\u{2039} {} \u{203a}", p.draft.glass_level().as_str()),
             false,
