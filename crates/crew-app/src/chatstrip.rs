@@ -45,6 +45,9 @@ pub(crate) struct Clock {
     at: u64,
     cur: usize,
     ms: [u64; 4],
+    /// The turn ended: the open phase was folded in and nothing grows. A
+    /// receipt that lands minutes later must not read "10m30 · 95% thinking".
+    stopped: bool,
 }
 
 impl Clock {
@@ -60,9 +63,17 @@ impl Clock {
     /// to the phase that was holding, and the event may change the phase.
     pub(crate) fn hear(&mut self, ev: &PluginEvent, now: u64) {
         let Some(p) = of_event(ev) else { return };
-        if self.began.is_some() {
+        if self.began.is_some() && !self.stopped {
             self.ms[self.cur] += now.saturating_sub(self.at);
             (self.at, self.cur) = (now, Kind::of(p) as usize);
+        }
+    }
+
+    /// The turn ended at `now`: fold the open phase in and stop counting.
+    pub(crate) fn stop(&mut self, now: u64) {
+        if self.began.is_some() && !self.stopped {
+            self.ms[self.cur] += now.saturating_sub(self.at);
+            self.stopped = true;
         }
     }
 
@@ -71,7 +82,9 @@ impl Clock {
     pub(crate) fn snapshot(&self, now: u64) -> Option<[u64; 4]> {
         self.began?;
         let mut ms = self.ms;
-        ms[self.cur] += now.saturating_sub(self.at);
+        if !self.stopped {
+            ms[self.cur] += now.saturating_sub(self.at);
+        }
         (ms.iter().sum::<u64>() >= 1_000).then_some(ms)
     }
 }

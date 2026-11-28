@@ -68,8 +68,10 @@ impl crate::chat::ChatPane {
                 .map(|(_, tok_in, tok_out, cost)| (tok_in, tok_out, cost)),
             _ => None,
         };
-        // A receipt carries where the turn's time went (`chatstrip`).
-        let meta = match (sender == "agent smith" && text.starts_with("task #"))
+        // A receipt carries where the turn's time went (`chatstrip`) — not
+        // while tasks overlap: the pane's one clock would mix their time.
+        let own = self.running_tasks.len() <= 1;
+        let meta = match (own && sender == "agent smith" && text.starts_with("task #"))
             .then(|| self.watch.strip.snapshot(crate::anim::now_ms()))
             .flatten()
         {

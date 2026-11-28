@@ -77,7 +77,8 @@ pub(crate) fn strip_on(out: &mut [CardLine], ms: [u64; 4], cols: usize) {
     let Some((k, said)) = most(ms) else { return };
     let label_w = str_w(&label) + 3 + str_w(&said);
     // The last column stays margin; two before the bar, one before the total.
-    let room = cols.saturating_sub(1).saturating_sub(first.len());
+    let used: usize = first.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
+    let room = cols.saturating_sub(1).saturating_sub(used);
     let Some(bar) = room.checked_sub(3 + label_w).filter(|b| *b >= MIN) else {
         return;
     };

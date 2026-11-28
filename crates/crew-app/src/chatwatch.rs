@@ -75,6 +75,7 @@ impl ChatPane {
             (false, Some(since)) => {
                 self.watch.turn_since = None;
                 self.watch.turn_done = Some(now.saturating_sub(since));
+                self.watch.strip.stop(now);
             }
             _ => {}
         }

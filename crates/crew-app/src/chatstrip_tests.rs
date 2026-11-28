@@ -66,3 +66,15 @@ fn the_stamp_round_trips_and_leaves_the_task_tag_in_front() {
     assert_eq!(read("strip:1,2,3"), None);
     assert_eq!(unstamped("4.2s"), "4.2s");
 }
+
+#[test]
+fn a_stopped_clock_does_not_grow() {
+    let mut c = Clock::start(0);
+    c.stop(30_000);
+    assert_eq!(
+        c.snapshot(600_000),
+        c.snapshot(30_000),
+        "ten minutes later, the same"
+    );
+    assert_eq!(c.snapshot(600_000).unwrap().iter().sum::<u64>(), 30_000);
+}
