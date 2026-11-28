@@ -75,9 +75,11 @@ impl SchemeNotify {
         self.inband
     }
 
-    /// Whether 2048 was switched on since the last call: the report owed now.
+    /// Whether 2048 was switched on since the last call and is on still: the
+    /// report owed now. Switched off again in the same read (or reset), the
+    /// shell that has the pane back must not be sent `ESC[48;…t`.
     pub(crate) fn take_inband_ask(&mut self) -> bool {
-        std::mem::take(&mut self.inband_ask)
+        std::mem::take(&mut self.inband_ask) && self.inband
     }
 
     /// Scan a chunk of PTY output. `dark` is the active scheme (for query

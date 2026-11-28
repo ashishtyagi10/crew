@@ -68,3 +68,12 @@ fn it_shares_a_decset_with_other_modes() {
     t.feed(b"\x1b[?1004;2048h");
     assert_eq!(t.take_replies().as_deref(), Some(REPORT));
 }
+
+#[test]
+fn on_then_off_in_one_read_reports_nothing() {
+    let mut t = term();
+    t.feed(b"\x1b[?2048h\x1b[?2048l");
+    assert_eq!(t.take_replies(), None);
+    t.feed(b"\x1b[?2048h\x1bc");
+    assert_eq!(t.take_replies(), None, "a reset in the same read too");
+}

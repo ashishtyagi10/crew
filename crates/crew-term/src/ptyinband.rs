@@ -35,6 +35,6 @@ impl PtyTerm {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "ptyinband_tests.rs"]
 mod tests;
