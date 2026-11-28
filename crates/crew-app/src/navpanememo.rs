@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use crate::motion::MotionLevel;
 use crate::navpanemotion::{Fx, BREATH_LEASE_MS, FLASH_MS};
+use crate::navpanenter::ENTER_MS;
 use crate::panestate::EntryState;
 
 /// What a card said last time it was drawn.
@@ -60,6 +61,8 @@ thread_local! {
     static MEMOS: RefCell<HashMap<(u64, usize), Memo>> = RefCell::new(HashMap::new());
     static ENDS: Cell<u64> = const { Cell::new(0) };
     static LEASE: Cell<u64> = const { Cell::new(0) };
+    /// A cards pass has been drawn since the memory was last forgotten.
+    static SEEDED: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Observe every card of one `pane_rows` pass: `(born_ms, index, state,
@@ -74,6 +77,7 @@ pub(crate) fn observe_rows<'a>(
     let level = crate::motion::level();
     if !cards {
         MEMOS.with_borrow_mut(HashMap::clear);
+        SEEDED.set(false);
         return None;
     }
     let end = level.scale_ms(FLASH_MS);
@@ -81,7 +85,13 @@ pub(crate) fn observe_rows<'a>(
         let mut seen = HashMap::new();
         let fxs = rows
             .map(|(born, i, state, words)| {
-                let memo = observe(m.remove(&(born, i)), state, words, now, level);
+                let old = m.remove(&(born, i));
+                let fresh = old.is_none() && SEEDED.get() && crate::navpanenter::is_new(born, now);
+                let mut memo = observe(old, state, words, now, level);
+                if fresh && memo.fx.on {
+                    memo.fx.born_at = Some(now);
+                    ENDS.set(ENDS.get().max(now + level.scale_ms(ENTER_MS)));
+                }
                 let fx = memo.fx;
                 if fx.on && state == EntryState::Working {
                     LEASE.set(now + BREATH_LEASE_MS);
@@ -94,6 +104,7 @@ pub(crate) fn observe_rows<'a>(
             })
             .collect();
         *m = seen;
+        SEEDED.set(true);
         fxs
     }))
 }

@@ -35,6 +35,8 @@ pub struct Fx {
     pub state_at: Option<u64>,
     /// When the words of line two last changed.
     pub words_at: Option<u64>,
+    /// When the pane was seen to be created ([`crate::navpanenter`]).
+    pub born_at: Option<u64>,
 }
 
 /// `base` flashed toward `ink`, `since` ms after the change.

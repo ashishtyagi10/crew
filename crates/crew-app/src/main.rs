@@ -550,6 +550,7 @@ mod navpanecard;
 mod navpanel;
 mod navpanememo;
 mod navpanemotion;
+mod navpanenter;
 mod navrail;
 mod navrailbar;
 mod navrailfoot;

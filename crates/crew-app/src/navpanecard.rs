@@ -191,7 +191,7 @@ pub(crate) fn card_cells(r: &PaneRow, c: &Card, cols: u16, row: u16) -> Vec<Cell
     for (x, s, fg) in marks {
         put(&s, x, row2, fg, cols, false);
     }
-    out
+    crate::navpanenter::apply(out, &c.fx, row, now)
 }
 
 #[cfg(test)]
