@@ -349,6 +349,9 @@ mod swarmwidth;
 #[path = "swarmbudget_tests.rs"]
 mod budget_tests;
 #[cfg(test)]
+#[path = "swarmcap_tests.rs"]
+mod cap_tests;
+#[cfg(test)]
 #[path = "swarmmemory_tests.rs"]
 mod memory_tests;
 #[cfg(test)]

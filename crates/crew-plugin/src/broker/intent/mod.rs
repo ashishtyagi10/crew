@@ -31,13 +31,15 @@ pub(crate) mod decision;
 mod fanout;
 pub(crate) mod gate;
 mod hints;
+mod judge;
 pub(crate) mod shapeguard;
 mod skillhint;
 mod world;
 
-pub(crate) use classify::{live_call, live_call_at, live_classifier, live_provider_at};
+pub(crate) use classify::{live_call, live_classifier, live_provider_at};
 pub(crate) use fanout::fan_recorded;
 pub(crate) use hints::Hints;
+pub(crate) use judge::live_judge_call;
 pub(crate) use world::World;
 
 /// Relay rounds when the router picks `loop` and the model gave no

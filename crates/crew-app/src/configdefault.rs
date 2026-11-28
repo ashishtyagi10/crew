@@ -36,6 +36,11 @@ pub(crate) fn default_usage_budget_5h() -> u64 {
     5_000_000
 }
 
+/// Ten dollars: past what a normal task costs, short of an overnight surprise.
+pub(crate) fn default_task_budget_usd() -> f64 {
+    10.0
+}
+
 pub(crate) fn default_usage_budget_7d() -> u64 {
     25_000_000
 }

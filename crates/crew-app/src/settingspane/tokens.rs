@@ -49,6 +49,24 @@ pub(super) fn commit(typed: &str, prev: u64) -> u64 {
     parse(typed).unwrap_or(prev)
 }
 
+/// The task spend cap in dollars as typed: 10 → `10`, 2.5 → `2.5`.
+pub(super) fn dollars(usd: f64) -> String {
+    let s = format!("{usd:.2}");
+    s.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+/// The cap `typed` commits to, given what is stored: `prev` when the buffer
+/// still reads as it (the same no-quantisation rule as [`commit`]: a hand-set
+/// `2.555` shows as `2.56` and must not be rewritten unasked), or when it is
+/// not a number. `0` is a real answer here, "off".
+pub(super) fn commit_usd(typed: &str, prev: f64) -> f64 {
+    match typed.trim().parse::<f64>() {
+        _ if typed.trim() == dollars(prev) => prev,
+        Ok(v) if v.is_finite() => v.clamp(0.0, 100_000.0),
+        _ => prev,
+    }
+}
+
 #[cfg(test)]
 #[path = "tokens_tests.rs"]
 mod tests;

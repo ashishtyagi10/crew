@@ -86,13 +86,16 @@ pub(crate) enum Field {
     /// millions — see `tokens`.
     Budget5h,
     Budget7d,
+    /// Dollars one task may spend before it asks to go on (`task_budget_usd`),
+    /// beside the token budgets: both are how much crew may use.
+    TaskBudget,
     Save,
     Cancel,
 }
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 34] = [
+pub(crate) const FIELDS: [Field; 35] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -125,6 +128,7 @@ pub(crate) const FIELDS: [Field; 34] = [
     Field::NotifyPatterns,
     Field::Budget5h,
     Field::Budget7d,
+    Field::TaskBudget,
     Field::Save,
     Field::Cancel,
 ];

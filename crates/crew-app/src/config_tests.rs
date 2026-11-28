@@ -37,6 +37,20 @@ fn usage_budgets_default_and_clamp() {
 }
 
 #[test]
+fn task_budget_defaults_to_ten_dollars_and_zero_means_off() {
+    assert_eq!(CrewConfig::from_toml_str("").task_budget_usd, 10.0);
+    assert_eq!(CrewConfig::default().task_budget_usd, 10.0);
+    let kept = |s: &str| CrewConfig::from_toml_str(s).task_budget_usd;
+    assert_eq!(kept("task_budget_usd = 2.5\n"), 2.5, "a set value survives");
+    assert_eq!(
+        kept("task_budget_usd = 0\n"),
+        0.0,
+        "0 is off, not the default"
+    );
+    assert_eq!(kept("task_budget_usd = -4\n"), 0.0, "never a negative cap");
+}
+
+#[test]
 fn notify_patterns_drop_blanks() {
     let cfg = CrewConfig::from_toml_str("notify_patterns = [\"error\", \"\", \"done\"]\n");
     assert_eq!(
@@ -146,6 +160,7 @@ fn round_trip() {
         font_gamma: 90,
         usage_budget_5h: 1_000_000,
         usage_budget_7d: 12_000_000,
+        task_budget_usd: 2.5,
         model_recents: vec!["qwen-max".to_string()],
     };
     assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);

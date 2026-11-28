@@ -48,6 +48,9 @@ pub(crate) fn fan_out(
     let mut replies: Vec<(String, String)> = Vec::new();
     let mut werr: anyhow::Result<()> = Ok(());
     let mut told = super::fellback::Told::default();
+    // The task's spend gate, taken here on the task's thread: the scope's
+    // threads below have no meter of their own.
+    let gate = super::spendgate::Gate::here();
     std::thread::scope(|s| {
         let (tx, rx) = mpsc::channel();
         for name in names {
@@ -60,6 +63,7 @@ pub(crate) fn fan_out(
                 continue;
             };
             let tx = tx.clone();
+            let gate = gate.clone();
             let prompt = prompt.clone();
             let stream = HopStream {
                 on_tokens: hop_ticker(tick_emit.clone(), name.clone()),
@@ -69,7 +73,7 @@ pub(crate) fn fan_out(
             };
             s.spawn(move || {
                 let t0 = Instant::now();
-                let res = agent.call_with_usage_ticked(&prompt, timeout, &stream);
+                let res = gate.hold(|| agent.call_with_usage_ticked(&prompt, timeout, &stream));
                 let _ = tx.send((name.clone(), res, t0.elapsed()));
             });
         }

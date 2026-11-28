@@ -101,7 +101,12 @@ fn turn(planning: &[Step], judge: Option<&SynthFn>) -> Vec<PluginEvent> {
         capabilities: Vec::new(),
     });
     let factory = Arc::new(ApiFactory::new(Billed::new(&[WORKER]), 2048));
-    let answer = super::swarmstream::over(Billed::new(&[ANSWER]), "m".into(), 2048);
+    let answer = super::swarmstream::over(
+        Billed::new(&[ANSWER]),
+        "m".into(),
+        2048,
+        crate::broker::spendgate::Gate::here(),
+    );
     let mut arm =
         |d: &Decision, _: &mut Session, emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>| {
             assert_eq!(d.shape, Shape::Swarm);

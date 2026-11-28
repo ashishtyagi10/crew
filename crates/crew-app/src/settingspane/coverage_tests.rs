@@ -43,6 +43,7 @@ fn edits(f: Field) -> &'static str {
         Field::NotifyPatterns => "notify_patterns",
         Field::Budget5h => "usage_budget_5h",
         Field::Budget7d => "usage_budget_7d",
+        Field::TaskBudget => "task_budget_usd",
         Field::Save | Field::Cancel => "",
     }
 }

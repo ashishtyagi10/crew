@@ -112,7 +112,11 @@ impl CrewApp {
         // The login-shell PATH goes with it (`hydrated_env`, the same hand-
         // down the run panes get): a broker on launchd's PATH cannot find
         // `ant`/`claude`/`codex` and calls a signed-in CLI "not installed".
-        match Plugin::spawn_with(cmd, args, Some(&self.cwd), &crate::spawn::hydrated_env()) {
+        // The per-task spend cap rides in as the broker's env, read once here:
+        // a settings change applies to panes opened after it.
+        let mut env = crate::spawn::hydrated_env();
+        env.extend(self.config.broker_env());
+        match Plugin::spawn_with(cmd, args, Some(&self.cwd), &env) {
             Ok(mut plugin) => {
                 if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {
                     eprintln!("spawn_plugin_pane: plugin hello error: {e}");

@@ -395,6 +395,11 @@ fn send(
                 });
             // This thread is the task: its tool rounds take what is typed meanwhile.
             let steer = super::steer::Taking::begin(Arc::clone(&tick_emit));
+            // This task's spend cap, asked at on the pane (`spendcap`).
+            let _spend = super::spendcap::enter(super::spendcap::live(
+                Arc::clone(&snap.cancel),
+                Arc::clone(&tick_emit),
+            ));
             // The user's prompt hooks, first of all: a refused task costs no checkpoint, no
             // routing and no model call, and its context rides `with_memory` this turn.
             let src = (!cfg!(test))

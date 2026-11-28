@@ -83,6 +83,8 @@ pub(crate) struct Footer<'a> {
     pub mode: ApprovalMode,
     /// The question waiting for an answer, if one is…
     pub asking: Option<&'a str>,
+    /// …whether it is the spend cap's, not a tool's (`spendask`)…
+    pub spend: bool,
     /// …and how many more are queued behind it.
     pub more: usize,
 }
@@ -116,9 +118,7 @@ impl ChatPane {
     /// The broker is waiting on a yes or no for `question`. Several agents of
     /// one swarm can ask at once: they queue, answered first to last.
     pub(crate) fn ask_user(&mut self, id: String, question: String) {
-        self.push_note(format!(
-            "\u{26a0} allow this? {question} \u{2014} enter allows \u{00b7} esc refuses"
-        ));
+        self.push_note(crate::spendask::asked(&id, &question));
         self.asking.push_back(Asking {
             id,
             question,
@@ -145,13 +145,11 @@ impl ChatPane {
         let Some(a) = self.asking.pop_front() else {
             return false;
         };
-        let _ = self
-            .plugin
-            .send(&PluginCommand::Approve { id: a.id, granted });
-        self.push_note(match granted {
-            true => format!("allowed \u{2014} {}", a.question),
-            false => format!("refused \u{2014} {}", a.question),
+        let _ = self.plugin.send(&PluginCommand::Approve {
+            id: a.id.clone(),
+            granted,
         });
+        self.push_note(crate::spendask::answered(&a.id, &a.question, granted));
         true
     }
 
@@ -183,6 +181,9 @@ impl ChatPane {
         Footer {
             mode: self.approval_mode,
             asking: self.asking().map(|a| a.question.as_str()),
+            spend: self
+                .asking()
+                .is_some_and(|a| crate::spendask::is_spend(&a.id)),
             more: self.asking.len().saturating_sub(1),
         }
     }

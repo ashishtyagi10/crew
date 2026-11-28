@@ -140,8 +140,14 @@ pub(crate) fn route_line(fc: &FooterCtx, cols: usize) -> Vec<FCell> {
             n => format!(" (+{n} more)"),
         };
         let question = unticked(question);
-        segs.push((plain(&format!("allow? {question}{more}"), th.ansi[11]), 0));
-        segs.push((plain(keys, th.ansi[11]), 0));
+        match fc.approval.spend {
+            // Money: the question carries its own keys (`spendask`).
+            true => segs.push((plain(&format!("$ {question}{more}"), th.ansi[11]), 0)),
+            false => {
+                segs.push((plain(&format!("allow? {question}{more}"), th.ansi[11]), 0));
+                segs.push((plain(keys, th.ansi[11]), 0));
+            }
+        }
     } else if fc.plan_pending {
         // A pending plan outranks everything else here: it is the only thing
         // on this line addressed TO the user. The keys go compact rather than

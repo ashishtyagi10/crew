@@ -52,6 +52,11 @@ impl Spawner for ProcSpawner {
         for (k, v) in crate::spawn::hydrated_env() {
             cmd.env(k, v);
         }
+        // The user's settings the broker reads (the spend cap), read fresh
+        // for each session as a pane reads them when it opens.
+        for (k, v) in crate::config::CrewConfig::load().broker_env() {
+            cmd.env(k, v);
+        }
         // Who the work is for. Without this the broker's gate sees no value, reads it as a local
         // pane, and trusts a remote sender exactly as much as a person at the keyboard.
         if let Some(r) = requester {

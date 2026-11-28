@@ -51,6 +51,11 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         // typed (5) is nothing like the number stored (5000000).
         Field::Budget5h => "5h budget (M)",
         Field::Budget7d => "7d budget (M)",
+        // Dollars, and what zero means, in the legend: a bare number here
+        // reads as a limit on something, and 0 reads as "free". Kept to 18
+        // columns: in a three-column form a card's inner width is 26, and
+        // "Spend cap per task ($, 0 = off)" needs 37.
+        Field::TaskBudget => "Cap $/task (0=off)",
         Field::Save | Field::Cancel => "",
     }
 }
@@ -142,6 +147,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::NotifyPatterns => (p.patterns_buf.clone(), true),
         Field::Budget5h => (p.budget5h_buf.clone(), true),
         Field::Budget7d => (p.budget7d_buf.clone(), true),
+        Field::TaskBudget => (p.taskbudget_buf.clone(), true),
         Field::Save | Field::Cancel => (String::new(), false),
     }
 }

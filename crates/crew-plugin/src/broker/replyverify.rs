@@ -39,7 +39,7 @@ pub(crate) fn reply(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let judge = verify
-        .then(|| super::intent::live_call_at(JUDGE_MAX_TOKENS, crew_hive::ModelTier::Standard))
+        .then(|| super::intent::live_judge_call(JUDGE_MAX_TOKENS))
         .flatten();
     // Each turn's proof is its own: the log starts empty before it runs.
     let mut turn = |t: &str, emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>| {
