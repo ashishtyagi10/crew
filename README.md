@@ -1185,3 +1185,9 @@ Font License 1.1 — see `assets/fonts/OFL.txt`) as its built-in typeface, so th
 grid never depends on what happens to be installed on the machine. Any
 installed coding face you prefer still wins: pick one with `/font`, or let the
 theme choose (`crew --list-fonts` shows what it can see).
+
+**Ligatures.** Faces that have programmer ligatures (Lilex, Fira Code,
+JetBrains Mono, Cascadia Code) draw `=>`, `!=`, `->`, `===`, `<=` joined, each
+glyph spanning exactly its cells so the grid never drifts. The cursor's own
+cell is drawn plain, which splits a ligature under the caret. Turn it off with
+`font_ligatures = false` or the "Font ligatures" box in `/settings`.

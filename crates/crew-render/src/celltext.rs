@@ -30,6 +30,8 @@ pub(crate) struct FontParams {
     /// blend's gamma error [`crate::textgamma`] takes back. Rides in the
     /// cache-key flags beside `smooth`, for the same reason.
     pub gamma: u8,
+    /// Whether the font's own ligature lookups run (see [`crate::ligature`]).
+    pub ligatures: bool,
     /// Whether the PAGE is dark, i.e. its own ink is light. Styled runs
     /// derive their polarity from their own fg/bg instead (a bright badge
     /// in a dark theme wants the bright answer); this is what blank cells
@@ -342,7 +344,7 @@ enum RunKey {
     /// run's coverage curve and how far, and runs split on both so a bright
     /// badge in a dark theme, and a muted comment beside solid body text, each
     /// get the correction their own colours ask for.
-    Styled((u8, u8, u8), bool, bool, Option<u32>, bool, u8),
+    Styled((u8, u8, u8), bool, bool, Option<u32>, bool, u8, bool),
 }
 
 /// Fill an existing `Buffer` with rich-text spans for `cells` laid out in cols×rows.
@@ -435,6 +437,7 @@ pub(crate) fn fill_rich_text(
                             ls.map(f32::to_bits),
                             light,
                             gamma,
+                            cell.cursor.shape != crew_theme::deco::CursorShape::None,
                         );
                         (cell.c, cell.marks, key)
                     }
@@ -465,7 +468,7 @@ pub(crate) fn fill_rich_text(
         .map(|(s, e, key)| {
             let attrs = match key {
                 RunKey::Default => default_attrs.clone(),
-                RunKey::Styled(fg, is_bold, italic, ls, light, gamma) => {
+                RunKey::Styled(fg, is_bold, italic, ls, light, gamma, cursor) => {
                     let mut a = Attrs::new()
                         .family(fam)
                         .color(Color::rgb(fg.0, fg.1, fg.2))
@@ -475,6 +478,7 @@ pub(crate) fn fill_rich_text(
                             *gamma,
                             *light,
                         ));
+                    a = crate::ligature::shape(a, params.ligatures, *cursor);
                     if *italic {
                         a = a.style(Style::Italic);
                     }

@@ -26,6 +26,7 @@ pub(crate) fn pane_sig(pane: &PaneScene, cols: usize, rows: usize, params: &Font
         params.smooth,
         params.gamma,
         params.dark,
+        params.ligatures,
     )
         .hash(&mut h);
     params.family.hash(&mut h);

@@ -38,6 +38,7 @@ fn grid() -> (glyphon::FontSystem, Buffer, f32) {
         weight: 500,
         smooth: 0,
         gamma: 0,
+        ligatures: true,
         dark: true,
         body: ((255, 255, 255), (0, 0, 0)),
     };

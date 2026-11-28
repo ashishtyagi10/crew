@@ -67,6 +67,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
         Field::BorderMarks => check(buf, d.border_marks),
         Field::Invisibles => check(buf, d.invisibles),
         Field::Lsp => check(buf, d.lsp),
+        Field::Ligatures => check(buf, d.font_ligatures),
         Field::Maximized => check(buf, d.maximized),
         Field::OptionMeta => check(buf, d.option_as_meta),
         Field::Notify => check(buf, d.notify),

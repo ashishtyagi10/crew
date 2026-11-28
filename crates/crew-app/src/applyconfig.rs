@@ -60,6 +60,7 @@ impl CrewApp {
             r.set_font_weight(Some(self.config.font_weight));
             r.set_text_smoothing(Some(self.config.font_smooth));
             r.set_text_gamma(Some(self.config.font_gamma));
+            r.set_ligatures(self.config.font_ligatures);
         }
         // Glass rides the same path: a save that didn't push these two would
         // leave the sheet and the window opacity a restart behind.

@@ -22,6 +22,9 @@ mod gpu;
 mod gridbase;
 pub mod holo;
 mod images;
+mod ligature;
+#[cfg(test)]
+mod ligature_tests;
 pub mod notch;
 mod outlinegrow;
 mod outlineink;

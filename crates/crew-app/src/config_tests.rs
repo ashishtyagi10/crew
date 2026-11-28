@@ -158,6 +158,7 @@ fn round_trip() {
         font_weight: 700,
         font_smooth: 120,
         font_gamma: 90,
+        font_ligatures: false,
         usage_budget_5h: 1_000_000,
         usage_budget_7d: 12_000_000,
         task_budget_usd: 2.5,

@@ -24,6 +24,8 @@ pub(crate) enum Field {
     /// halves of one thing: smoothing says how wide a stroke is drawn, this
     /// says how much light its antialiased rim is allowed to emit.
     FontGamma,
+    /// Programmer ligatures (`=>`, `!=`) drawn joined, in a face that has them.
+    Ligatures,
     NavWidth,
     ShowNav,
     Theme,
@@ -95,11 +97,12 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 35] = [
+pub(crate) const FIELDS: [Field; 36] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
     Field::FontGamma,
+    Field::Ligatures,
     Field::NavWidth,
     Field::ShowNav,
     Field::Theme,

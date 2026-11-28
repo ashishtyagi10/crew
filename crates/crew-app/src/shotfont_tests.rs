@@ -6,6 +6,7 @@
 use crew_render::CellGrid;
 
 pub fn apply(grid: &mut CellGrid) {
+    grid.set_ligatures(!crate::ligshot_tests::OFF.load(std::sync::atomic::Ordering::Relaxed));
     if let Ok(family) = std::env::var("CREW_SHOT_FONT") {
         crate::glyphs::set_family(Some(&family));
         grid.set_font_family(Some(family));
