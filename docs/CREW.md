@@ -3456,10 +3456,13 @@ when your task reaches the broker, before routing or any model call, and reads
 `{"event": "prompt", "prompt": "…", "cwd": "…"}`. Exit 2 or `{"decision":
 "block", "reason": "…"}` on stdout refuses the task: the pane shows one line,
 `blocked by hook: <reason>`, no model is dialled and the turn ends. Any other
-stdout on exit 0 (up to 2,000 characters) is added to what the model is given
-this turn, under `From your prompt hook:`. A hook that cannot run lets the task
-through unless it says `"on_failure": "block"`; a `hooks.json` that will not
-load refuses the task, as it refuses a tool call.
+stdout on exit 0 (up to 2,000 characters from each hook) is added to what the
+model is given this turn, under `From your prompt hook:`. Words you type into a
+task already running pass the same hooks before it reads them; a refused one is
+dropped with its line. A hook that cannot run lets the task through unless it
+says `"on_failure": "block"`; a `hooks.json` that will not load refuses every
+task, as it refuses a tool call. Quick commands (`/stop`, `/clear`, `!cmd`,
+`#note`) dial no model and pass no hook.
 
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 five bounded tools ride the same `@tool` surface — **`sys:run`** (one

@@ -25,7 +25,9 @@ mod run;
 mod stop;
 pub(crate) use file::Source;
 use file::{File, OnFailure, Rule};
-pub(crate) use prompt::{block as prompt_block, enter as prompt_scope, gate as prompt_gate};
+pub(crate) use prompt::{
+    block as prompt_block, enter as prompt_scope, gate as prompt_gate, steers as prompt_steers,
+};
 use run::Ran;
 
 /// How long one hook may run. It stands between the agent and every call it matches, so a
@@ -170,7 +172,7 @@ pub(crate) fn doctor_line(src: Option<&Source>) -> (char, String) {
     match src.load().file {
         Err(e) => (
             '\u{2717}',
-            format!("{e} \u{2014} every tool call is blocked until it is fixed"),
+            format!("{e} \u{2014} every tool call and task is blocked until it is fixed"),
         ),
         Ok(f) if f.len() == 0 => (
             '\u{2013}',

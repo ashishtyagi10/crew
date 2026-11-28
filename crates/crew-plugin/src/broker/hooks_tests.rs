@@ -167,7 +167,7 @@ fn the_doctor_line_says_what_the_hooks_are() {
     assert!(
         broken
             .1
-            .ends_with("every tool call is blocked until it is fixed"),
+            .ends_with("every tool call and task is blocked until it is fixed"),
         "{broken:?}"
     );
 }

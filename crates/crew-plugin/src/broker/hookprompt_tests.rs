@@ -101,3 +101,24 @@ fn the_switch_and_the_scope() {
     }
     assert_eq!(block(), None);
 }
+
+#[test]
+fn words_typed_into_a_running_task_pass_the_same_hook() {
+    let hooks = r#"case "$(cat)" in *secret*) echo 'no secrets' >&2; exit 2;; esac"#;
+    let src = source(
+        "p-steer",
+        &serde_json::json!({ "prompt": [{ "cmd": hooks }] }).to_string(),
+    );
+    let told = std::cell::RefCell::new(Vec::new());
+    let say = |why: String| told.borrow_mut().push(why);
+    let offers = vec![
+        ("c".into(), "the secret is x".into()),
+        ("c".into(), "use main".into()),
+    ];
+    let kept = steers(Some(&src), offers, &say);
+    assert_eq!(kept, vec![("c".to_string(), "use main".to_string())]);
+    assert_eq!(
+        *told.borrow(),
+        vec!["blocked by hook: no secrets".to_string()]
+    );
+}

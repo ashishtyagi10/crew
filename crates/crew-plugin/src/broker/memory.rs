@@ -102,7 +102,7 @@ pub(crate) fn with_memory(task: &str, asked: &str) -> String {
         Some(changed) => format!("{changed}\n{rest}"),
         None => rest,
     };
-    // What the user's prompt hook said for this task (`hookprompt`), nearest the task.
+    // What the user's prompt hook said for this task (`hookprompt`), just under the project card.
     let rest = match super::session::hooks::prompt_block() {
         Some(said) => format!("{said}\n\n{rest}"),
         None => rest,

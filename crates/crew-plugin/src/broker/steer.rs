@@ -127,7 +127,12 @@ pub(crate) fn take() -> Vec<String> {
     let Some(emit) = TAKER.with(|t| t.borrow().clone()) else {
         return Vec::new();
     };
-    let taken: Vec<(String, String)> = inbox().offers.drain(..).collect();
+    let offers = inbox().offers.drain(..).collect();
+    let src = (!cfg!(test))
+        .then(super::session::hooks::Source::live)
+        .flatten();
+    let say = |why| emit(super::relay::msg("agent smith", why));
+    let taken = super::session::hooks::prompt_steers(src.as_ref(), offers, &say);
     let texts: Vec<String> = taken
         .into_iter()
         .map(|(channel, text)| {

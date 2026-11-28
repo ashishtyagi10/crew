@@ -850,7 +850,7 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
   `"prompt": [{"cmd": "…"}]` hook (Claude Code's UserPromptSubmit) runs once
   when your task arrives, before any model call: exit 2 or a block decision
   refuses it with `blocked by hook: <reason>`, and any other stdout is added to
-  what the model is given this turn.
+  what the model is given this turn; words typed into a running task pass it too.
   `CREW_HOOKS=0` turns hooks off.
 
 The pane itself reads like a multi-agent console: a header with a live status

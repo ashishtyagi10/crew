@@ -47,6 +47,19 @@ pub(crate) fn gate(src: Option<&Source>, text: &str) -> Result<Option<String>, S
     src.map_or(Ok(None), |s| s.load().prompt(text))
 }
 
+/// Words typed into a running task pass the same hooks before its next tool round reads them:
+/// a guard on prompts is no guard if typing mid-task goes round it. Run from `steer::take`, on
+/// the task's worker, never the stdin loop. A refused one is dropped with its one line; a hook's
+/// context on an allowed one is not added (the task already carries the context of its start).
+pub(crate) fn steers(
+    src: Option<&Source>,
+    offers: Vec<(String, String)>,
+    told: &dyn Fn(String),
+) -> Vec<(String, String)> {
+    let allowed = |(_, text): &(String, String)| gate(src, text).map_err(told).is_ok();
+    offers.into_iter().filter(allowed).collect()
+}
+
 impl Hooks {
     pub(crate) fn prompt(&self, text: &str) -> Result<Option<String>, String> {
         let file = self.file.as_ref().map_err(|e| {
