@@ -28,6 +28,11 @@ impl Gate {
     /// stop, so it cannot hang.
     pub(crate) fn before(&self) -> Result<(), String> {
         let Some(task) = &self.0 else { return Ok(()) };
+        // Under the cap — almost every call — nothing to ask: no thread, no
+        // runtime (`before_call` would say the same, after paying for both).
+        if !task.over() {
+            return Ok(());
+        }
         // A thread of its own when called from inside a runtime (a swarm's
         // judge runs inside the swarm's `block_on`), as `complete_once` does:
         // there a nested `block_on` is a panic, not a wait.

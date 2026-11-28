@@ -117,7 +117,7 @@ impl TaskSpend {
         self.spent.load(Ordering::Relaxed)
     }
 
-    fn over(&self) -> bool {
+    pub(crate) fn over(&self) -> bool {
         self.spent() >= self.cap.load(Ordering::Relaxed)
     }
 
