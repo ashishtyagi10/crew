@@ -16,6 +16,7 @@ mod pty;
 mod ptyident;
 mod ptylocale;
 mod schemenotify;
+mod sixel;
 #[cfg(test)]
 mod testtheme;
 mod wipescan;
@@ -27,4 +28,5 @@ pub use modes::InputModes;
 pub use osc::{Progress, ShellMark};
 pub use pty::PtyTerm;
 pub use schemenotify::scheme_report;
+pub use sixel::{decode as decode_sixel, size as sixel_size};
 pub use wipescan::ImageWipe;

@@ -19,6 +19,14 @@ const UNKNOWN_2048: &str = "\x1b[?2048;0$y";
 /// The same for 1016 (SGR-Pixels mouse), answered by `pixelmouse`.
 const UNKNOWN_1016: &str = "\x1b[?1016;0$y";
 
+/// What alacritty answers to DA1 (`CSI c`): a VT102.
+const THEIR_DA1: &str = "\x1b[?6c";
+/// What crew answers instead: a VT220 (`62`) that draws sixel (`4`) and has
+/// ANSI colour (`22`) — the set foot reports minus `28` (rectangular editing),
+/// which crew does not do. Claiming nothing it lacks matters more than
+/// looking richer: chafa, yazi, notcurses and lsix turn sixel on at `4`.
+const OUR_DA1: &str = "\x1b[?62;4;22c";
+
 /// Shared state captured from terminal events (cloned into the alacritty `Term`).
 #[derive(Clone, Default)]
 pub(crate) struct TermEvents {
@@ -73,6 +81,9 @@ impl EventListener for TermEvents {
             // last answer would turn its notifications off.
             Event::PtyWrite(text)
                 if text == UNKNOWN_2031 || text == UNKNOWN_2048 || text == UNKNOWN_1016 => {}
+            Event::PtyWrite(text) if text == THEIR_DA1 => {
+                self.replies.lock().unwrap().push_str(OUR_DA1)
+            }
             // A kitty keyboard query (`CSI ? u`) is answered with the flags
             // alacritty holds, all five of which the app's encoder honours.
             Event::PtyWrite(text) => self.replies.lock().unwrap().push_str(&text),

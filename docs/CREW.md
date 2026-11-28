@@ -186,6 +186,19 @@ and open.
   crew already listens for — the cwd report, notifications, progress and the
   shell marks — reach the parser untouched: nothing is taken out of the stream
   until the prefix says it is a picture.
+* **Sixel is read too** — `DCS P1;P2;P3 q … ST`, as `img2sixel`, `chafa`,
+  `lsix` and yazi write it. A DCS is only taken for sixel once its header is
+  digits, `;` and `q`: XTGETTCAP, tmux passthrough and the rest reach the
+  parser untouched, and an escape that is not the terminator aborts the picture,
+  as CAN and SUB do (after Ctrl-C during `cat x.six`, the shell's first escape —
+  a coloured prompt, bracketed paste — ends it and reaches the parser). The size
+  comes from the raster attributes (`"Pan;Pad;Ph;Pv`, believed only as far as the
+  data reaches) or a scan of the data, before the worker decodes
+  it; unset pixels are transparent. The cursor ends on the picture's last row at
+  its starting column (foot's rule, sixel scrolling on). DA1 answers
+  `?62;4;22c` and XTSMGRAPHICS reports 256 colour registers. Not done: DECSDM
+  (mode 80), mode 8452, the geometry query (`? 2 ; 1 ; 0 S`), pixel aspect
+  (`Pan;Pad`, P1) and P2 = 0 background fill.
 
 **Reach anything on the pane with one letter (`Cmd+E`).** A terminal's output
 is full of things you want to *do something with* — the URL a server printed,

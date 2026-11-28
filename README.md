@@ -670,6 +670,9 @@ cards, links):
   the frame thread and drawn on the sub-cell paint layer. It leaves with its
   text: `clear` takes it, and a file manager's preview goes when the program
   quits instead of hanging over the shell.
+  Sixel (`img2sixel`, `chafa -f sixels`, `lsix`, yazi) is read too, and the
+  terminal says so to DA1 (`CSI ? 62 ; 4 ; 22 c`) and to XTSMGRAPHICS
+  (256 colour registers).
 - **`/view <file>`** opens a zoomed **file viewer** pane — a
   single, read-only pane over the file, rendered by format: markdown
   (headings/lists/links/code fences), a numbered-gutter code view, aligned

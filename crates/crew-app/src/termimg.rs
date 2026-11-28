@@ -160,6 +160,13 @@ impl TermImages {
 
 /// Turn one command's payload into pixels. Runs on a worker.
 fn decode(cmd: &crew_term::ImageCmd) -> Option<Bitmap> {
+    // Sixel is pixels painted from a stream, not a file: `crew_term` turns it
+    // into RGBA (transparent where nothing was drawn) at the size the
+    // terminal already reserved rows for.
+    if cmd.sixel {
+        let (w, h, rgba) = crew_term::decode_sixel(&cmd.data)?;
+        return bitmap::from_raw(&rgba, w, h, 4);
+    }
     if let Some(path) = cmd.path() {
         let bytes = std::fs::read(path).ok()?;
         return bitmap::decode(&bytes);
@@ -180,3 +187,6 @@ fn decode(cmd: &crew_term::ImageCmd) -> Option<Bitmap> {
 #[cfg(test)]
 #[path = "termimg_tests.rs"]
 mod termimg_tests;
+#[cfg(test)]
+#[path = "termsixel_tests.rs"]
+mod termsixel_tests;

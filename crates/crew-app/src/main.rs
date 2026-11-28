@@ -774,6 +774,9 @@ mod termimg;
 #[cfg(test)]
 #[path = "termshot_tests.rs"]
 mod termshot_tests;
+#[cfg(test)]
+#[path = "termsixelshot_tests.rs"]
+mod termsixelshot_tests;
 mod termwrite;
 mod testtally;
 mod themefade;

@@ -11,6 +11,9 @@
 //! appear — never a screenful of escape-sequence text.
 use base64::Engine;
 
+#[path = "graphicsiterm.rs"]
+mod iterm;
+
 /// A picture (or an instruction about one) as it arrived.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageCmd {
@@ -42,6 +45,11 @@ pub struct ImageCmd {
     /// `q=`: 1 silences the `OK` answer, 2 silences errors too — a sender
     /// that does not read replies must not have them typed into its input.
     pub quiet: u8,
+    /// The payload is a sixel stream (`DCS P1;P2;P3 q … ST`), not one of
+    /// kitty's formats. A flag of its own rather than a new `f=` value so no
+    /// kitty sender can name it: `a=q` and [`Self::supported`] keep answering
+    /// for kitty's formats only.
+    pub sixel: bool,
     /// The decoded payload: image bytes, or a path.
     pub data: Vec<u8>,
 }
@@ -59,60 +67,24 @@ impl Default for ImageCmd {
             more: false,
             stay: false,
             quiet: 0,
+            sixel: false,
             data: Vec::new(),
         }
     }
 }
 
 impl ImageCmd {
-    /// Parse the body of an iTerm2 `OSC 1337 ; File=…` sequence: everything
-    /// after the `1337;File=` the splitter matched, which is
-    /// `key=value;…:<base64>`.
-    ///
-    /// A different spelling of the same request — several tools write this one
-    /// and not kitty's — so it lands in the same command.
-    pub(crate) fn parse_iterm(body: &[u8]) -> Option<Self> {
-        let i = body.iter().position(|&b| b == b':')?;
-        let (keys, payload) = (&body[..i], &body[i + 1..]);
-        let mut cmd = Self {
+    /// A sixel picture at the cursor: `body` is everything between `ESC P` and
+    /// the terminator (params, `q`, data). Like iTerm2's, it is a request to
+    /// display, with no id, so nothing is ever written back.
+    pub(crate) fn sixel(body: Vec<u8>) -> Self {
+        Self {
             action: b'T',
-            format: 100,
-            medium: b'd',
+            format: 0,
+            sixel: true,
+            data: body,
             ..Self::default()
-        };
-        let mut inline = false;
-        for pair in keys.split(|&b| b == b';').filter(|p| !p.is_empty()) {
-            let Some(eq) = pair.iter().position(|&b| b == b'=') else {
-                continue;
-            };
-            let k = std::str::from_utf8(&pair[..eq]).ok()?.to_ascii_lowercase();
-            let v = std::str::from_utf8(&pair[eq + 1..]).ok()?;
-            match k.as_str() {
-                "inline" => inline = v == "1",
-                "width" => size_arg(v, &mut cmd.cells.0, &mut cmd.px.0),
-                "height" => size_arg(v, &mut cmd.cells.1, &mut cmd.px.1),
-                "donotmovecursor" => cmd.stay = v == "1",
-                _ => {}
-            }
         }
-        // `inline=0` (the default) means *download this file*, which a
-        // terminal has no business doing on a program's say-so.
-        if !inline {
-            return None;
-        }
-        cmd.data = base64::engine::general_purpose::STANDARD
-            .decode(
-                payload
-                    .iter()
-                    .copied()
-                    .filter(|b| !b.is_ascii_whitespace())
-                    .collect::<Vec<u8>>(),
-            )
-            .ok()?;
-        // The pixel size comes from the file's own header; `width=Npx` is a
-        // request about the DISPLAY size, which crew answers by fitting.
-        cmd.px = (0, 0);
-        Some(cmd)
     }
 
     /// Parse the body of an `APC G` sequence: everything between `ESC _ G` and
@@ -170,7 +142,8 @@ impl ImageCmd {
     /// compressed raw formats are not among them, and saying so is better
     /// than accepting a picture that will never appear.
     pub fn supported(&self) -> bool {
-        matches!(self.format, 100 | 24 | 32) && matches!(self.medium, b'd' | b'f' | b't')
+        self.sixel
+            || matches!(self.format, 100 | 24 | 32) && matches!(self.medium, b'd' | b'f' | b't')
     }
 
     /// The payload read as a filesystem path, for `t=f` / `t=t`.
@@ -187,6 +160,9 @@ impl ImageCmd {
     /// how many rows the picture occupies decides how many the terminal has to
     /// scroll to make room for it.
     pub fn pixel_size(&self) -> Option<(u32, u32)> {
+        if self.sixel {
+            return crate::sixel::size(&self.data);
+        }
         if self.format != 100 {
             return (self.px.0 > 0 && self.px.1 > 0).then_some(self.px);
         }
@@ -198,17 +174,6 @@ impl ImageCmd {
         }
         let n = |o: usize| u32::from_be_bytes([d[o], d[o + 1], d[o + 2], d[o + 3]]);
         Some((n(16), n(20)))
-    }
-}
-
-/// iTerm2's `width=`/`height=`: a bare number is cells, `Npx` is pixels, and
-/// `N%` is a share of the window — which crew has no answer for at parse time
-/// and treats as "as big as it comes".
-fn size_arg(v: &str, cells: &mut u16, px: &mut u32) {
-    if let Some(n) = v.strip_suffix("px") {
-        *px = n.parse().unwrap_or(0);
-    } else if !v.ends_with('%') {
-        *cells = v.parse().unwrap_or(0);
     }
 }
 
