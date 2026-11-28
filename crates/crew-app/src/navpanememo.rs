@@ -57,12 +57,20 @@ thread_local! {
 
 /// Observe every card of one `pane_rows` pass: `(born_ms, index, state,
 /// words)` each; returns each one's [`Fx`] and forgets panes not listed.
+/// Without `cards` (another section, a short panel, the rail) it forgets them
+/// all and returns none: what changed out of sight is not news on return.
 pub(crate) fn observe_rows<'a>(
     rows: impl Iterator<Item = (u64, usize, EntryState, &'a str)>,
     now: u64,
-) -> Vec<Fx> {
+    cards: bool,
+) -> Option<Vec<Fx>> {
     let level = crate::motion::level();
-    MEMOS.with_borrow_mut(|m| {
+    if !cards {
+        MEMOS.with_borrow_mut(HashMap::clear);
+        return None;
+    }
+    let end = level.scale_ms(FLASH_MS);
+    Some(MEMOS.with_borrow_mut(|m| {
         let mut seen = HashMap::new();
         let fxs = rows
             .map(|(born, i, state, words)| {
@@ -72,7 +80,7 @@ pub(crate) fn observe_rows<'a>(
                     LEASE.set(now + BREATH_LEASE_MS);
                 }
                 for at in [fx.state_at, fx.words_at].into_iter().flatten() {
-                    ENDS.set(ENDS.get().max(at + FLASH_MS));
+                    ENDS.set(ENDS.get().max(at + end));
                 }
                 seen.insert((born, i), memo);
                 fx
@@ -80,7 +88,7 @@ pub(crate) fn observe_rows<'a>(
             .collect();
         *m = seen;
         fxs
-    })
+    }))
 }
 
 /// A flash or fade still has frames to draw at `now` (never at Off).

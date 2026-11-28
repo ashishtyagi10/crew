@@ -138,15 +138,13 @@ impl CrewApp {
             .map(|p| crate::panestate::state_of(p, now))
             .collect();
         let details: Vec<_> = self.panes.iter().map(crate::panestate::detail_of).collect();
-        let fx = cards.then(|| {
-            let rows = self.panes.iter().enumerate().map(|(i, p)| {
-                let said = details[i]
-                    .as_deref()
-                    .map_or("", |d| crate::panegist::split_time(d).0);
-                (p.born_ms, i, states[i], said)
-            });
-            crate::navpanememo::observe_rows(rows, now)
+        let rows = self.panes.iter().enumerate().map(|(i, p)| {
+            let said = details[i]
+                .as_deref()
+                .map_or("", |d| crate::panegist::split_time(d).0);
+            (p.born_ms, i, states[i], said)
         });
+        let fx = crate::navpanememo::observe_rows(rows, now, cards);
         self.panes
             .iter()
             .enumerate()

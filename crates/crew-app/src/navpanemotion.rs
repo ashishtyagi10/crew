@@ -7,8 +7,9 @@
 //! The memory is observed at draw time ([`observe_rows`], from
 //! `pane_rows`), keyed by the pane's `born_ms` and place, and a pane seen
 //! for the first time is recorded silently. Only the *words* of line two
-//! count: `12s` → `13s` is the clock, not news. At Motion Off nothing is
-//! observed and every card draws as it always did ([`Fx::default`]).
+//! count: `12s` → `13s` is the clock, not news. At Motion Off the memory
+//! still keeps up, but every card draws as it always did and no frame is
+//! asked for. Cards out of sight are forgotten, so returning is silent.
 //!
 //! Frames: a flash or fade is bounded, so [`live`] joins
 //! `wants_animation_frame`; the breath has no end, so [`breathing`] is
