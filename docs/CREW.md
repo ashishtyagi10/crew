@@ -727,9 +727,23 @@ A program that asks for the **kitty keyboard protocol** (nvim, helix, fish 4,
 Claude Code push `CSI > 1 u`) gets its "disambiguate" flag: Esc is `CSI 27 u`,
 Ctrl and Alt chords are `CSI code ; mods u` (so Ctrl+I is not Tab and
 Ctrl+Shift+A is not Ctrl+A), and Shift/Ctrl/Alt with Enter, Tab or Backspace
-are `CSI 13/9/127 ; mods u`; plain typing stays plain. Its other flags are not
-honoured, and `CSI ? u` says so. A program killed in that mode doesn't leave
-the shell in it: the stack is emptied when the shell's prompt comes back.
+are `CSI 13/9/127 ; mods u`; plain typing stays plain. The other four flags
+are honoured too, and `CSI ? u` answers with what was pushed: **2** report
+event types (a repeat is `;mods:2`, a release `;mods:3`, and crew forwards a
+release only for a press the program saw, never for one of crew's own
+chords), **4** report alternate keys (`CSI 97:65;2 u` for Shift+A, and the
+US-layout key after a second colon on a Cyrillic or Greek layout), **8**
+report all keys as escape codes (plain letters, Enter, Tab, Backspace, the
+keypad as `57399…` and bare modifier keys as `57441…`) and **16** report
+associated text (`CSI 97;2;65 u`). What Option, AltGr or a dead key composed
+is plain text unless the program asked for 8 and 16 together, and an IME
+commit is always plain text. When the window loses focus or focus moves to
+another pane, keys still held in a program that asked for 2 get their release
+first (a held Shift never sticks). Caps Lock and Num Lock bits, Super on a
+letter and the Num-Lock-off keypad codes are not reported.
+Under `/broadcast` keys stay legacy. A program killed in that mode doesn't
+leave the shell in it: every flag is emptied when the shell's prompt comes
+back.
 
 On **Windows** a pane is PowerShell — **PowerShell 7** (`pwsh`) when it is
 installed (on `PATH`, in `Program Files\PowerShell\7`, or from winget, the

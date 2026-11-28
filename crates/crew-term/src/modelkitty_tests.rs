@@ -33,17 +33,27 @@ fn the_query_answers_what_was_pushed_and_popped() {
     assert!(!on(&c));
 }
 
-/// Only "disambiguate" is honoured, so a program asking for all five flags
-/// learns it got that one, and one asking for another flag alone, none.
+/// Every flag a program pushes is answered as pushed and reaches the
+/// encoder: 1 disambiguate, 2 event types, 4 alternate keys, 8 all keys, 16
+/// associated text.
 #[test]
-fn the_answer_names_only_the_flag_crew_honours() {
+fn the_answer_names_every_flag_pushed() {
     let mut c = core();
     c.feed(b"\x1b[>31u");
-    assert_eq!(ask(&mut c).as_deref(), Some("\x1b[?1u"));
-    assert!(on(&c));
+    assert_eq!(ask(&mut c).as_deref(), Some("\x1b[?31u"));
+    assert_eq!(c.input_modes().kitty_flags, 31);
     c.feed(b"\x1b[>8u");
-    assert_eq!(ask(&mut c).as_deref(), Some("\x1b[?0u"));
-    assert!(!on(&c));
+    assert_eq!(ask(&mut c).as_deref(), Some("\x1b[?8u"));
+    assert!(on(&c), "any flag counts as the protocol being on");
+    assert_eq!(c.input_modes().kitty_flags, 8);
+    c.feed(b"\x1b[<u");
+    assert_eq!(
+        c.input_modes().kitty_flags,
+        31,
+        "a pop restores the one below"
+    );
+    c.feed(b"\x1b[=2;3u");
+    assert_eq!(c.input_modes().kitty_flags, 29, "set mode 3 clears bits");
 }
 
 #[test]
@@ -96,7 +106,7 @@ fn a_push_after_the_mark_is_kept() {
     c.feed(b"\x1b[>1u");
     c.feed(b"\x1b]133;A\x07$ \x1b[>5u");
     assert!(on(&c));
-    assert_eq!(ask(&mut c).as_deref(), Some("\x1b[?1u"));
+    assert_eq!(ask(&mut c).as_deref(), Some("\x1b[?5u"));
 }
 
 /// A shell redraws its prompt (a resize, a repaint), mark and all, with no

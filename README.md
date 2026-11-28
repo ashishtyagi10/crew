@@ -297,7 +297,7 @@ the command palette write each chord the way that machine presses it.
 | Rewind: pick a message you sent; files and conversation go back to just before it. Every file that differs is put back, edits you made yourself included (the confirmation names them); ignored files (`.env`, `node_modules`, `target`) and folders outside git are not rewound; `undo #N` brings the replaced files back | **Ctrl+B** (on an empty composer, nothing running, nothing queued) |
 | Find: the chat transcript (also **Ctrl+F**) or a terminal's scrollback (a find bar on the pane, `3/17`, Enter older, Shift+Enter newer, Esc closes), or `/find` in the bar | **Cmd+F** |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
-| Ctrl+I ≠ Tab, Esc ≠ Alt, Shift+Enter ≠ Enter for nvim, helix, fish 4, Claude Code | automatic: crew speaks the kitty keyboard protocol's disambiguate flag (`CSI … u`) to a program that asks |
+| Ctrl+I ≠ Tab, Esc ≠ Alt, Shift+Enter ≠ Enter for nvim, helix, fish 4, Claude Code | automatic: crew speaks the kitty keyboard protocol (`CSI … u`: disambiguate, event types, alternate keys, all keys, associated text) to a program that asks |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
 | Meta (M-r, M-.; on a Mac also M-b, M-f, M-d) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
 | An accented letter (é, ñ, ü) in a terminal | the layout's dead key, then the letter (on a Mac: **Option+e** then **e**, while Option is not Meta) |
