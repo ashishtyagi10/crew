@@ -71,7 +71,8 @@ pub struct CrewConfig {
     #[serde(default = "default_notify_min_secs")]
     pub notify_min_secs: u64,
     /// Also post an OS banner when a command or agent turn finishes while the
-    /// window is not focused (see `osnotify`). Needs `notify_agent_done`.
+    /// window is not focused (see `osnotify`). Needs `notify` and
+    /// `notify_agent_done` on.
     #[serde(default = "default_true")]
     pub notify_os: bool,
     /// Case-insensitive substrings watched in pane output; a match notifies.

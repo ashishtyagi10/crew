@@ -332,7 +332,12 @@ agent smith answered, a swarm finished — after at least the same threshold
 raises the same `done` card (`✓ turn (1m15) finished in agent smith`) and the pane's
 `✓` marker, on the same switch. And when crew is not the app in front at all,
 any news that wants you back — done, failed, waiting for you, or a program
-asking — bounces the Dock icon once.
+asking — bounces the Dock icon once. A finish (done or failed) also posts a
+system banner then — `cargo — failed (exit 101) · 42s`, titled with the pane's
+name — through Notification Center on a Mac (`osascript`) or `notify-send` on
+Linux; Windows gets none. The banner names the program, never its arguments,
+and a click on it cannot pick the pane. **Settings → NOTIFICATIONS → Notify:
+banner** (`notify_os`, on by default) turns it off; it needs the switches above.
 
 **Toast cards.** The same events also step onto the canvas as cards at the
 top-right of the content area, each holding one line (`done`, `failed`, `bell`,

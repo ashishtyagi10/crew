@@ -13,8 +13,9 @@
 //! focus the pane when clicked — `osascript` has no click callback.
 use crate::notify::NotifyKind;
 
-/// Longest command text shown: a banner is read at a glance, and a command
-/// line can carry a token or a long path nobody needs on the lock screen.
+/// Longest program text shown: a banner is read at a glance. The detail is the
+/// foreground program's name (`procname`), not its argv — keep it that way: a
+/// command line can carry a token nobody wants in Notification Center.
 const CMD_MAX: usize = 60;
 
 /// One banner: the pane's name over a short line about how the job ended.
