@@ -16,6 +16,10 @@ pub struct InputModes {
     pub mouse_motion: bool,
     /// Mouse events should be SGR-encoded (`ESC [ < … M`) rather than legacy X10.
     pub sgr_mouse: bool,
+    /// SGR-Pixels (DECSET 1016): with a mouse mode on, reports carry pixel
+    /// coordinates in the 1006 form. Tracked by crew's own scanner
+    /// (`pixelmouse`); it takes precedence over `sgr_mouse` and X10.
+    pub pixel_mouse: bool,
     /// Application cursor keys (DECCKM): arrows are `ESC O A` not `ESC [ A`.
     pub app_cursor: bool,
     /// Alternate-scroll (DECSET 1007): translate the wheel to arrow keys in the

@@ -50,15 +50,16 @@ use super::PtyTerm;
 /// and focus reporting: every one of them the parser tracks, all reset; and
 /// 2031 and 2048 (in-band resize: a killed neovim left `ESC [ 48 ; … t` for
 /// the shell on every resize), which only crew's scheme scanner tracks (same
-/// feed);
+/// feed); and 1016 (SGR-Pixels, `pixelmouse`, likewise scanner-only);
 /// then the cursor shown (DECTCEM).
-const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031;2048l\x1b[?25h";
+const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;1016;2031;2048l\x1b[?25h";
 
 /// OSC 22 with an empty name: the default pointer.
 const CLEAR_SHAPE: &[u8] = b"\x1b]22;\x1b\\";
 
 /// [`RESET`], then every kitty keyboard push popped (`modelkitty::POP_ALL`).
-const RESET_KITTY: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031;2048l\x1b[?25h\x1b[<65535u";
+const RESET_KITTY: &[u8] =
+    b"\x1b[?1000;1002;1003;1005;1006;1004;1016;2031;2048l\x1b[?25h\x1b[<65535u";
 
 /// The bytes that clear what a dead program left in `m`, or `None` when
 /// there is nothing to clear or a full-screen program may still own it.
@@ -79,7 +80,7 @@ pub fn leftover_reset(
     if m.kitty_keys && !marked {
         return Some(RESET_KITTY);
     }
-    (m.mouse || m.focus_events || scheme || hidden).then_some(RESET)
+    (m.mouse || m.pixel_mouse || m.focus_events || scheme || hidden).then_some(RESET)
 }
 
 impl PtyTerm {
@@ -139,3 +140,7 @@ mod kitty_tests;
 #[cfg(all(test, unix))]
 #[path = "promptshape_tests.rs"]
 mod shape_tests;
+
+#[cfg(test)]
+#[path = "promptpixel_tests.rs"]
+mod pixel_tests;

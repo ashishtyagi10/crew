@@ -153,3 +153,22 @@ fn shift_home_end_reach_a_full_screen_program_with_their_shift() {
     // Shift+PgDn stays plain: less rings the bell on `CSI 6;2 ~`.
     assert_eq!(page_bytes(&alt, false), Some(b"\x1b[6~".to_vec()));
 }
+
+#[test]
+fn pixel_wheel_ticks_repeat_at_the_pixel_and_carry_modifiers() {
+    assert_eq!(
+        wheel_bytes_px(2, (37, 43), 0),
+        Some(b"\x1b[<64;37;43M\x1b[<64;37;43M".to_vec())
+    );
+    assert_eq!(
+        wheel_bytes_px(-1, (1, 2), 8),
+        Some(b"\x1b[<73;1;2M".to_vec())
+    );
+    assert_eq!(wheel_bytes_px(0, (1, 1), 0), None);
+    let flick = wheel_bytes_px(500, (1, 1), 0).unwrap();
+    assert_eq!(
+        flick.len(),
+        b"\x1b[<64;1;1M".len() * 10,
+        "capped like cells"
+    );
+}

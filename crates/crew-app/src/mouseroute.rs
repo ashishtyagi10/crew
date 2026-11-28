@@ -7,7 +7,7 @@ use std::io::Write;
 use winit::event::MouseButton;
 
 use crate::app::CrewApp;
-use crate::mousereport::{button_code, mod_bits, motion_code, report, reports_click};
+use crate::mousereport::{button_code, mod_bits, motion_code, report_for, reports_click};
 use crate::pane::PaneContent;
 
 /// A press that went to a program, waiting for its release: the pane, the
@@ -27,6 +27,9 @@ pub(crate) struct Held {
 pub(crate) struct MouseState {
     held: Option<Held>,
     last: Option<(usize, (u16, u16))>,
+    /// The pixel the pointer was last reported at, for programs that set
+    /// SGR-Pixels (1016): they hear every pixel moved, not one report a cell.
+    last_px: Option<(usize, (u32, u32))>,
 }
 
 impl CrewApp {
@@ -62,10 +65,8 @@ impl CrewApp {
         let code = code | mod_bits(mods.alt_key(), mods.control_key());
         self.focus_at_cursor();
         self.drag = None;
-        crate::scroll::forward_to_program(
-            &mut self.panes[i],
-            &report(code, (col, row), m.sgr_mouse, true),
-        );
+        let bytes = report_for(&m, code, (col, row), self.pane_px(i), true);
+        crate::scroll::forward_to_program(&mut self.panes[i], &bytes);
         self.mouse.held = Some(Held {
             pane: i,
             code,
@@ -92,15 +93,16 @@ impl CrewApp {
             (_, Some((i, cell))) if i == held.pane => cell,
             _ => held.cell,
         };
-        if let Some(p) = self.panes.get_mut(held.pane) {
-            if let PaneContent::Terminal(t) = &p.content {
-                // A program that turned the mouse off between press and
-                // release gets nothing: it no longer reads reports.
-                let m = t.pty.input_modes();
-                if m.mouse {
-                    let bytes = report(held.code, cell, m.sgr_mouse, false);
-                    crate::scroll::forward_to_program(p, &bytes);
-                }
+        // A program that turned the mouse off between press and release
+        // gets nothing: it no longer reads reports.
+        let m = match self.panes.get(held.pane).map(|p| &p.content) {
+            Some(PaneContent::Terminal(t)) => t.pty.input_modes(),
+            _ => return true,
+        };
+        if m.mouse {
+            let bytes = report_for(&m, held.code, cell, self.pane_px(held.pane), false);
+            if let Some(p) = self.panes.get_mut(held.pane) {
+                crate::scroll::forward_to_program(p, &bytes);
             }
         }
         true
@@ -114,10 +116,14 @@ impl CrewApp {
     pub(crate) fn report_motion(&mut self) -> bool {
         let here = self.term_content_cell();
         let key = here.map(|(i, col, row)| (i, (col, row)));
-        if key == self.mouse.last {
+        // Under SGR-Pixels a move inside one cell is still news.
+        let px = here.and_then(|(i, ..)| Some((i, self.pane_px(i)?)));
+        let moved_px = px != self.mouse.last_px && self.pixel_mouse_at(here);
+        if key == self.mouse.last && !moved_px {
             return false;
         }
         self.mouse.last = key;
+        self.mouse.last_px = px;
         let Some((i, col, row)) = here else {
             return false;
         };
@@ -137,9 +143,19 @@ impl CrewApp {
         };
         // Written straight to the program, without the snap to the live
         // bottom a click makes: hovering must not scroll the view.
-        let bytes = report(code, (col, row), m.sgr_mouse, true);
+        let bytes = report_for(&m, code, (col, row), px.map(|p| p.1), true);
         let _ = t.input.write_all(&bytes).and_then(|_| t.input.flush());
         true
+    }
+
+    /// Whether the pane under the pointer has SGR-Pixels (1016) on, so a
+    /// move within one cell must still be reported.
+    fn pixel_mouse_at(&self, here: Option<(usize, u16, u16)>) -> bool {
+        let Some((i, ..)) = here else {
+            return false;
+        };
+        matches!(self.panes.get(i).map(|p| &p.content),
+            Some(PaneContent::Terminal(t)) if t.pty.input_modes().pixel_mouse)
     }
 
     /// The terminal pane and cell under the cursor, only inside its grid: a
@@ -153,4 +169,4 @@ impl CrewApp {
 
 #[cfg(all(test, unix))]
 #[path = "mouseroute_tests.rs"]
-mod tests;
+pub(crate) mod tests;

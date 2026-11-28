@@ -28,6 +28,12 @@ impl PtyTerm {
         }
     }
 
+    /// The cell size in pixels the pane last published: what a pixel mouse
+    /// report is measured against, the same numbers `TIOCGWINSZ` carries.
+    pub fn cell_px(&self) -> (u32, u32) {
+        self.core.cell_px()
+    }
+
     fn report_inband(&self, before: PtySize) {
         if self.core.inband_enabled() && self.core.pty_size() != before {
             self.core.push_inband_report();

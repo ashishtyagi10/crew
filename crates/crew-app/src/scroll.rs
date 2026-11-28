@@ -19,21 +19,6 @@ pub(crate) fn forward_to_program(pane: &mut Pane, bytes: &[u8]) {
     }
 }
 
-/// Forward a wheel scroll to a full-screen program (alt-screen/mouse app) as
-/// mouse or arrow-key bytes. Returns true when forwarded — false means the pane
-/// owns no full-screen program, so the caller should scroll local scrollback.
-fn forward_wheel(pane: &mut Pane, lines: i32, cell: (u16, u16), mods: u8) -> bool {
-    let PaneContent::Terminal(t) = &pane.content else {
-        return false;
-    };
-    let m = t.pty.input_modes();
-    let Some(bytes) = crate::altscroll::wheel_bytes(&m, lines, cell, mods) else {
-        return false;
-    };
-    forward_to_program(pane, &bytes);
-    true
-}
-
 /// Forward a Shift+page/end key to a full-screen program as the bytes `key`
 /// picks from its modes. Returns false outside the alternate screen (use local
 /// scrollback instead).
@@ -154,11 +139,12 @@ impl CrewApp {
         // The inbox asks which of its cards the wheel is over.
         let over = self.cursor_any_cell().map(|(_, c, r)| (r, c));
         let mods = crate::mousereport::wheel_mods(self.mods.state());
+        let px = self.cursor_term_cell().and_then(|_| self.pane_px(i));
         if let Some(pane) = self.panes.get_mut(i) {
             if let PaneContent::Inbox(p) = &mut pane.content {
                 p.motion.wheel_at = over;
             }
-            if !forward_wheel(pane, lines, cell, mods) {
+            if !crate::wheelfwd::forward_wheel(pane, lines, (cell, px), mods) {
                 match wheel {
                     true => crate::scrollglide::start(pane, lines),
                     false => crate::scrollglide::start_track(pane, lines),

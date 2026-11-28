@@ -5118,6 +5118,15 @@ resize, once the pty's own size (`TIOCGWINSZ`, same pixel numbers) is set, so
 neovim and libvaxis apps redraw without waiting for SIGWINCH. A program killed
 with it on is cleared when the shell is back, like the mouse; RIS and DECSTR
 clear it too.
+**SGR-Pixels mouse** (`CSI ? 1016 h` on, `l` off, DECRQM answered `;1$y` set /
+`;2$y` reset) makes mouse reports (press, release, motion, wheel) the `CSI < b ;
+x ; y M/m` form of 1006 with x and y in pixels, 1-based within the pane's text
+area and clamped to it, for sub-cell UIs (image viewers, drag handles). It
+needs a mouse mode (1000/1002/1003) on as well and wins over 1006, 1015 and
+X10. The pixel is measured in the cell size the pty reports (`TIOCGWINSZ`,
+in-band resize), so dividing by it lands on the cell crew resolved; a drag past
+the pane's edge pins to it. Cleared like in-band resize: with the shell back,
+and by RIS and DECSTR.
 **Title stack** (`CSI 22 ; Ps t` push, `CSI 23 ; Ps t` pop, `Ps` 0 or 2 or none
 for the title, 1 for the icon name, which crew ignores) lets vim, tmux, less
 and htop put the pane's title back when they exit: the pop sets the title the

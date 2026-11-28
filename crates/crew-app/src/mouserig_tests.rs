@@ -7,10 +7,10 @@ use crate::app::CrewApp;
 use crate::pane::{Pane, PaneContent, TermPane};
 use crew_term::{GridSize, PtyTerm, TermModel};
 
-pub(super) const CELL: (f32, f32) = (8.0, 17.0);
+pub(crate) const CELL: (f32, f32) = (8.0, 17.0);
 
 /// A pane whose program puts its tty in raw mode and copies stdin to `log`.
-pub(super) fn recording_pane(log: &Path) -> Pane {
+pub(crate) fn recording_pane(log: &Path) -> Pane {
     let grid = GridSize { cols: 40, rows: 8 };
     let script = format!(
         "stty raw -echo; : > '{0}.ready'; exec cat > '{0}'",
@@ -55,7 +55,7 @@ pub(super) fn recording_pane(log: &Path) -> Pane {
 
 /// Polls `what` for up to 5 s; false means it timed out. Callers that need
 /// it to come true assert on it — a silent timeout hid a wrong byte count.
-pub(super) fn wait_for(what: impl Fn() -> bool) -> bool {
+pub(crate) fn wait_for(what: impl Fn() -> bool) -> bool {
     let until = Instant::now() + Duration::from_secs(5);
     while !what() && Instant::now() < until {
         std::thread::sleep(Duration::from_millis(20));
@@ -64,7 +64,7 @@ pub(super) fn wait_for(what: impl Fn() -> bool) -> bool {
 }
 
 /// Rows of text as `(row, text)`, for a failure to say what was drawn.
-pub(super) fn rows(cells: impl Iterator<Item = (u16, char)>) -> Vec<(u16, String)> {
+pub(crate) fn rows(cells: impl Iterator<Item = (u16, char)>) -> Vec<(u16, String)> {
     let mut out: Vec<(u16, String)> = Vec::new();
     for (row, c) in cells.filter(|c| c.1 != ' ') {
         match out.iter_mut().find(|r| r.0 == row) {
@@ -77,7 +77,7 @@ pub(super) fn rows(cells: impl Iterator<Item = (u16, char)>) -> Vec<(u16, String
 
 /// An app with one recording pane, the parser told `modes`, and the pointer
 /// on content cell (col 4, row 2) — where the built frame drew it.
-pub(super) fn app_on_cell(tag: &str, modes: &[u8]) -> (CrewApp, PathBuf) {
+pub(crate) fn app_on_cell(tag: &str, modes: &[u8]) -> (CrewApp, PathBuf) {
     let log = std::env::temp_dir().join(format!("crew-mouse-{tag}-{}", std::process::id()));
     let ready = PathBuf::from(format!("{}.ready", log.display()));
     let _ = std::fs::remove_file(&log);
@@ -133,7 +133,7 @@ pub(super) fn app_on_cell(tag: &str, modes: &[u8]) -> (CrewApp, PathBuf) {
     (app, log)
 }
 
-pub(super) fn read_log(log: &Path, want: usize) -> Vec<u8> {
+pub(crate) fn read_log(log: &Path, want: usize) -> Vec<u8> {
     let full = wait_for(|| std::fs::metadata(log).is_ok_and(|m| m.len() as usize >= want));
     assert!(full, "the program never read {want} bytes");
     std::thread::sleep(Duration::from_millis(50));
