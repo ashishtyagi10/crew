@@ -3,8 +3,13 @@
 //! reach the same [`crate::tabsapp`] actions.
 use crate::app::CrewApp;
 
-const USAGE: &str =
-    "/tab [n|new|next|prev|rename <name>|move <n>] \u{b7} Cmd+T new \u{b7} Cmd+Shift+[ ] step";
+/// A Mac keeps its old wording; elsewhere the stepping chord is the table's
+/// own `Cmd+{ / Cmd+}`, which `chordglyph` writes as Ctrl+PgUp / Ctrl+PgDn.
+const USAGE: &str = if cfg!(target_os = "macos") {
+    "/tab [n|new|next|prev|rename <name>|move <n>] \u{b7} Cmd+T new \u{b7} Cmd+Shift+[ ] step"
+} else {
+    "/tab [n|new|next|prev|rename <name>|move <n>] \u{b7} Cmd+T new \u{b7} Cmd+{ / Cmd+} step"
+};
 
 impl CrewApp {
     /// Run `/tab <arg>`; a bare `/tab` lists the tabs.
@@ -29,7 +34,7 @@ impl CrewApp {
             },
             v => match v.parse::<usize>() {
                 Ok(n) => self.goto_tab(n),
-                Err(_) => self.set_status(USAGE),
+                Err(_) => self.set_status(crate::chordglyph::prose_off_mac(USAGE).into_owned()),
             },
         }
     }

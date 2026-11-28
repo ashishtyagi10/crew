@@ -184,6 +184,6 @@ fn the_screen_arrows_are_cmd_opt_on_a_mac_and_none_off_it() {
     assert!(!screen_held(M::SUPER | M::ALT, false));
     assert!(!grid_held(M::CONTROL | M::ALT, false), "never both");
     let chord = "Cmd+Opt+\u{2190}\u{2192}";
-    assert_eq!(offmac(chord), "Ctrl+Alt+\u{2190}\u{2192}");
+    assert_eq!(offmac(chord), "Alt+Home / Alt+End");
     assert_eq!(mac(chord), "\u{2325}\u{2318}\u{2190}\u{2192}");
 }

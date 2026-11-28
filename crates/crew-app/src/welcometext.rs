@@ -24,29 +24,36 @@ pub(crate) const TAGLINE: &str = "fast terminals. clean flow.";
 /// narrow window, which is the wrong trade for the one piece of guidance a
 /// new user gets.
 ///
-/// A Mac writes its chords the Mac way, `⌘T` (as `Save ⌘S` already is).
-#[cfg(target_os = "macos")]
-const HINTS: &[&str] = &[
+/// A Mac writes its chords the Mac way, `⌘T` (as `Save ⌘S` already is);
+/// elsewhere Alt is crew's key (`winkeys`), so the same two chords read
+/// `Alt+T` and `Alt+O`.
+const HINTS_MAC: &[&str] = &[
     "\u{2318}T  shell    \u{00b7}    \u{2318}O  agents    \u{00b7}    /  commands",
     "\u{2318}T  shell  \u{00b7}  \u{2318}O  agents  \u{00b7}  /  commands",
     "\u{2318}T shell \u{00b7} \u{2318}O agents \u{00b7} / commands",
     "\u{2318}O  agents    \u{00b7}    /  commands",
     "\u{2318}O agents",
 ];
-#[cfg(not(target_os = "macos"))]
-const HINTS: &[&str] = &[
-    "Ctrl+Shift+T  shell    \u{00b7}    Ctrl+Shift+O  agents    \u{00b7}    /  commands",
-    "Ctrl+Shift+T  shell  \u{00b7}  Ctrl+Shift+O  agents  \u{00b7}  /  commands",
-    "Ctrl+Shift+T shell \u{00b7} Ctrl+Shift+O agents \u{00b7} / commands",
-    "Ctrl+Shift+O  agents    \u{00b7}    /  commands",
-    "Ctrl+Shift+O agents",
+pub(crate) const HINTS_ALT: &[&str] = &[
+    "Alt+T  shell    \u{00b7}    Alt+O  agents    \u{00b7}    /  commands",
+    "Alt+T  shell  \u{00b7}  Alt+O  agents  \u{00b7}  /  commands",
+    "Alt+T shell \u{00b7} Alt+O agents \u{00b7} / commands",
+    "Alt+O  agents    \u{00b7}    /  commands",
+    "Alt+O agents",
 ];
+
+/// Both are always compiled, so the off-Mac words are tested on a Mac.
+const HINTS: &[&str] = if cfg!(target_os = "macos") {
+    HINTS_MAC
+} else {
+    HINTS_ALT
+};
 
 /// How the hint writes the command modifier, before the key.
 pub(crate) const CMD: &str = if cfg!(target_os = "macos") {
     "\u{2318}"
 } else {
-    "Ctrl+Shift+"
+    "Alt+"
 };
 
 /// Columns of air a centred line keeps between itself and the card's frame.

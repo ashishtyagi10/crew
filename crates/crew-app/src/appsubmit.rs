@@ -64,7 +64,10 @@ impl CrewApp {
         match crate::route::route_bare(self.focused_target(), &self.check_command(&line)) {
             crate::route::BareRoute::TypeInto(_) => {
                 if self.write_terminal_targets(&submit_bytes(&line), false) == 0 {
-                    self.set_status("no shell here — press Cmd+T to open one");
+                    self.set_status(
+                        crate::chordglyph::prose_off_mac("no shell here — press Cmd+T to open one")
+                            .into_owned(),
+                    );
                 }
             }
             crate::route::BareRoute::Spawn(shape) => self.spawn_command(&line, shape),

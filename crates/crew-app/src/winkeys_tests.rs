@@ -149,3 +149,48 @@ fn the_table_has_no_duplicates() {
     keys.dedup();
     assert_eq!(keys.len(), n);
 }
+
+/// A label and its key come from one table: every `REMAPS` row, written off a
+/// Mac, is its Windows spelling, and pressing that spelling makes the chord
+/// the Mac's spelling makes (`Alt+U` is what Cmd+Shift+T is).
+#[test]
+fn a_remapped_label_binds_the_chord_it_replaces() {
+    use crate::chordglyph::offmac;
+    let cmd = |s| Some(vec![WinChord::Cmd(s)]);
+    let want: [(&str, Option<Vec<WinChord>>); 12] = [
+        ("Cmd+Shift+T", cmd("T")),
+        ("Cmd+Shift+E", cmd("E")),
+        ("Cmd+Shift+M", cmd("M")),
+        ("Cmd+M", Some(vec![WinChord::Maximize])),
+        (
+            "Cmd+{ / Cmd+}",
+            Some(vec![WinChord::Tab(-1), WinChord::Tab(1)]),
+        ),
+        ("Cmd+Opt+1 \u{2026} 9", Some(vec![WinChord::TabN(1)])),
+        (
+            "Cmd+Opt+\u{2191}\u{2193}",
+            Some(vec![WinChord::CmdJump(true), WinChord::CmdJump(false)]),
+        ),
+        (
+            "Cmd+Opt+\u{2190}\u{2192}",
+            Some(vec![WinChord::Screen(-1), WinChord::Screen(1)]),
+        ),
+        ("Ctrl+Shift+L", Some(vec![WinChord::Theme])),
+        ("Ctrl+Shift+G", Some(vec![WinChord::Gradient])),
+        ("Ctrl+Shift+F", Some(vec![WinChord::Focus])),
+        ("Ctrl+Shift+M", Some(vec![WinChord::MdSource])),
+    ];
+    assert_eq!(want.len(), REMAPS.len(), "a new row needs its chord here");
+    for ((mac, win), (m, chords)) in REMAPS.iter().zip(want) {
+        assert_eq!(*mac, m);
+        assert_eq!(offmac(mac), *win, "the label is the table's");
+        let got: Vec<_> = win
+            .split(" / ")
+            .map(|p| {
+                let (key, code, mods) = press(p);
+                chord(&key, code, mods).unwrap_or_else(|| panic!("{p} does nothing"))
+            })
+            .collect();
+        assert_eq!(Some(got), chords, "{mac} \u{2192} {win}");
+    }
+}
