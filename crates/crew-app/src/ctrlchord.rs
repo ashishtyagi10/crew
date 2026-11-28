@@ -1,7 +1,8 @@
 //! The modifiers crew's arrows take (`winkeys` has the rest of the keys off a
-//! Mac). Windows keeps Win+Arrow for snapping
-//! windows, so off a Mac the arrows walk the grid with Alt, as Windows
-//! Terminal walks its panes, and step the screens with Ctrl+Alt.
+//! Mac, `winnav` the PgUp/PgDn/Home/End/digit/F11 ones). Windows keeps
+//! Win+Arrow for snapping windows, so off a Mac the arrows walk the grid with
+//! Alt, as Windows Terminal walks its panes. The screens, tabs and command
+//! jumps are not arrows there: Alt+Home/End, Ctrl+PgUp/PgDn, Alt+PgUp/PgDn.
 use winit::keyboard::{Key, ModifiersState};
 
 use crate::app::CrewApp;
@@ -85,12 +86,18 @@ pub(crate) fn grid_held(mods: ModifiersState, mac: bool) -> bool {
     mods.super_key() || (!mac && mods.alt_key() && !mods.control_key())
 }
 
-/// Whether the screens' arrows are held: Cmd+Opt on a Mac, Ctrl+Alt off it —
-/// the chord a browser steps its tabs with. Not Ctrl+←/→, which a Mac keeps
-/// for its own Spaces.
+/// Whether the screens' arrows are held: Cmd+Opt on a Mac. Off a Mac there
+/// are none: Ctrl+Alt is AltGr, which types, so the screens moved to
+/// Alt+Home / Alt+End ([`crate::winnav`]).
 pub(crate) fn screen_held(mods: ModifiersState, mac: bool) -> bool {
+    mac && mods.super_key() && mods.alt_key()
+}
+
+/// Whether a crew chord's modifier is held: Cmd on a Mac, Alt (not AltGr,
+/// which is Ctrl+Alt) off one.
+pub(crate) fn cmd_held(mods: ModifiersState, mac: bool) -> bool {
     match mac {
-        true => mods.super_key() && mods.alt_key(),
-        false => mods.control_key() && mods.alt_key() && !mods.super_key(),
+        true => mods.super_key(),
+        false => mods.alt_key() && !mods.control_key() && !mods.super_key(),
     }
 }
