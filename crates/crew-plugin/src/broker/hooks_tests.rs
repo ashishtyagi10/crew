@@ -160,14 +160,14 @@ fn the_doctor_line_says_what_the_hooks_are() {
     );
     let two = r#"{"pre_tool": [{"match": "sys:run", "cmd": "true"}], "post_tool": [{"match": "*", "cmd": "true"}]}"#;
     let some = doctor_line(Some(&source("doc-two", two)));
-    let counts = "1 before a tool call, 1 after, 0 at a turn's end";
+    let counts = "1 before a tool call, 1 after, 0 at a turn's end, 0 on a prompt";
     assert_eq!(some, ('\u{2713}', counts.into()));
     let broken = doctor_line(Some(&source("doc-bad", "{\"pre_tools\": []}")));
     assert_eq!(broken.0, '\u{2717}');
     assert!(
         broken
             .1
-            .ends_with("every tool call is blocked until it is fixed"),
+            .ends_with("every tool call and task is blocked until it is fixed"),
         "{broken:?}"
     );
 }

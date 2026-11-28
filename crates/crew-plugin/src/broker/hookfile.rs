@@ -69,9 +69,19 @@ pub(super) struct File {
     /// Run when an agent is about to end its turn (`hookstop`).
     #[serde(default)]
     pub(super) stop: Vec<StopRule>,
+    /// Run when the user's task arrives, before anything else (`hookprompt`); no `match`.
+    #[serde(default)]
+    pub(super) prompt: Vec<StopRule>,
 }
 
-/// A Stop hook: no `match`, since it is about the turn and not one tool, and a stray one is
+impl File {
+    /// How many hooks there are, of every kind.
+    pub(super) fn len(&self) -> usize {
+        self.pre_tool.len() + self.post_tool.len() + self.stop.len() + self.prompt.len()
+    }
+}
+
+/// A Stop or prompt hook: no `match`, since it is about the turn and not one tool, and a stray one is
 /// refused like any unknown key rather than read as a filter that is not there.
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]

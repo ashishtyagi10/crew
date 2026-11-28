@@ -364,6 +364,16 @@ fn send(
     // as the broker lives: a summarizer that panicked mid-swarm left one
     // "running" for an hour (2026-10-03). It is caught, named and ended.
     let crash_out = Arc::clone(&out_thread);
+    // The start goes out before the worker exists: a task its prompt hook refuses at once
+    // ends in microseconds, and an end that beat its start left the pane "running" forever.
+    emit(
+        out,
+        &PluginEvent::Task {
+            id,
+            label: label.clone(),
+            running: true,
+        },
+    )?;
     let handle = std::thread::spawn(move || {
         let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
             // This task's /stop, where a blocking model call can see it.
@@ -382,6 +392,26 @@ fn send(
                 });
             // This thread is the task: its tool rounds take what is typed meanwhile.
             let steer = super::steer::Taking::begin(Arc::clone(&tick_emit));
+            // The user's prompt hooks, first of all: a refused task costs no checkpoint, no
+            // routing and no model call, and its context rides `with_memory` this turn.
+            let src = (!cfg!(test))
+                .then(super::session::hooks::Source::live)
+                .flatten();
+            let said = match super::session::hooks::prompt_gate(src.as_ref(), &trimmed) {
+                Ok(said) => said,
+                Err(why) => {
+                    let _ = emit(&out_thread, &msg("agent smith", why));
+                    drop(steer);
+                    let end = PluginEvent::Task {
+                        id,
+                        label: String::new(),
+                        running: false,
+                    };
+                    let _ = emit(&out_thread, &end);
+                    return;
+                }
+            };
+            let _said = super::session::hooks::prompt_scope(said);
             // Stamp every relay Message event with this task's id, and count Stats.
             let mut counting = |mut ev: PluginEvent| {
                 if let PluginEvent::Stats { tokens: t, .. } = &ev {
@@ -488,14 +518,6 @@ fn send(
             announce_crash(&crash_out, id, why.as_ref());
         }
     });
-    emit(
-        out,
-        &PluginEvent::Task {
-            id,
-            label: label.clone(),
-            running: true,
-        },
-    )?;
     tasks.attach(id, cancel, handle);
     Ok(())
 }
