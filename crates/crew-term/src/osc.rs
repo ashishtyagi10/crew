@@ -91,38 +91,7 @@ impl ShellMark {
 /// this only has to survive a burst of replayed scrollback.
 const MAX_MARKS: usize = 64;
 
-/// What a program said about its own progress (OSC 9;4).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Progress {
-    /// `0..=100`, or `None` while the work is indeterminate.
-    pub percent: Option<u8>,
-    /// The program called this an error or a warning rather than plain work.
-    pub alarm: bool,
-}
-
-impl Progress {
-    /// `state ; percent` — state 0 clears, 1 sets, 2 is an error, 3 is
-    /// indeterminate, 4 is a warning (the ConEmu/Windows Terminal ladder).
-    fn parse(rest: &str) -> Option<Progress> {
-        let (state, pct) = rest.split_once(';').unwrap_or((rest, ""));
-        let pct = pct.trim().parse::<u8>().ok().map(|p| p.min(100));
-        match state.trim() {
-            "0" => None,
-            "3" => Some(Progress {
-                percent: None,
-                alarm: false,
-            }),
-            "2" | "4" => Some(Progress {
-                percent: pct,
-                alarm: true,
-            }),
-            _ => Some(Progress {
-                percent: Some(pct?),
-                alarm: false,
-            }),
-        }
-    }
-}
+pub use crate::oscprogress::Progress;
 
 #[derive(Default)]
 pub(crate) struct OscScanner {
@@ -139,13 +108,11 @@ pub(crate) struct OscScanner {
     progress: Option<Progress>,
     /// Semantic marks seen since the last drain, oldest first.
     marks: Vec<ShellMark>,
-    /// Prompt (`A`) marks ever seen: `feed` compares it byte by byte to say
-    /// WHERE in a chunk each prompt began (the queue is capped, so its
-    /// length can't).
-    prompts: u64,
-    /// Finished-command (`D`) marks ever seen, compared the same way (the
-    /// title unwind cuts there, `modeltitle`).
-    dones: u64,
+    /// Marks (`A`..`D`) ever seen: `feed` compares it byte by byte to say
+    /// WHERE in a chunk each began (the queue is capped, so its length
+    /// can't). `cut` is which one the latest was.
+    seq: u64,
+    cut: Option<Cut>,
     /// Command (`C`, `D`) marks ever seen: whether a command ran since a
     /// prompt (`modelkitty`).
     commands: u64,
@@ -160,6 +127,10 @@ pub(crate) struct OscScanner {
 pub(crate) enum Cut {
     /// `A`: the prompt is about to be drawn.
     Prompt,
+    /// `B`: the prompt is drawn, the command line starts here.
+    Begin,
+    /// `C`: the command's output starts here.
+    Output,
     /// `D`: the command finished, before the shell's precmd runs.
     Done,
 }
@@ -186,19 +157,17 @@ impl OscScanner {
     }
 
     /// Scan a chunk of raw PTY output, updating the cwd when a complete OSC 7
-    /// report is seen. Returns the offset just past each prompt (`A`) and
-    /// finished-command (`D`) mark that ended in this chunk, so the caller
-    /// can act at that exact byte (`modelprompt`: a prompt drawn on a dead
-    /// program's alternate screen; a dead program's pushed titles).
+    /// report is seen. Returns the offset just past each OSC 133 mark that
+    /// ended in this chunk, so the caller can act at that exact byte
+    /// (`modelprompt`: a prompt drawn on a dead program's alternate screen;
+    /// a dead program's pushed titles; `markpos`: where the cursor was).
     pub(crate) fn feed(&mut self, bytes: &[u8]) -> Vec<(usize, Cut)> {
         let mut ends = Vec::new();
         for (i, &b) in bytes.iter().enumerate() {
-            let (prompts, dones) = (self.prompts, self.dones);
+            let seq = self.seq;
             self.step(b);
-            if self.prompts != prompts {
-                ends.push((i + 1, Cut::Prompt));
-            } else if self.dones != dones {
-                ends.push((i + 1, Cut::Done));
+            if let Some(cut) = self.cut.filter(|_| self.seq != seq) {
+                ends.push((i + 1, cut));
             }
         }
         ends
@@ -290,9 +259,16 @@ impl OscScanner {
         let Ok(rest) = std::str::from_utf8(&self.buf) else {
             return;
         };
+        // `B` is a cut only: nothing downstream of `take_shell` wants it.
+        self.cut = match rest.split(';').next().map(str::trim) {
+            Some("A") => Some(Cut::Prompt),
+            Some("B") => Some(Cut::Begin),
+            Some("C") => Some(Cut::Output),
+            Some("D") => Some(Cut::Done),
+            _ => None,
+        };
+        self.seq += u64::from(self.cut.is_some());
         if let Some(mark) = ShellMark::parse(rest) {
-            self.prompts += u64::from(mark == ShellMark::Prompt);
-            self.dones += u64::from(matches!(mark, ShellMark::Done(_)));
             self.commands += u64::from(matches!(mark, ShellMark::OutputStart | ShellMark::Done(_)));
             self.marks.push(mark);
             // A shell replaying a long scrollback can emit hundreds of these

@@ -109,6 +109,8 @@ impl CrewApp {
             "o" => self.spawn_crew_pane(),
             // Cmd+;: hand the focused pane's failed command to smith.
             ";" => self.fix_focused_with_smith(),
+            // Cmd+Shift+C: the last (or jumped-to) command's output, copied.
+            "C" => self.copy_command_output(),
             "w" => return self.close_pane(self.focused),
             // Cmd+F: find-in-conversation on a focused chat pane (no-op
             // elsewhere, so the chord stays free for other pane kinds later).

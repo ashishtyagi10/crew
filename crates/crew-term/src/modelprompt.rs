@@ -33,32 +33,44 @@ use super::TermCore;
 use crate::osc::Cut;
 
 impl TermCore {
-    /// Feed `bytes`, cut at the offsets just past each prompt or done mark. At a prompt cut,
-    /// leave the alternate screen and empty both kitty keyboard stacks when a
-    /// command ran since the last; at a done cut, unwind pushed titles.
+    /// Feed `bytes`, cut at the offset just past each OSC 133 mark, and note
+    /// where the cursor is at each. At a prompt cut, leave the alternate
+    /// screen and empty both kitty keyboard stacks when a command ran since
+    /// the last; at a done cut, unwind pushed titles.
     pub(super) fn feed_split(&mut self, bytes: &[u8], cuts: &[(usize, Cut)]) {
         let mut from = 0;
         for &(at, cut) in cuts {
             self.feed_part(&bytes[from..at]);
             from = at;
-            if cut == Cut::Done {
+            match cut {
                 // The command is over and the shell's precmd (its fresh
                 // title) comes after this mark: pop a dead program's pushes
                 // now, so they can't land over it (`modeltitle`).
-                self.title_unwind();
-                continue;
-            }
-            let pop = self.kitty_pop_due();
-            if self.term.mode().contains(TermMode::ALT_SCREEN) {
-                if pop {
-                    self.feed_part(POP_ALL);
+                Cut::Done => {
+                    self.title_unwind();
                 }
-                self.feed_part(b"\x1b[?1049l");
+                Cut::Prompt => self.prompt_cut(),
+                Cut::Begin | Cut::Output => {}
             }
+            // After the unwind, so a prompt's alternate screen is already
+            // gone: the position is the primary's (`markpos`).
+            self.mark_here(cut);
+        }
+        self.feed_part(&bytes[from..]);
+    }
+
+    /// A prompt is about to be drawn: leave a dead program's alternate screen
+    /// and empty the kitty keyboard stacks when a command ran since the last.
+    fn prompt_cut(&mut self) {
+        let pop = self.kitty_pop_due();
+        if self.term.mode().contains(TermMode::ALT_SCREEN) {
             if pop {
                 self.feed_part(POP_ALL);
             }
+            self.feed_part(b"\x1b[?1049l");
         }
-        self.feed_part(&bytes[from..]);
+        if pop {
+            self.feed_part(POP_ALL);
+        }
     }
 }

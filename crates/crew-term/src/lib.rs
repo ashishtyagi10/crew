@@ -6,10 +6,12 @@ mod cursor;
 mod graphics;
 mod graphicscmd;
 mod listener;
+mod markpos;
 mod model;
 mod modelinverse;
 mod modes;
 mod osc;
+mod oscprogress;
 mod pixelmouse;
 mod pointershape;
 mod pty;
@@ -21,6 +23,7 @@ mod sixel;
 mod testtheme;
 mod wipescan;
 pub use graphicscmd::ImageCmd;
+pub use markpos::{CommandOutput, OutputErr};
 pub use model::{
     ClipboardAsk, FindSpan, GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel, FIND_CAP,
 };

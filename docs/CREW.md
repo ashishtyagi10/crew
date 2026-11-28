@@ -430,6 +430,7 @@ the command palette write each chord the way that machine presses it.
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
 | A command failed: open agent smith with its command and output typed in (never sent) — or click the red mark on the pane's left border | **Cmd+;** (Alt+; on Windows and Linux) |
+| Copy a command's output — the last one, or the one Cmd+Opt+↑/↓ jumped to; needs shell integration (OSC 133) | **Cmd+Shift+C** (Alt+' on Windows and Linux) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder, the files viewed last first | **Cmd+P** |

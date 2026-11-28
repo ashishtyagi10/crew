@@ -5,9 +5,9 @@ use crate::app::CrewApp;
 use crate::pane::{Pane, TermPane};
 use crew_term::{GridSize, PtyTerm, ShellMark, TermModel};
 
-pub(super) const CELL: (f32, f32) = (8.0, 17.0);
+pub(crate) const CELL: (f32, f32) = (8.0, 17.0);
 
-pub(super) fn pane() -> Pane {
+pub(crate) fn pane() -> Pane {
     let grid = GridSize { cols: 40, rows: 8 };
     let args = vec!["-c".to_string(), "exec cat > /dev/null".to_string()];
     let pty = PtyTerm::spawn_in(grid, "/bin/sh", &args, Some(&std::env::temp_dir())).unwrap();
@@ -47,7 +47,7 @@ pub(super) fn pane() -> Pane {
 }
 
 /// A terminal pane in an app with a frame, its screen not yet scrolled.
-pub(super) fn bare_app() -> CrewApp {
+pub(crate) fn bare_app() -> CrewApp {
     let mut app = CrewApp {
         geo_override: Some((CELL.0, CELL.1, 1280.0, 720.0, 1.0)),
         ..Default::default()
@@ -63,7 +63,7 @@ pub(super) fn bare_app() -> CrewApp {
 /// the same steps `poll` takes on the real marks. `fill` lines first: a
 /// shell's screen is full, so each output line scrolls one into history and
 /// the span's line numbers (`lines_seen`) move with it.
-pub(super) fn ran(app: &mut CrewApp, fill: usize, (line, out, code): (&str, &str, i32)) {
+pub(crate) fn ran(app: &mut CrewApp, fill: usize, (line, out, code): (&str, &str, i32)) {
     let PaneContent::Terminal(t) = &mut app.panes[0].content else {
         unreachable!()
     };
@@ -82,13 +82,13 @@ pub(super) fn ran(app: &mut CrewApp, fill: usize, (line, out, code): (&str, &str
 }
 
 /// [`bare_app`] after one command on a full screen.
-pub(super) fn app_after(line: &str, out: &str, code: i32) -> CrewApp {
+pub(crate) fn app_after(line: &str, out: &str, code: i32) -> CrewApp {
     let mut app = bare_app();
     ran(&mut app, 80, (line, out, code));
     app
 }
 
-pub(super) const OUT: &str = "running 1 test\r\nerror[E0433]: nope\r\n";
+pub(crate) const OUT: &str = "running 1 test\r\nerror[E0433]: nope\r\n";
 
 #[test]
 fn a_failed_command_in_a_real_terminal_is_found_with_its_own_output() {
