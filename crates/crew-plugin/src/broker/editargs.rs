@@ -8,6 +8,17 @@ use serde_json::Value;
 /// them. Both end in the same all-or-nothing call, so the batch is not a
 /// second code path that can drift from the single edit's contract.
 pub(super) fn edit(v: &Value) -> Result<String, String> {
+    let (path, swaps) = parse(v)?;
+    edit_all(path, &swaps)
+}
+
+/// What [`edit`] would turn the file into, as `(before, after)`, writing nothing.
+pub(super) fn dry(v: &Value) -> Result<(String, String), String> {
+    let (path, swaps) = parse(v)?;
+    super::sysedit::dry(path, &swaps)
+}
+
+fn parse(v: &Value) -> Result<(&str, Vec<Swap<'_>>), String> {
     let path = str_arg(v, "path")?;
     let Some(edits) = v.get("edits").and_then(|e| e.as_array()) else {
         let (old, new) = (str_arg(v, "old")?, str_arg(v, "new")?);
@@ -17,7 +28,7 @@ pub(super) fn edit(v: &Value) -> Result<String, String> {
             all: all(v),
             line: line(v),
         };
-        return edit_all(path, &[swap]);
+        return Ok((path, vec![swap]));
     };
     // `line` or `all` beside the list, not in an edit (a probe sent
     // `{"edits": [{…}], "line": 15}`): one edit's own, or no one's.
@@ -44,7 +55,7 @@ pub(super) fn edit(v: &Value) -> Result<String, String> {
             })
         })
         .collect();
-    edit_all(path, &swaps?)
+    Ok((path, swaps?))
 }
 
 fn all(e: &Value) -> bool {

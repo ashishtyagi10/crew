@@ -15,6 +15,10 @@ pub mod integration {
 pub mod tier {
     pub use crate::broker::tier::*;
 }
+/// What typed text means for a file edit asked about hunk by hunk (`1 3`, `-2`).
+pub mod hunks {
+    pub use crate::broker::hunkpicks::*;
+}
 pub mod credentials;
 /// HTML read as text, the way `sys:fetch` reads a page: what the inbox shows
 /// of a mail that came as HTML only.

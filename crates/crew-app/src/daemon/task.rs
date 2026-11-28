@@ -105,8 +105,12 @@ impl Bridge {
             let Some(granted) = parse_answer(text) else {
                 return Ok(UNCLEAR);
             };
-            let cmd = serde_json::to_string(&PluginCommand::Approve { id, granted })
-                .map_err(|e| e.to_string())?;
+            let cmd = serde_json::to_string(&PluginCommand::Approve {
+                id,
+                granted,
+                hunks: None,
+            })
+            .map_err(|e| e.to_string())?;
             reg.send(&route.session, &cmd);
             if let Some(r) = self.routes.get_mut(addr) {
                 r.awaiting = None;
