@@ -140,18 +140,20 @@ fn absurd_sizes_are_clamped_not_believed() {
     assert_eq!(size(b"q!99999999999999999999999~"), Some((MAX_DIM, 6)));
 }
 
-/// `$!10000~` over and over would repaint one row a billion times; the
-/// work budget stops it (break the budget and this test takes many seconds).
+/// `$!10000~` over and over would repaint one row a billion times; the work
+/// budget (64 coats of the canvas) stops the decode. Proven by what comes
+/// after it, not by a clock (instrumented CI runs many times slower): a
+/// recolour sent once the budget is spent never lands.
 #[test]
 fn endless_overprinting_is_cut_short() {
     let mut body = b"q#1".to_vec();
-    for _ in 0..100_000 {
+    for _ in 0..1_000 {
         body.extend_from_slice(b"$!10000~");
     }
-    let t = std::time::Instant::now();
+    body.extend_from_slice(b"$#2~");
     let img = decode(&body).expect("decodes");
     assert_eq!(px(&img, 9999, 5), [0x33, 0x33, 0xcc, 255]);
-    assert!(t.elapsed().as_secs() < 2, "took {:?}", t.elapsed());
+    assert_eq!(px(&img, 0, 0), [0x33, 0x33, 0xcc, 255], "past the budget");
 }
 
 #[test]
