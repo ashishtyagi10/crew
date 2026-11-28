@@ -91,7 +91,7 @@ pub(crate) fn load_from(user: Option<&Path>, project: &Path) -> Option<String> {
 
 /// Prepend the project card, what changed (for a task about something that
 /// broke, `whatchanged`), the project's instructions and the loaded memory to
-/// a task prompt; the task passes through untouched when there is none of
+/// a task prompt, and what the user's prompt hook printed for it; the task passes through untouched when there is none of
 /// them. The card leads: where the agent stands comes before the rules for
 /// standing there. `asked` is the request as the user typed it, which is
 /// what decides whether the diff rides along; `task` may already carry the
@@ -100,6 +100,11 @@ pub(crate) fn with_memory(task: &str, asked: &str) -> String {
     let rest = prepend_all(super::agentsmd::block().map(|(b, _)| b), load(), task);
     let rest = match super::whatchanged::block(asked) {
         Some(changed) => format!("{changed}\n{rest}"),
+        None => rest,
+    };
+    // What the user's prompt hook said for this task (`hookprompt`), nearest the task.
+    let rest = match super::session::hooks::prompt_block() {
+        Some(said) => format!("{said}\n\n{rest}"),
         None => rest,
     };
     match super::projectcard::block() {

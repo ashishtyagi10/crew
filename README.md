@@ -846,7 +846,11 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-smith-alias-crew):
   an agent is about to end its turn (Claude Code's Stop hook): it reads the
   answer and `stop_hook_active`, and exit 2 or a block decision sends the
   reason back and the turn goes on, at most three times; a hook that fails
-  or times out ends the turn as a failed `hook:stop` row instead.
+  or times out ends the turn as a failed `hook:stop` row instead. A
+  `"prompt": [{"cmd": "…"}]` hook (Claude Code's UserPromptSubmit) runs once
+  when your task arrives, before any model call: exit 2 or a block decision
+  refuses it with `blocked by hook: <reason>`, and any other stdout is added to
+  what the model is given this turn.
   `CREW_HOOKS=0` turns hooks off.
 
 The pane itself reads like a multi-agent console: a header with a live status

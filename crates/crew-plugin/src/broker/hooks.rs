@@ -17,12 +17,15 @@ use std::time::Duration;
 
 #[path = "hookfile.rs"]
 mod file;
+#[path = "hookprompt.rs"]
+mod prompt;
 #[path = "hookrun.rs"]
 mod run;
 #[path = "hookstop.rs"]
 mod stop;
 pub(crate) use file::Source;
 use file::{File, OnFailure, Rule};
+pub(crate) use prompt::{block as prompt_block, enter as prompt_scope, gate as prompt_gate};
 use run::Ran;
 
 /// How long one hook may run. It stands between the agent and every call it matches, so a
@@ -169,17 +172,18 @@ pub(crate) fn doctor_line(src: Option<&Source>) -> (char, String) {
             '\u{2717}',
             format!("{e} \u{2014} every tool call is blocked until it is fixed"),
         ),
-        Ok(f) if f.pre_tool.is_empty() && f.post_tool.is_empty() && f.stop.is_empty() => (
+        Ok(f) if f.len() == 0 => (
             '\u{2013}',
             format!("none ({} adds them)", src.path.display()),
         ),
         Ok(f) => (
             '\u{2713}',
             format!(
-                "{} before a tool call, {} after, {} at a turn's end",
+                "{} before a tool call, {} after, {} at a turn's end, {} on a prompt",
                 f.pre_tool.len(),
                 f.post_tool.len(),
-                f.stop.len()
+                f.stop.len(),
+                f.prompt.len()
             ),
         ),
     }

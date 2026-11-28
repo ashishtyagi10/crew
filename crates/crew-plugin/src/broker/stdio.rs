@@ -382,6 +382,26 @@ fn send(
                 });
             // This thread is the task: its tool rounds take what is typed meanwhile.
             let steer = super::steer::Taking::begin(Arc::clone(&tick_emit));
+            // The user's prompt hooks, first of all: a refused task costs no snapshot, no
+            // routing and no model call, and its context rides `with_memory` this turn.
+            let src = (!cfg!(test))
+                .then(super::session::hooks::Source::live)
+                .flatten();
+            let said = match super::session::hooks::prompt_gate(src.as_ref(), &trimmed) {
+                Ok(said) => said,
+                Err(why) => {
+                    let _ = emit(&out_thread, &msg("agent smith", why));
+                    drop(steer);
+                    let end = PluginEvent::Task {
+                        id,
+                        label: String::new(),
+                        running: false,
+                    };
+                    let _ = emit(&out_thread, &end);
+                    return;
+                }
+            };
+            let _said = super::session::hooks::prompt_scope(said);
             // Stamp every relay Message event with this task's id, and count Stats.
             let mut counting = |mut ev: PluginEvent| {
                 if let PluginEvent::Stats { tokens: t, .. } = &ev {
