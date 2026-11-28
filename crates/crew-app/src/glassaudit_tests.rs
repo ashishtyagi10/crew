@@ -109,7 +109,24 @@ fn under_floor(id: crew_theme::ThemeId, prep: &dyn Fn(&mut crate::app::CrewApp))
         .collect()
 }
 
+/// Runs [`audit_at`] once idle and once pegged. The nav's SYSTEM readings
+/// change colour with load (calm, warning, critical), so a window audited
+/// only at whatever the host happened to be doing hid a 1.14:1 warning label
+/// on blossom until a loaded machine drew it. The sampler is pinned, never
+/// read live.
 fn audit(prep: &dyn Fn(&mut crate::app::CrewApp)) {
+    for load in [0.2, 0.95] {
+        let _pin = crate::stats::pin::pin(crate::stats::Stats {
+            cpu: load,
+            mem: load,
+            disk: load,
+            ..Default::default()
+        });
+        audit_at(prep);
+    }
+}
+
+fn audit_at(prep: &dyn Fn(&mut crate::app::CrewApp)) {
     let _a = crate::palette::test_guard();
     let _g = crate::app::theme_test_guard();
     let bad: Vec<String> = crew_theme::ALL_THEMES

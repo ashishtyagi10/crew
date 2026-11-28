@@ -106,6 +106,39 @@ impl SysSampler {
             net_rx,
             net_tx,
         };
+        #[cfg(test)]
+        if let Some(p) = pin::get() {
+            self.stats = p;
+        }
+    }
+}
+
+/// Test seam: a pinned reading every sampler on this thread reports in place
+/// of the machine's, so a test of what a load LOOKS like never depends on
+/// how loaded the box running it happens to be.
+#[cfg(test)]
+pub(crate) mod pin {
+    use super::Stats;
+    use std::cell::Cell;
+
+    thread_local!(static PIN: Cell<Option<Stats>> = const { Cell::new(None) });
+
+    pub(crate) fn get() -> Option<Stats> {
+        PIN.with(Cell::get)
+    }
+
+    /// Pins until the guard drops.
+    pub(crate) struct Pinned;
+
+    pub(crate) fn pin(s: Stats) -> Pinned {
+        PIN.with(|p| p.set(Some(s)));
+        Pinned
+    }
+
+    impl Drop for Pinned {
+        fn drop(&mut self) {
+            PIN.with(|p| p.set(None));
+        }
     }
 }
 

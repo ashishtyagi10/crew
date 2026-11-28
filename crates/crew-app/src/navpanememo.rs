@@ -16,6 +16,16 @@ pub(crate) struct Memo {
     pub(crate) fx: Fx,
 }
 
+/// Line two with its numbers taken out: what a fade is allowed to react to.
+///
+/// A digit moving is a reading ticking, not new words. A Dash card's line is
+/// `cpu 19% \u{b7} mem 72%`, re-read every second; compared whole, it faded
+/// in from near-invisible (1.14:1 on a sheer window) once a second, forever.
+/// `12s` becoming `13s` was already meant to be quiet; this makes any figure so.
+fn gist(words: &str) -> String {
+    words.chars().filter(|c| !c.is_ascii_digit()).collect()
+}
+
 /// The card's `state` and `words` at `now`, against what `memo` last saw.
 pub(crate) fn observe(
     memo: Option<Memo>,
@@ -25,10 +35,11 @@ pub(crate) fn observe(
     level: MotionLevel,
 ) -> Memo {
     let on = level != MotionLevel::Off;
+    let words = gist(words);
     let Some(old) = memo else {
         return Memo {
             state,
-            words: words.into(),
+            words,
             fx: Fx {
                 on,
                 ..Fx::default()
@@ -39,14 +50,10 @@ pub(crate) fn observe(
     if state != old.state {
         fx.state_at = Some(now);
     }
-    if words != old.words && !words.is_empty() {
+    if words != old.words && !words.trim().is_empty() {
         fx.words_at = Some(now);
     }
-    Memo {
-        state,
-        words: words.into(),
-        fx,
-    }
+    Memo { state, words, fx }
 }
 
 thread_local! {
