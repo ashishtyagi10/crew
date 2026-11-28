@@ -7,8 +7,8 @@
 //! It is appended to the provider-bound [`ToolOutcome`]s only, AFTER the batch
 //! published its per-call `ToolResult` events (the pane's transcript) from
 //! their own text, so the host never sees it. It lives in the newest
-//! `Turn::ToolResults` and stays there: every earlier turn is resent
-//! byte-for-byte, which keeps the provider's prompt-cache prefix stable, and
+//! `Turn::ToolResults` and is never rewritten by it, which keeps the provider's
+//! prompt-cache prefix stable (stubbing old results is `stubs`' own trade), and
 //! every wire (Anthropic `tool_result`, OpenAI-style `tool` messages) renders
 //! those same outcomes, so none needs its own copy.
 
@@ -29,6 +29,15 @@ pub(super) fn line(left: u32, total: u32) -> Option<String> {
     Some(format!(
         "[{left} tool round{s} left \u{2014} finish and verify the change, or say plainly what is left undone.]"
     ))
+}
+
+/// `content` without a reminder at its end: the last word's transcript
+/// (`lastword`) is read when no round is left, and an old "1 left" there lies.
+pub(super) fn strip(content: &str) -> &str {
+    match content.rsplit_once("\n\n[") {
+        Some((body, tail)) if tail.contains(" left \u{2014} finish and verify") => body,
+        _ => content,
+    }
 }
 
 /// Add the reminder (if any) to the last outcome of the round just run.

@@ -148,7 +148,7 @@ pub(super) async fn run(
             calls: completion.calls,
         });
         if let Some(left) = drawn {
-            super::reminder::append(&mut results, left, ctx.budget.total());
+            super::reminder::append(&mut results, left, ctx.budget.allowance());
         }
         turns.push(Turn::ToolResults(results));
 

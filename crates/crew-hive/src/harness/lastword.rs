@@ -66,10 +66,13 @@ pub(super) fn transcript(turns: &[Turn], label: impl Fn(&ToolInvocation) -> Stri
                     continue;
                 };
                 // The loop answers every call, in order, so the two zip.
-                let rounds = calls
-                    .iter()
-                    .zip(results)
-                    .map(|(c, r)| (label(c), c.input.to_string(), r.content.clone()));
+                let rounds = calls.iter().zip(results).map(|(c, r)| {
+                    (
+                        label(c),
+                        c.input.to_string(),
+                        super::reminder::strip(&r.content).to_string(),
+                    )
+                });
                 shown.push(written(said, rounds));
             }
             Turn::User(_) => {}

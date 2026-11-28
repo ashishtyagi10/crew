@@ -3,7 +3,7 @@
 use super::kit;
 use crate::agent::{Agent, AgentContext};
 use crate::bus::{EventBus, HiveEvent};
-use crate::harness::reminder::line;
+use crate::harness::reminder::{line, strip};
 use crate::provider::{CompletionRequest, Turn};
 use crate::tools::budget::ToolBudget;
 
@@ -98,4 +98,25 @@ fn line_wording_and_thresholds() {
     // A big budget warns over its last fifth: 100 -> 20 rounds.
     assert!(line(20, 100).is_some() && line(21, 100).is_none());
     assert!(line(1, 3).is_none() && line(1, 4).is_some() && line(2, 4).is_none());
+}
+
+#[test]
+fn the_last_word_reads_results_without_a_stale_count() {
+    let said = format!("4C\n\n{}", line(1, 10).unwrap());
+    assert_eq!(strip(&said), "4C");
+    assert_eq!(strip("a\n\n[b] plain"), "a\n\n[b] plain");
+}
+
+#[test]
+fn a_big_run_measures_low_against_one_agents_allowance() {
+    let run = crate::tools::budget::ToolBudget::for_run(9);
+    assert_eq!(
+        run.allowance(),
+        8,
+        "one agent's own cap, not the pool of 36"
+    );
+    assert!(
+        line(7, run.allowance()).is_none(),
+        "round 1 of 8 is not low"
+    );
 }
