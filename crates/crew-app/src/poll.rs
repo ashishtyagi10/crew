@@ -224,11 +224,11 @@ impl CrewApp {
                             // A prompt being drawn means whatever was running
                             // is over, whether or not the shell said `D`.
                             crew_term::ShellMark::Prompt => t.prompt_back(at, ms),
-                            // `C` is where output begins. The span is opened
-                            // by the foreground-process watch, which is also
-                            // the only thing that knows the command's NAME —
-                            // this only tightens a boundary polling guessed.
-                            crew_term::ShellMark::OutputStart => {}
+                            // `C` is where output begins. It cannot open the
+                            // span (only the poll knows the NAME), but it says
+                            // which `D` belongs to a span and which to a
+                            // command too fast to have one (`cmdexit`).
+                            crew_term::ShellMark::OutputStart => t.spans.output_started(ms),
                         }
                     }
                     // A picture that just finished decoding is a change with
@@ -452,18 +452,18 @@ impl CrewApp {
                             min,
                             now,
                         );
-                        // The two edges of a command's output, as buffer
-                        // lines: what `/out` slices later.
+                        // The edges of a command's output (`/out`) and its line.
                         let at = t.pty.lines_seen();
                         let ms = crate::anim::now_ms();
                         match &cmd {
                             Some(name) => t.spans.started(name.clone(), at, ms),
-                            // Not on a failed name lookup of a live program.
                             None if fg.is_none() => t.shell_back(at, ms),
-                            None => {}
+                            None => {} // a live program whose name lookup failed
                         }
+                        t.spans.set_line(self.procnames.line_if(fg, &cmd));
                         t.cmd = cmd;
                         t.cmd_since = outcome.since;
+                        far_statuses.extend(crate::failhint::seen(t, i == focused));
                         any_changed = true;
                         // How it went, when the shell said so (OSC 133 `D`,
                         // which lands on the read tick and so is already here

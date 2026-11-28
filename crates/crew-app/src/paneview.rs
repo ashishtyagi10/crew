@@ -114,11 +114,7 @@ pub(crate) fn push_pane_scenes(
     };
     // …and which of them the shell said went wrong (OSC 133).
     let fail_rows = match &p.content {
-        PaneContent::Terminal(t) if marks => t.spans.failed_rows(
-            t.pty.lines_seen(),
-            usize::from(p.grid.rows),
-            t.pty.display_offset(),
-        ),
+        PaneContent::Terminal(t) if marks => crate::failmark::rows(t, p.grid.rows),
         _ => Vec::new(),
     };
     // Rows of this pane's visible output that read as errors. Computed from

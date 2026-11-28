@@ -170,3 +170,15 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
     assert!(notches(40, 20, &doc(&[], &[], 0), CW, CH).is_empty());
     assert!(notches(40, 4, &doc(&[1, 2], &[3], 0), CW, CH).is_empty());
 }
+
+/// What is drawn and what answers a click are one question, `shown`: a fail
+/// mark is painted for a row exactly when a click may land on it.
+#[test]
+fn a_fail_mark_is_drawn_exactly_where_a_click_is_allowed() {
+    let _g = crate::app::theme_test_guard();
+    for r in 0..14 {
+        let drawn = marks(ROWS, &bar(&[], &[r], &[]), 0.0, CW, CH);
+        assert_eq!(!drawn.is_empty(), super::shown(r, ROWS), "row {r}");
+    }
+    assert!(super::shown(7, ROWS) && !super::shown(8, ROWS));
+}

@@ -63,6 +63,7 @@ const ALT: &[(&str, &str)] = &[
     ("z", "z"),
     (",", ","),
     (".", "."),
+    (";", ";"), // fix a failed command with smith (`fixwithsmith`)
     ("/", "/"),
     ("[", "["),
     ("]", "]"),

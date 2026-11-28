@@ -1,25 +1,12 @@
 //! Where each command's output starts and ends in a pane's buffer.
 //!
-//! Terminals that speak OSC 133 learn this from the shell. Crew does not need
-//! the shell to tell it: it already watches the foreground process of every
-//! pane once a second, so the two transitions it sees — idle to running, and
-//! running back to idle — are exactly the two edges of a command's output.
-//! The buffer's line count at each edge is the span.
-//!
-//! Second-granularity, and honest about it: a command that starts and ends
-//! between two polls leaves no span, and one whose output is still arriving
-//! when the prompt returns can carry a line or two of the next thing. What it
-//! buys is `/out` — the last command's output on its own, in a pane you can
-//! read — without asking anyone to change their shell configuration.
-//!
-//! ## The one thing polling cannot see
-//!
-//! How the command *ended*. A process crew never saw start tells it nothing
-//! about its exit status, and no amount of polling recovers one. A shell with
-//! an OSC 133 integration says so directly (`ESC ] 133 ; D ; 1 ST`), and when
-//! it does, [`Spans::finished`] records it and the pane's border marks that
-//! block's first row in the alarm colour. A shell that says nothing keeps
-//! exactly the blocks it had before — this is an upgrade, not a requirement.
+//! Crew watches each pane's foreground process once a second; the two edges
+//! it sees (idle to running, running to idle) bound a command's output, and
+//! the buffer's line count at each is the span. Second-granularity: a command
+//! faster than a poll leaves no span. It buys `/out` without asking anyone to
+//! change their shell. How a command *ended* polling cannot see: an OSC 133
+//! shell says so (`D;1`), [`Spans::finished`] records it, and the border marks
+//! that block's first row. A silent shell keeps what it had.
 
 /// One command's output, as buffer line indices.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -34,6 +21,9 @@ pub(crate) struct Span {
     /// every shell with no integration configured — which is not the same as
     /// "it succeeded", and is why nothing is drawn for it.
     pub exit: Option<i32>,
+    /// The whole command line (`cargo test -p crew-app`) when the process
+    /// table gave one; `name` alone says only `cargo`.
+    pub line: Option<String>,
     /// The monotonic clock when it started and when it stopped. Buffer lines
     /// say where the output IS; these say how long it took, which is the
     /// other half of "what did I run in here" (see [`crate::blocks`]).
@@ -47,7 +37,12 @@ const CAP: usize = 32;
 
 /// The spans a pane has seen, oldest first.
 #[derive(Default)]
-pub(crate) struct Spans(Vec<Span>);
+pub(crate) struct Spans(
+    pub(crate) Vec<Span>,
+    /// When the shell last said a command's output began (OSC 133 `C`), on
+    /// the monotonic clock; see [`crate::cmdexit`].
+    pub(crate) Option<u64>,
+);
 
 impl Spans {
     /// A command started at buffer line `at`, on the monotonic clock `now`.
@@ -60,11 +55,19 @@ impl Spans {
             from: at,
             to: None,
             exit: None,
+            line: None,
             at_ms: now,
             done_ms: None,
         });
         while self.0.len() > CAP {
             self.0.remove(0);
+        }
+    }
+
+    /// Record the command line of the span just opened; no line leaves it.
+    pub(crate) fn set_line(&mut self, line: Option<String>) {
+        if let (Some(s), Some(line)) = (self.0.last_mut(), line) {
+            s.line = Some(line);
         }
     }
 
@@ -77,15 +80,13 @@ impl Spans {
         }
     }
 
-    /// How long a span ran, or how long it has been running. `None` for one
-    /// that started before the clock was being kept.
+    /// How long a span ran, or has been running.
     pub(crate) fn elapsed_ms(s: &Span, now: u64) -> u64 {
         s.done_ms.unwrap_or(now).saturating_sub(s.at_ms)
     }
 
     /// The exit status of the most recent command, when the shell reported
-    /// one. `None` for a pane whose shell says nothing — which is not the
-    /// same as a success, and is why the caller must not treat it as one.
+    /// one. `None` (a silent shell) is not a success.
     pub(crate) fn last_exit(&self) -> Option<i32> {
         self.0.last()?.exit
     }
@@ -95,43 +96,24 @@ impl Spans {
         self.0.iter().rev()
     }
 
-    /// The shell reported that the last command finished with `code`, at
-    /// buffer line `at` (OSC 133 `D`).
-    ///
-    /// It closes the span as well as marking it: the shell knows the command
-    /// is over a full poll before the foreground-process watch will notice,
-    /// and a boundary the shell states beats one crew inferred. Applied to
-    /// the LAST span whether or not it is still open — a `D` arriving just
-    /// after the poll closed the span is the same command, and the alternative
-    /// is dropping the one fact polling cannot supply.
-    pub(crate) fn finished(&mut self, code: Option<i32>, at: usize, now: u64) {
-        let Some(last) = self.0.last_mut() else {
-            return;
-        };
-        if last.to.is_none() {
-            last.to = Some(at.max(last.from));
-            last.done_ms = Some(now);
-        }
-        last.exit = code;
-    }
-
-    /// Which visible rows hold the first line of a command that FAILED. Same
-    /// window arithmetic as [`Self::start_rows`], over the spans a shell
-    /// reported a non-zero status for.
-    pub(crate) fn failed_rows(&self, now: usize, visible: usize, scroll: usize) -> Vec<u16> {
+    /// The visible rows that begin a command the shell reported FAILED, each
+    /// with its span. Window arithmetic as [`Self::start_rows`]; the card
+    /// draws these rows and a click on one reads the span, so both agree.
+    pub(crate) fn failed_in_view(
+        &self,
+        now: usize,
+        visible: usize,
+        scroll: usize,
+    ) -> Vec<(u16, &Span)> {
         let first = now.saturating_sub(visible).saturating_sub(scroll);
-        self.0
-            .iter()
-            .filter(|s| s.exit.is_some_and(|c| c != 0))
-            .filter_map(|s| s.from.checked_sub(first))
-            .filter(|row| *row < visible)
-            .map(|row| row as u16)
-            .collect()
+        let row =
+            |s: &Span| u16::try_from(s.from.checked_sub(first).filter(|r| *r < visible)?).ok();
+        let failed = |s: &&Span| s.exit.is_some_and(|c| c != 0);
+        let spans = self.0.iter().filter(failed);
+        spans.filter_map(|s| Some((row(s)?, s))).collect()
     }
 
-    /// Whether this span has any output in a buffer of `now` lines. A
-    /// command that has printed nothing — still running, or finished without
-    /// a word — is not something to show.
+    /// Whether this span has any output in a buffer of `now` lines.
     fn has_output(s: &Span, now: usize) -> bool {
         s.to.unwrap_or(now) > s.from
     }
@@ -148,8 +130,7 @@ impl Spans {
             .nth(n)
     }
 
-    /// What a pane has run lately, newest first — the answer `/out` gives
-    /// when asked for a command that is not there.
+    /// What a pane has run lately, newest first.
     pub(crate) fn summary(&self, limit: usize) -> Vec<String> {
         self.0
             .iter()
@@ -160,9 +141,8 @@ impl Spans {
             .collect()
     }
 
-    /// The `[from, to)` line range of `span` in a buffer that currently holds
-    /// `now` lines, clamped to it — the buffer wraps its scrollback away
-    /// under us, and a range past the end would slice nothing.
+    /// The `[from, to)` line range of `span` in a buffer of `now` lines,
+    /// clamped to it: scrollback is evicted under us.
     pub(crate) fn range(span: &Span, now: usize) -> (usize, usize) {
         let to = span.to.unwrap_or(now).min(now);
         (span.from.min(to), to)
@@ -172,10 +152,8 @@ impl Spans {
     /// `now` lines — what [`crate::cmdhead`] names on the top border while a
     /// pane is scrolled back.
     ///
-    /// Searched newest-first so an overlapping pair (the poll's one-second
-    /// granularity can close a span a line or two into the next command's
-    /// output) answers with the later one: the top of your window is inside
-    /// the thing that printed most recently, not the thing it interrupted.
+    /// Newest-first, so a pair overlapping by the poll's granularity answers
+    /// with the later one.
     /// A line in no span at all — before the first command crew saw, or in
     /// the gap between two — has no honest answer and gets `None`.
     pub(crate) fn at_line(&self, line: usize, now: usize) -> Option<&Span> {
