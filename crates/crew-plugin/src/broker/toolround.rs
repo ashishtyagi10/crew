@@ -39,17 +39,18 @@ pub(super) fn stopped_answer(before: &str, calls: u32) -> String {
 /// out of it (`crew_hive::tools::not_run`, the harness lifts its own first):
 /// the relay says that line as smith's row (`Usage::not_run`).
 ///
-/// And the model's own closing `Unsure:` line (`unsure`), lifted first —
-/// before the checklist's line lands under it — as the third part, ready to
-/// be said as smith's `? unsure:` row.
+/// And the model's own closing `Unsure:` line (`unsure`), lifted after the stuck
+/// calls and before the checklist's line lands under it, as the third part: smith's
+/// `? unsure:` row.
 pub(super) fn finished(
     runner: Option<&dyn ToolRunner>,
     answer: String,
 ) -> (String, String, String) {
+    // A stuck `@tool` fence comes out first, or the `Unsure:` line above it is never last.
+    let (answer, note) = crew_hive::tools::not_run(&answer);
     let (answer, unsure) = super::unsure::split_unsure(&answer);
     let unsure = unsure.map(|u| super::unsure::row(&u)).unwrap_or_default();
     let answer = crew_hive::tools::todo::finished(answer, runner.and_then(|r| r.checklist()));
-    let (answer, note) = crew_hive::tools::not_run(&answer);
     (answer, note.unwrap_or_default(), unsure)
 }
 

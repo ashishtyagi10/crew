@@ -8,8 +8,8 @@
 //! write the user's answer are asked: never a judge, router or drafter.
 
 /// The one sentence the working agent's reply framing carries.
-pub(crate) const ASK: &str = "If your answer rests on something you did not verify or an \
-     assumption you made, end the answer (before the closing control line) \
+pub(crate) const ASK: &str = "If your final answer (the one you close with `@done`) rests on \
+     something you did not verify or an assumption you made, end it (before `@done`) \
      with exactly one line `Unsure: <what, in under 20 words>`; when nothing is uncertain \
      leave that line out entirely.";
 
@@ -40,18 +40,22 @@ pub(crate) fn split_unsure(answer: &str) -> (String, Option<String>) {
     else {
         return (answer.to_string(), None);
     };
-    let line = lines[at].trim();
+    // `**Unsure:** x` and `_Unsure:_ x` are the same line in markdown dress.
+    let line = lines[at].trim().trim_start_matches(['*', '_']);
     let head = line.get(..7).unwrap_or_default();
     let fenced = lines[..at]
         .iter()
-        .filter(|l| l.trim_start().starts_with("```"))
+        .filter(|l| {
+            let l = l.trim_start();
+            l.starts_with("```") || l.starts_with("~~~")
+        })
         .count()
         % 2
         == 1;
     if !head.eq_ignore_ascii_case("unsure:") || fenced {
         return (answer.to_string(), None);
     }
-    let said = line[7..].trim();
+    let said = line[7..].trim().trim_start_matches(['*', '_']).trim();
     let rest: Vec<&str> = lines[..at]
         .iter()
         .chain(&lines[at + 1..])
@@ -65,6 +69,13 @@ pub(crate) fn split_unsure(answer: &str) -> (String, Option<String>) {
     }
 }
 
+/// A hand-off's body (`@next`) without the line: it is asked of the final answer only, and a
+/// peer reading "Unsure: …" in its task would answer the caveat instead of the work. A model
+/// that writes it anyway on a hop loses nothing the final answer cannot say again.
+pub(crate) fn strip(body: String) -> String {
+    split_unsure(&body).0
+}
+
 /// Smith's row for what the answer was unsure of.
 pub(crate) fn row(said: &str) -> String {
     format!("{ROW}{said}")
@@ -73,3 +84,7 @@ pub(crate) fn row(said: &str) -> String {
 #[cfg(test)]
 #[path = "unsure_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "unsureturn_tests.rs"]
+mod turn_tests;
