@@ -144,11 +144,11 @@ impl CrewApp {
                 // plain letter: Cmd+D here deleted the thread.
                 let pressed = event.state.is_pressed();
                 let ctrl_v = crate::ctrlpane::paste_chord(
-                    &event.logical_key,
+                    &crate::ctrlpane::event_key(&event),
                     m.mods,
                     cfg!(target_os = "macos"),
                 )
-                .filter(|_| pressed);
+                .filter(|_| pressed && !event.repeat);
                 match crate::keychord::cmd_chord(&event, m.mods).or(ctrl_v) {
                     Some(s) => match chord(&s, enter) {
                         Chord::Close => close = true,

@@ -110,3 +110,19 @@ fn ctrl_f_finds_from_an_editing_pane_only() {
     assert!(!app.run_ctrl_key(CtrlKey::Find), "the bar has the keys");
     assert!(!app.run_ctrl_key(CtrlKey::Copy), "nothing selected");
 }
+
+#[test]
+fn a_cyrillic_layout_still_copies_and_pastes() {
+    use winit::keyboard::KeyCode;
+    let c = ModifiersState::CONTROL;
+    assert_eq!(
+        ctrl_key(&latin(&ch("с"), Some(KeyCode::KeyC)), c, false),
+        Some(CtrlKey::Copy)
+    );
+    assert_eq!(
+        ctrl_key(&latin(&ch("м"), Some(KeyCode::KeyV)), c, false),
+        Some(CtrlKey::Paste)
+    );
+    // A Latin layout's own letter wins (Dvorak's KeyC types j).
+    assert_eq!(latin(&ch("j"), Some(KeyCode::KeyC)), ch("j"));
+}

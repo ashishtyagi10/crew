@@ -4,7 +4,7 @@
 //! Windows Terminal's two exceptions (Ctrl+C copies a selection, Ctrl+V
 //! pastes). The editors and text fields get their save and find. On a Mac
 //! none of this exists: Cmd does it, and Ctrl+C is ^C, as ever.
-use winit::keyboard::{Key, ModifiersState};
+use winit::keyboard::{Key, KeyCode, ModifiersState};
 
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
@@ -41,6 +41,33 @@ pub(crate) fn ctrl_key(key: &Key, mods: ModifiersState, mac: bool) -> Option<Ctr
     }
 }
 
+/// The key as the letter printed on it, for Ctrl's four: on a Russian or Greek
+/// layout Ctrl+C arrives as `с`, and copy, paste, save and find were lost there
+/// (`cmd_chord` reads the physical key the same way).
+pub(crate) fn latin(key: &Key, code: Option<KeyCode>) -> Key {
+    let ascii = matches!(key, Key::Character(s) if s.is_ascii());
+    let letter = match code {
+        Some(KeyCode::KeyC) => "c",
+        Some(KeyCode::KeyV) => "v",
+        Some(KeyCode::KeyS) => "s",
+        Some(KeyCode::KeyF) => "f",
+        _ => return key.clone(),
+    };
+    match (ascii, key) {
+        (false, Key::Character(_)) => Key::Character(letter.into()),
+        _ => key.clone(),
+    }
+}
+
+/// The key `event` names, through [`latin`].
+pub(crate) fn event_key(event: &winit::event::KeyEvent) -> Key {
+    let code = match event.physical_key {
+        winit::keyboard::PhysicalKey::Code(c) => Some(c),
+        winit::keyboard::PhysicalKey::Unidentified(_) => None,
+    };
+    latin(&event.logical_key, code)
+}
+
 /// [`ctrl_key`] as the chord string `cmd_chord` gives the mail window, which
 /// has no pane to ask: only the paste is one there.
 pub(crate) fn paste_chord(key: &Key, mods: ModifiersState, mac: bool) -> Option<String> {
@@ -49,7 +76,8 @@ pub(crate) fn paste_chord(key: &Key, mods: ModifiersState, mac: bool) -> Option<
 
 impl CrewApp {
     /// Run the Ctrl key a press is, off a Mac. `true` when it was taken, so
-    /// it must not also reach the pane (a terminal's ^C, ^V, ^S).
+    /// it must not also reach the pane (a terminal's ^V, and ^C while text is
+    /// selected; its ^S and ^F are never taken).
     pub(crate) fn ctrl_pane_key(&mut self, key: &Key, mods: ModifiersState) -> bool {
         match ctrl_key(key, mods, cfg!(target_os = "macos")) {
             Some(k) => self.run_ctrl_key(k),
@@ -68,7 +96,9 @@ impl CrewApp {
             // A chat's Ctrl+C clears or interrupts; a stale selection must
             // not take that away.
             (CtrlKey::Copy, Some(PaneContent::Chat(_))) => false,
-            (CtrlKey::Copy, _) => {
+            // With the input bar focused, Ctrl+C is the bar's: a selection
+            // left in the pane behind it must not take the key.
+            (CtrlKey::Copy, _) if in_pane => {
                 let Some(text) = self.pane_selection_text(focused) else {
                     return false;
                 };
