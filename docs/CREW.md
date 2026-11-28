@@ -414,6 +414,7 @@ the command palette write each chord the way that machine presses it.
 | New shell pane in this tab | **Cmd+D** |
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
+| A command failed: open agent smith with its command and output typed in (never sent) — or click the red mark on the pane's left border | **Cmd+;** (Alt+; on Windows and Linux) |
 | Accept the ghost text, or fill the highlighted palette row | **Tab** / **→** (in the input bar) |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder, the files viewed last first | **Cmd+P** |
@@ -931,6 +932,18 @@ The docked command bar supports:
   viewer** — headings, code fences and all. Warp's "ask AI about this error",
   as a two-keystroke prefix. Non-terminal focus or an empty pane gets a
   status hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
+  When the shell reported (OSC 133) that the pane's last command exited
+  non-zero, `??` sends that command's own line, exit status and output span
+  (newest 120 lines / 8 KB, escapes stripped) instead of the screen's tail.
+- **Fix with smith** — **Cmd+;**, or a click on the failed command's red mark on
+  the card's left border, opens (or focuses) agent smith and PREFILLS its
+  composer: `` `cargo test -p crew-app` failed (exit 101) in ~/code/crew. Find
+  the cause and fix it. `` plus the output in a fence (`failctx.rs`). It never
+  sends — a click does not spend tokens. The status line says so once per
+  failure. The command line comes from the process table, so a command that
+  starts and ends between two one-second polls leaves nothing to hand over;
+  a shell with no OSC 133 integration reports no exit status and gets
+  "nothing failed here".
 - **Coloured input** — the bar paints what you type, so it says what it makes
   of it before you press Enter: a leading slash command reads **accent** when it
   resolves, muted while it is still being typed, and in the **alarm colour when

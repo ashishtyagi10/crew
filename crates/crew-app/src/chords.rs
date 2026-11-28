@@ -107,6 +107,8 @@ impl CrewApp {
             // `crew-orchestrator-plugin` binary nothing builds any more — a
             // chord that opened a dead pane, listed nowhere.
             "o" => self.spawn_crew_pane(),
+            // Cmd+;: hand the focused pane's failed command to smith.
+            ";" => self.fix_focused_with_smith(),
             "w" => return self.close_pane(self.focused),
             // Cmd+F: find-in-conversation on a focused chat pane (no-op
             // elsewhere, so the chord stays free for other pane kinds later).

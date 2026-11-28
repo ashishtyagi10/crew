@@ -128,6 +128,11 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
+                // A failed command's mark on the left border opens smith.
+                if self.fix_mark_press() {
+                    self.redraw();
+                    return;
+                }
                 // The strip's `+N` tile reveals the first pane it stands for.
                 if self.overflow_click() {
                     self.redraw();

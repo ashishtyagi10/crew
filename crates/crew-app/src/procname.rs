@@ -4,7 +4,7 @@
 //! frame.
 use std::time::{Duration, Instant};
 
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 /// How often the process table may be refreshed for pane titles.
 const SCAN_EVERY: Duration = Duration::from_millis(1000);
@@ -40,7 +40,9 @@ impl ProcNames {
         self.sys.refresh_processes_specifics(
             ProcessesToUpdate::Some(&pids),
             false,
-            ProcessRefreshKind::nothing(),
+            // The argv too, once per process: `cargo` is a name, `cargo test
+            // -p crew-app` is what a failure report has to say.
+            ProcessRefreshKind::nothing().with_cmd(UpdateKind::OnlyIfNotSet),
         );
     }
 
@@ -51,6 +53,32 @@ impl ProcNames {
             .map(|p| p.name().to_string_lossy().into_owned())
             .filter(|n| !n.is_empty())
     }
+
+    /// [`Self::line`] of the foreground `pid` while a command `running` has it.
+    pub(crate) fn line_if(&self, pid: Option<u32>, running: &Option<String>) -> Option<String> {
+        pid.filter(|_| running.is_some()).and_then(|p| self.line(p))
+    }
+
+    /// The whole command line of `pid` (`cargo test -p crew-app`) from the
+    /// last refresh, if the process table had it.
+    pub(crate) fn line(&self, pid: u32) -> Option<String> {
+        let p = self.sys.process(Pid::from_u32(pid))?;
+        let argv: Vec<String> = p
+            .cmd()
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        command_line(&argv)
+    }
+}
+
+/// `argv` as the line a user would have typed: the program's own name, not
+/// its path, then its arguments. `None` for an empty argv.
+pub(crate) fn command_line(argv: &[String]) -> Option<String> {
+    let (first, rest) = argv.split_first()?;
+    let prog = first.rsplit(['/', '\\']).next().unwrap_or(first);
+    let line = std::iter::once(prog).chain(rest.iter().map(String::as_str));
+    Some(line.collect::<Vec<_>>().join(" ")).filter(|l| !l.trim().is_empty())
 }
 
 #[cfg(test)]

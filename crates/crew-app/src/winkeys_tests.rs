@@ -18,7 +18,7 @@ fn alt(s: &str) -> Option<WinChord> {
 fn alt_is_cmd() {
     for k in [
         "a", "c", "d", "e", "f", "g", "i", "j", "k", "n", "o", "p", "s", "t", "v", "w", "z", ",",
-        ".", "/", "[", "]", "=", "-", "0",
+        ".", ";", "/", "[", "]", "=", "-", "0",
     ] {
         assert_eq!(alt(k), Some(WinChord::Cmd(k)), "Alt+{k}");
     }

@@ -16,8 +16,8 @@ const ASK_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Scrollback context for one `??` explain: newest lines only, byte-capped so
 /// a huge history can't blow the prompt.
-const EXPLAIN_LINES: usize = 120;
-const EXPLAIN_BYTES: usize = 8 * 1024;
+pub(crate) const EXPLAIN_LINES: usize = 120;
+pub(crate) const EXPLAIN_BYTES: usize = 8 * 1024;
 
 /// What the in-flight ask produces: a command for the bar, or a markdown
 /// explanation for the viewer.
@@ -88,17 +88,13 @@ impl CrewApp {
             self.set_status("still asking — one suggestion at a time");
             return;
         }
-        let Some(pane) = self.panes.get_mut(self.focused) else {
-            self.set_status("?? reads a pane — focus a terminal first");
-            return;
+        let context = match self.explain_context(self.focused) {
+            Ok(c) => c,
+            Err(why) => {
+                self.set_status(why);
+                return;
+            }
         };
-        let (cols, rows) = (pane.grid.cols, pane.grid.rows);
-        let crate::pane::PaneContent::Terminal(t) = &mut pane.content else {
-            self.set_status("?? reads a pane — focus a terminal first");
-            return;
-        };
-        let text = crate::dump::capture_scrollback(&mut t.pty, cols, rows);
-        let context = context_tail(&text, EXPLAIN_LINES, EXPLAIN_BYTES);
         if context.trim().is_empty() {
             self.set_status("nothing in this pane to explain yet");
             return;

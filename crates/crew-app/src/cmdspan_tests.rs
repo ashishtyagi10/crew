@@ -206,22 +206,10 @@ fn a_line_is_answered_by_the_command_that_printed_it() {
 #[test]
 fn overlapping_spans_answer_with_the_later_command() {
     let mut s = Spans::default();
-    s.0.push(crate::cmdspan::Span {
-        name: "first".into(),
-        from: 0,
-        to: Some(50),
-        exit: None,
-        at_ms: 0,
-        done_ms: None,
-    });
-    s.0.push(crate::cmdspan::Span {
-        name: "second".into(),
-        from: 40,
-        to: Some(80),
-        exit: None,
-        at_ms: 0,
-        done_ms: None,
-    });
+    s.started("first".into(), 0, 0);
+    s.close_at(50, 0);
+    s.started("second".into(), 40, 0);
+    s.close_at(80, 0);
     assert_eq!(
         s.at_line(45, 100).map(|x| x.name.clone()).as_deref(),
         Some("second")
@@ -256,7 +244,7 @@ fn a_shell_that_reports_an_exit_status_marks_that_block() {
     let span = s.nth_back(0, 60).expect("the block");
     assert_eq!(span.exit, Some(1));
     assert_eq!(span.to, Some(40), "the shell's boundary closed it");
-    assert_eq!(s.failed_rows(60, 60, 0), vec![10]);
+    assert_eq!(failed_rows(&s, 60, 60, 0), vec![10]);
 }
 
 /// A success is not a failure, and neither is a shell that said nothing —
@@ -266,12 +254,12 @@ fn only_a_reported_failure_is_marked() {
     let mut ok = Spans::default();
     ok.started("ls".into(), 0, 0);
     ok.finished(Some(0), 4, 0);
-    assert!(ok.failed_rows(10, 10, 0).is_empty());
+    assert!(failed_rows(&ok, 10, 10, 0).is_empty());
 
     let mut silent = Spans::default();
     silent.started("ls".into(), 0, 0);
     silent.close_at(4, 0);
-    assert!(silent.failed_rows(10, 10, 0).is_empty());
+    assert!(failed_rows(&silent, 10, 10, 0).is_empty());
     assert_eq!(silent.nth_back(0, 10).unwrap().exit, None);
 }
 
@@ -305,7 +293,7 @@ fn a_failure_tick_lands_on_the_same_row_its_start_tick_would() {
     s.finished(Some(2), 120, 0);
     for scroll in 0..40 {
         assert_eq!(
-            s.failed_rows(200, 50, scroll),
+            failed_rows(&s, 200, 50, scroll),
             s.start_rows(200, 50, scroll),
             "at scroll {scroll}"
         );
@@ -329,4 +317,10 @@ fn the_last_exit_is_the_last_commands_and_nothing_elses() {
     s.started("false".into(), 12, 0);
     s.finished(Some(1), 13, 0);
     assert_eq!(s.last_exit(), Some(1));
+}
+
+/// The rows of [`Spans::failed_in_view`], which is what the card draws.
+fn failed_rows(s: &Spans, now: usize, visible: usize, scroll: usize) -> Vec<u16> {
+    let seen = s.failed_in_view(now, visible, scroll);
+    seen.into_iter().map(|(row, _)| row).collect()
 }

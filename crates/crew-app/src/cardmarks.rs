@@ -107,6 +107,13 @@ pub fn notches(cols: u16, rows: u16, b: &Bar, cw: f32, ch: f32) -> Vec<Paint> {
     out
 }
 
+/// Card-row y of content row `r`, in card cells: the one place a mark's
+/// vertical position is computed, so a click ([`crate::failmark`]) can ask
+/// the same question the drawing does.
+pub fn row_y(r: u16, dy: f32) -> f32 {
+    f32::from(r) + 1.0 + dy
+}
+
 /// The marks for `b` on a `rows`-row card whose content row 0 starts `dy`
 /// rows below the card's row 1, in card cells (`0,0` the top-left corner).
 pub fn marks(rows: u16, b: &Bar, dy: f32, cw: f32, ch: f32) -> Vec<Paint> {
@@ -118,7 +125,7 @@ pub fn marks(rows: u16, b: &Bar, dy: f32, cw: f32, ch: f32) -> Vec<Paint> {
     let floor = f32::from(rows.saturating_sub(1));
     let mut out = Vec::new();
     let mut mark = |r: u16, (x, top, w, h): (f32, f32, f32, f32), fg| {
-        let y = f32::from(r) + 1.0 + dy + top;
+        let y = row_y(r, dy) + top;
         let h = h.min(floor - y);
         if r + 2 < rows && h > 0.0 {
             out.push(Paint::solid(x, y, w, h, fg));

@@ -275,6 +275,7 @@ the command palette write each chord the way that machine presses it.
 | Reopen last session's panes (shells, Far, agent smith) | `/restore` |
 | Settings | **Cmd+,** |
 | Open agent smith | **Cmd+O** (same as `/smith`) |
+| A command failed: open agent smith with its command and output typed in (never sent) — or click the red mark on the pane's left border | **Cmd+;** |
 | Toggle the nav | **Cmd+G** |
 | Go to file — `/view`, its picker matching every file under the folder, the files viewed last first | **Cmd+P** |
 | Explorer from the keyboard — ↑/↓ (j/k) move, →/Enter open a folder, Space/→ preview a file and Enter open it to edit, or open "… N more" in Far, ← close or go up, Home/End, type a name's first letters to jump to it (the same letter again: the next one; shown in the rule, gone after a second), Esc gives the keys back (off a Mac, Alt+X) | **Cmd+Shift+E** |
@@ -372,7 +373,10 @@ a direct OpenAI / Gemini / DeepSeek / NVIDIA key — a free
 **`??<question>`** goes the other way: the AI reads the focused terminal's
 recent output and opens its explanation in the zoomed file viewer, rendered
 as markdown — `??why did this fail` after a broken build gets you a
-formatted post-mortem.
+formatted post-mortem. When the shell reported the last command failed (OSC
+133), `??` sends that command's own output rather than the screen's tail, and
+**Cmd+;** (or a click on its red mark) hands the same failure to agent smith,
+typed into its composer for you to edit and send.
 
 Slash commands complete the bar (type `/` for a fuzzy palette): `/smith`
 (alias `/crew`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/doc <file>`,

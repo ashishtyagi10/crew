@@ -312,6 +312,9 @@ mod envlock;
 mod errscan;
 mod events;
 mod exereplace;
+mod failctx;
+mod failhint;
+mod failmark;
 mod faraction;
 mod farpane;
 #[cfg(test)]
@@ -322,6 +325,7 @@ mod fileindex;
 mod findback;
 mod findhl;
 mod findsnip;
+mod fixwithsmith;
 mod focusmode;
 mod foldrows;
 mod fontcmd;
