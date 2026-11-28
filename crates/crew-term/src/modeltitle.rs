@@ -11,16 +11,18 @@
 //!   name is not the title crew shows. Those are aborted (final byte
 //!   replaced by CAN), as xterm leaves the title alone for them.
 //! - Depth. Its stack goes 4096 deep; xterm's holds 10. crew counts its own
-//!   depth, capped at [`CAP`] (a push past it still goes through, the oldest
-//!   is forgotten: the newest titles are the ones a program pops), and aborts
-//!   a pop it holds nothing for, so alacritty's stale bottom entries are
-//!   never reached.
+//!   depth, capped at [`CAP`] (a push past it still goes through, but only
+//!   the newest 10 are reachable: the older entries stay in alacritty's
+//!   stack, never popped, because crew aborts a pop it holds nothing for).
 //! - Leftovers. A program killed after its push never pops, and the shell
 //!   would keep that program's title. [`TermCore::title_unwind`] pops what
-//!   crew holds where the shell has the pane back, which leaves the
-//!   BOTTOM-MOST title, the one saved before the program started (clearing
-//!   the stack alone would leave the dead program's title showing). The
-//!   shell's own `OSC 0`, set after that, replaces it as usual.
+//!   crew holds at the OSC 133 `D` mark (`modelprompt::feed_split`), IN the
+//!   stream: the shell's precmd title (`OSC 0`) is written after `D`, so the
+//!   restored title is only a fallback it replaces. Unwinding later (at the
+//!   `A` mark, or on the foreground poll) would pop a stale title over the
+//!   fresh one, so a shell without OSC 133 gets no unwind: crew cannot tell
+//!   where its precmd title landed, and a stale title beats a clobbered one.
+//!   The pops end on the BOTTOM-MOST title, the one saved before the program.
 //!
 //! A pane the user named keeps that name: the name is read before the
 //! program's title (`Pane::title_text`) and nothing here touches it.
@@ -50,11 +52,12 @@ impl TermCore {
     }
 
     /// Pop every title a dead program pushed, ending on the first one saved.
+    /// Fed through `feed_part` (not `feed`): it is already inside a cut.
     /// Returns whether there was any.
     pub(crate) fn title_unwind(&mut self) -> bool {
         let n = usize::from(self.wipes.title_depth);
         if n > 0 {
-            self.feed(&b"\x1b[23;0t".repeat(n));
+            self.feed_part(&b"\x1b[23;0t".repeat(n));
         }
         n > 0
     }

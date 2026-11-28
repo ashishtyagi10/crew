@@ -80,13 +80,14 @@ fn ris_forgets_the_stack() {
     set(&mut c, "after");
     c.feed(b"\x1b[23;0t");
     assert_eq!(c.title(), "after");
-    // crew's own count went too: nothing left for a dead program to unwind.
+    // alacritty empties its own stack too, so the title above proves nothing
+    // about crew's count: THIS does (nothing left for a dead program to unwind).
     c.feed(b"\x1b[22;0t\x1bc");
     assert!(!c.title_unwind());
 }
 
 #[test]
-fn the_stack_holds_ten_and_forgets_the_oldest() {
+fn the_stack_reaches_the_newest_ten() {
     let mut c = core();
     for i in 1..=12 {
         set(&mut c, &format!("t{i}"));
@@ -96,7 +97,7 @@ fn the_stack_holds_ten_and_forgets_the_oldest() {
     for _ in 0..10 {
         c.feed(b"\x1b[23;0t");
     }
-    assert_eq!(c.title(), "t3", "t1 and t2 fell off the bottom");
+    assert_eq!(c.title(), "t3", "t1 and t2 are out of reach");
     c.feed(b"\x1b[23;0t");
     assert_eq!(c.title(), "t3", "an eleventh pop has nothing");
 }
@@ -140,4 +141,44 @@ fn an_unwind_with_nothing_pushed_leaves_the_title() {
     set(&mut c, "shell");
     assert!(!c.title_unwind());
     assert_eq!(c.title(), "shell");
+}
+
+/// A shell's precmd sets its title BEFORE the `A` mark but after `D`: the
+/// unwind must happen at `D`, or it pops a stale title over the fresh one.
+#[test]
+fn the_shells_fresh_title_survives_the_unwind() {
+    let mut c = core();
+    set(&mut c, "shell");
+    c.feed(b"\x1b[22;0t");
+    set(&mut c, "vim foo");
+    // vim is killed: no pop. The shell reports done, precmd titles, prompts.
+    c.feed(b"\x1b]133;D;137\x07\x1b]0;shell2\x07\x1b]133;A\x07$ ");
+    assert_eq!(c.title(), "shell2");
+    assert!(!c.title_unwind(), "the D mark already unwound it");
+}
+
+/// The same, with the whole sequence arriving a byte at a time.
+#[test]
+fn the_unwind_at_done_holds_when_split_across_reads() {
+    let mut c = core();
+    set(&mut c, "shell");
+    c.feed(b"\x1b[22;0t");
+    set(&mut c, "vim foo");
+    for &b in b"\x1b]133;D;1\x07\x1b]0;shell2\x07\x1b]133;A\x07" {
+        c.feed(&[b]);
+    }
+    assert_eq!(c.title(), "shell2");
+    assert!(!c.title_unwind(), "unwound at D, split or not");
+}
+
+/// Without OSC 133 there is no safe moment (the shell's own title may
+/// already be there), so nothing is unwound and nothing is clobbered.
+#[test]
+fn a_shell_without_marks_keeps_its_title() {
+    let mut c = core();
+    set(&mut c, "shell");
+    c.feed(b"\x1b[22;0t");
+    set(&mut c, "vim foo");
+    set(&mut c, "shell2");
+    assert_eq!(c.title(), "shell2");
 }

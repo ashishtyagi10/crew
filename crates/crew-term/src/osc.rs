@@ -143,6 +143,9 @@ pub(crate) struct OscScanner {
     /// WHERE in a chunk each prompt began (the queue is capped, so its
     /// length can't).
     prompts: u64,
+    /// Finished-command (`D`) marks ever seen, compared the same way (the
+    /// title unwind cuts there, `modeltitle`).
+    dones: u64,
     /// Command (`C`, `D`) marks ever seen: whether a command ran since a
     /// prompt (`modelkitty`).
     commands: u64,
@@ -150,6 +153,15 @@ pub(crate) struct OscScanner {
     cwd: Option<PathBuf>,
     /// Set when `cwd` changed since the last `take`.
     dirty: bool,
+}
+
+/// Which mark ended at a cut offset.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Cut {
+    /// `A`: the prompt is about to be drawn.
+    Prompt,
+    /// `D`: the command finished, before the shell's precmd runs.
+    Done,
 }
 
 impl OscScanner {
@@ -174,16 +186,19 @@ impl OscScanner {
     }
 
     /// Scan a chunk of raw PTY output, updating the cwd when a complete OSC 7
-    /// report is seen. Returns the offset just past each prompt (`A`) mark
-    /// that ended in this chunk, so the caller can act at that exact byte
-    /// (`modelprompt`: a prompt drawn on a dead program's alternate screen).
-    pub(crate) fn feed(&mut self, bytes: &[u8]) -> Vec<usize> {
+    /// report is seen. Returns the offset just past each prompt (`A`) and
+    /// finished-command (`D`) mark that ended in this chunk, so the caller
+    /// can act at that exact byte (`modelprompt`: a prompt drawn on a dead
+    /// program's alternate screen; a dead program's pushed titles).
+    pub(crate) fn feed(&mut self, bytes: &[u8]) -> Vec<(usize, Cut)> {
         let mut ends = Vec::new();
         for (i, &b) in bytes.iter().enumerate() {
-            let seen = self.prompts;
+            let (prompts, dones) = (self.prompts, self.dones);
             self.step(b);
-            if self.prompts != seen {
-                ends.push(i + 1);
+            if self.prompts != prompts {
+                ends.push((i + 1, Cut::Prompt));
+            } else if self.dones != dones {
+                ends.push((i + 1, Cut::Done));
             }
         }
         ends
@@ -277,6 +292,7 @@ impl OscScanner {
         };
         if let Some(mark) = ShellMark::parse(rest) {
             self.prompts += u64::from(mark == ShellMark::Prompt);
+            self.dones += u64::from(matches!(mark, ShellMark::Done(_)));
             self.commands += u64::from(matches!(mark, ShellMark::OutputStart | ShellMark::Done(_)));
             self.marks.push(mark);
             // A shell replaying a long scrollback can emit hundreds of these
