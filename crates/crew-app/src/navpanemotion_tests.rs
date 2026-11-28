@@ -56,7 +56,8 @@ fn off_is_the_still_frame() {
         Fx {
             on: false,
             state_at: None,
-            words_at: None
+            words_at: None,
+            born_at: None,
         }
     );
 }
@@ -80,6 +81,7 @@ fn a_card_with_a_fresh_flash_draws_a_brighter_spine() {
         on: true,
         state_at: Some(now),
         words_at: None,
+        born_at: None,
     };
     assert_eq!(spine_fg(&still, base, false, now), base);
     assert_ne!(spine_fg(&lit, base, false, now), base);
@@ -90,6 +92,7 @@ fn a_card_with_a_fresh_flash_draws_a_brighter_spine() {
         on: true,
         state_at: None,
         words_at: Some(now),
+        born_at: None,
     };
     assert_ne!(words_fg(&said, base, now), base);
 }

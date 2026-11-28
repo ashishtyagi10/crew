@@ -104,3 +104,44 @@ fn panecard_shot() {
     let id = ThemeId::TokyoNight;
     crate::crtglassshot_tests::window_sized("panecards-short", id, 1.0, &[], &prep, short);
 }
+
+/// The window with a sixth pane born after the cards were seen, shot
+/// `wait_ms` into its entrance (the shared harness ages every pane, so this
+/// builds its own frames: seed, spawn, first sight, wait, draw).
+fn entering(name: &str, wait_ms: u64) {
+    let id = ThemeId::TokyoNight;
+    crew_theme::set_theme(id);
+    crate::palette::set_accent(crew_theme::theme().accent_default);
+    let (w, h) = (1280, 720);
+    let px = crate::shotdraw_tests::draw_with(w, h, 13.0, false, 1.0, |cw, ch| {
+        let mut app = crate::app::CrewApp {
+            geo_override: Some((cw, ch, w as f32, h as f32, 1.0)),
+            ..Default::default()
+        };
+        app.input.focused = false;
+        prep(&mut app);
+        for p in &mut app.panes {
+            p.born_ms = 0;
+            p.zoom = Some(false);
+        }
+        crate::motion::set_level(crate::motion::MotionLevel::Full);
+        app.build_frame();
+        app.spawn_new_pane();
+        app.reconcile_grid();
+        app.build_frame();
+        std::thread::sleep(std::time::Duration::from_millis(wait_ms));
+        app.build_frame()
+    });
+    crate::motion::set_level(crate::motion::MotionLevel::Off);
+    if let Some(px) = px {
+        crate::shotdraw_tests::write_png(name, &px, w, h);
+    }
+}
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn panecard_enter_shot() {
+    let _g = crate::app::theme_test_guard();
+    entering("panecards-enter-mid", 60);
+    entering("panecards-enter-end", 400);
+}
