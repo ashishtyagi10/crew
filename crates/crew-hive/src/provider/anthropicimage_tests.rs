@@ -108,18 +108,18 @@ fn a_new_image_changes_only_the_newest_turn() {
 }
 
 #[test]
-fn anthropic_wire_carries_exactly_twenty_with_notes_in_place() {
+fn anthropic_wire_carries_the_capped_set_with_notes_in_place() {
     let m = build_messages(&crate::provider::imagecap::tests::request(
         "claude-sonnet-5-5",
         4,
     ));
     let v = serde_json::Value::Array(m.clone());
-    assert_eq!(crate::provider::imagecap::tests::count(&v, "image"), 20);
+    assert_eq!(crate::provider::imagecap::tests::count(&v, "image"), 19);
     let text = v.to_string();
     for i in 0..5 {
         assert!(text.contains(&crate::provider::imagecap::tests::note(&format!("r0_{i}"))));
     }
-    assert!(!text.contains("image dropped: r1_0"));
+    assert!(!text.contains("image dropped: r1_1"));
     // the note sits in round 0's tool_result, where its pictures were
     assert!(m[2]["content"][0]["content"].to_string().contains("r0_0"));
 }

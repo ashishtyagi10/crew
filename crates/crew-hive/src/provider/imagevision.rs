@@ -6,6 +6,9 @@
 //! live call behind it. It errs toward omitting: a vision model missing here
 //! gets the `[image omitted: ...]` note (the user can see what happened), where
 //! a text model wrongly listed would fail the whole request with a 400.
+//!
+//! Left text-only on purpose: whether qwen3.8 reads images is unconfirmed, and
+//! text-only is the safe default until a live call shows otherwise.
 
 /// Fragments of the ids of models that read images (lower case). Claude 4.x/5.x,
 /// GPT-4o and later, Gemini, and the `-vl` / vision lines of the open families.

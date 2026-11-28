@@ -24,14 +24,32 @@ const EXTENSIONS: [&str; 5] = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
 /// turns and memory name paths of their own, and a picture the user did not
 /// mention this time must not ride along. The path text stays in the message;
 /// this only adds the picture beside it.
+///
+/// Only files inside `cwd` or the system temp dir (where a paste is saved) are
+/// attached, after symlinks are resolved. The ask can carry text the user did
+/// not write (a pasted email, a web page in an inbox or smith flow), and a
+/// path injected there must not upload a private file; the model is told why
+/// a picture was left out so the user can paste it or copy it in.
 pub fn from_task(ask: &str, cwd: &Path) -> Attached {
+    from_task_in(ask, cwd, &std::env::temp_dir())
+}
+
+/// [`from_task`] with the temp dir given, so a test can tell it from the workspace.
+fn from_task_in(ask: &str, cwd: &Path, tmp: &Path) -> Attached {
+    // Canonical roots: on macOS the temp dir is `/var/...`, really `/private/var/...`.
+    let roots: Vec<PathBuf> = [cwd, tmp]
+        .iter()
+        .filter_map(|r| r.canonicalize().ok())
+        .collect();
     let mut out = Attached::default();
     let mut seen: Vec<PathBuf> = Vec::new();
     // `\ ` is a space inside a path (a dragged-in file); hold it through the split.
     let held = ask.replace("\\ ", "\u{0}");
     for word in held.split_whitespace() {
+        // A leading `.` is kept: `./a.png` and `../a.png` are relative paths.
         let word = word
-            .trim_matches(|c: char| "\"'`()<>[]{},;:!?.".contains(c))
+            .trim_start_matches(|c: char| "\"'`()<>[]{},;:!?".contains(c))
+            .trim_end_matches(|c: char| "\"'`()<>[]{},;:!?.".contains(c))
             .replace('\u{0}', " ");
         let lower = word.to_ascii_lowercase();
         if !EXTENSIONS.iter().any(|e| lower.ends_with(e)) {
@@ -52,6 +70,12 @@ pub fn from_task(ask: &str, cwd: &Path) -> Attached {
         let name = real
             .file_name()
             .map_or_else(String::new, |n| n.to_string_lossy().into());
+        if !roots.iter().any(|r| real.starts_with(r)) {
+            out.notes.push(format!(
+                "[image not attached: {name} is outside the project \u{2014} paste it, or copy it into the project]"
+            ));
+            continue;
+        }
         if out.images.len() >= MAX_IMAGES {
             out.notes
                 .push(omitted(&name, "only the first 5 images are attached"));

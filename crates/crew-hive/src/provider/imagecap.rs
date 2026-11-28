@@ -32,42 +32,99 @@ fn add_note(text: &mut String, note: &str) {
     text.push_str(note);
 }
 
-/// `req` itself when it holds [`MAX_IN_REQUEST`] pictures or fewer (so such a
-/// request is byte-identical to before), else a copy with the OLDEST pictures
-/// (tool results first, in turn order, then the opening ones) replaced by a
-/// text note in the text they rode with. The oldest go so a stable history
-/// yields a stable request: earlier turns are resent unchanged until the set
-/// overflows, which keeps the prompt cache warm, and each later overflow
-/// drops the next-oldest deterministically.
+/// The most base64 text the pictures of one request may add up to.
+///
+/// WHY 20 MB: sources disagree on the request ceiling. Anthropic's vision
+/// page says 128 MB of request on the first-party API, but its PDF docs say
+/// 32 MB, and Bedrock and OpenAI-style gateways sit lower still. 20 MB stays
+/// under the 32 MB figure with room for the text and the tools, and 20
+/// pictures of a typical screenshot fit well inside it.
+pub const MAX_BYTES: usize = 20 * 1024 * 1024;
+
+/// Where a drop stops: [`KEEP_IN_REQUEST`] pictures and [`KEEP_BYTES`] bytes.
+/// Dropping only to the limit would drop one more old picture on every new
+/// one, rewriting an early turn each round and breaking the prompt cache each
+/// round. Dropping to 15 / 15 MB leaves room, so the request is stable for
+/// several rounds before the next drop.
+const KEEP_IN_REQUEST: usize = 15;
+const KEEP_BYTES: usize = 15 * 1024 * 1024;
+
+/// What the pictures of a history come to: which tool-result pictures (in
+/// turn order) are dropped, and how many opening pictures (oldest first).
+///
+/// Replays the history picture by picture, as the task grew: each time the
+/// running set crosses a limit it drops oldest first down to the KEEP marks.
+/// A function of the history alone (nothing remembered between calls), and a
+/// later picture never changes an earlier decision, so earlier turns are
+/// resent unchanged until the limit is crossed again. Opening pictures are
+/// counted from the start but dropped only when no tool picture is left.
+fn plan(tools: &[usize], opening: &[usize]) -> (Vec<bool>, usize) {
+    let mut gone = vec![false; tools.len()];
+    let (mut n, mut b) = (opening.len(), opening.iter().sum::<usize>());
+    let over = |n: usize, b: usize| n > MAX_IN_REQUEST || b > MAX_BYTES;
+    let mut oldest = 0;
+    for i in 0..tools.len() {
+        n += 1;
+        b += tools[i];
+        if over(n, b) {
+            while oldest <= i && (n > KEEP_IN_REQUEST || b > KEEP_BYTES) {
+                n -= 1;
+                b -= tools[oldest];
+                gone[oldest] = true;
+                oldest += 1;
+            }
+        }
+    }
+    let mut first = 0;
+    if over(n, b) {
+        while first < opening.len() && (n > KEEP_IN_REQUEST || b > KEEP_BYTES) {
+            n -= 1;
+            b -= opening[first];
+            first += 1;
+        }
+    }
+    (gone, first)
+}
+
+/// `req` itself when its pictures fit [`MAX_IN_REQUEST`] and [`MAX_BYTES`]
+/// (so such a request is byte-identical to before), else a copy with the
+/// OLDEST pictures (tool results first, in turn order, then the opening ones)
+/// replaced by a text note in the text they rode with; see [`plan`] for how
+/// far the drop goes and why it stays stable from round to round.
 pub fn capped(req: &CompletionRequest) -> Cow<'_, CompletionRequest> {
-    let in_turns: usize = req
+    let tools: Vec<usize> = req
         .turns
         .iter()
-        .map(|t| match t {
-            Turn::ToolResults(rs) => rs.iter().map(|r| r.images.len()).sum(),
-            _ => 0,
+        .flat_map(|t| match t {
+            Turn::ToolResults(rs) => rs.iter().flat_map(|r| &r.images).collect(),
+            _ => Vec::new(),
         })
-        .sum();
-    let total = in_turns + req.images.len();
-    if total <= MAX_IN_REQUEST {
+        .map(|i| i.data().len())
+        .collect();
+    let opening: Vec<usize> = req.images.iter().map(|i| i.data().len()).collect();
+    let (gone, first) = plan(&tools, &opening);
+    if first == 0 && !gone.contains(&true) {
         return Cow::Borrowed(req);
     }
     let mut out = req.clone();
-    let mut over = total - MAX_IN_REQUEST;
+    let mut at = 0;
     for turn in &mut out.turns {
         let Turn::ToolResults(rs) = turn else {
             continue;
         };
         for r in rs {
-            let n = over.min(r.images.len());
-            for img in r.images.drain(..n) {
-                add_note(&mut r.content, &dropped(&img.name));
+            let mut keep = Vec::new();
+            for img in std::mem::take(&mut r.images) {
+                match gone[at] {
+                    true => add_note(&mut r.content, &dropped(&img.name)),
+                    false => keep.push(img),
+                }
+                at += 1;
             }
-            over -= n;
+            r.images = keep;
         }
     }
-    let n = over.min(out.images.len());
-    for img in out.images.drain(..n) {
+    for img in out.images.drain(..first) {
         add_note(&mut out.prompt, &dropped(&img.name));
     }
     Cow::Owned(out)

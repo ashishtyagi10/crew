@@ -63,3 +63,23 @@ fn the_data_url_is_the_openai_spelling() {
     assert!(img.data_url().starts_with("data:image/png;base64,"));
     assert!(img.data_url().ends_with(img.data()));
 }
+
+#[test]
+fn a_picture_over_8000_px_a_side_is_a_note_not_an_image() {
+    assert!(Image::from_bytes("ok.png", &fake_png(8000, 8000)).is_ok());
+    for (w, h) in [(8001, 10), (10, 8001)] {
+        let e = Image::from_bytes("wide.png", &fake_png(w, h)).unwrap_err();
+        assert_eq!(
+            e,
+            format!("[image omitted: wide.png is {w}x{h}; the limit is 8000 px a side]")
+        );
+    }
+}
+
+#[test]
+fn unknown_dimensions_are_sent_as_before() {
+    // a WebP with no VP8X header has no cheap size
+    let mut b = b"RIFF\0\0\0\0WEBPVP8 ".to_vec();
+    b.resize(64, 0);
+    assert!(dimensions(&b).is_none() && Image::from_bytes("a.webp", &b).is_ok());
+}

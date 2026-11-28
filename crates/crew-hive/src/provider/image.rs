@@ -18,6 +18,11 @@ pub const MAX_IMAGES: usize = 5;
 /// base64-encoded.) See `imagecap` for the per-request limits.
 pub const MAX_WIRE: usize = 5 * 1024 * 1024;
 
+/// The most pixels a side may have. Providers answer 400 to an image past
+/// 8000 px, and since every turn is resent each round, one such picture would
+/// fail the whole task for good rather than once.
+pub const MAX_SIDE: u32 = 8000;
+
 /// One image: its bytes already base64, because every request resends it and
 /// encoding once per turn (not once per round) keeps earlier turns
 /// byte-identical, which the prompt cache keys on. `Arc` so the clones a
@@ -53,6 +58,12 @@ impl Image {
             sniff(bytes).ok_or_else(|| omitted(name, "not a PNG, JPEG, GIF or WebP file"))?;
         if wire_len(bytes.len()) > MAX_WIRE {
             return Err(too_big(name, bytes.len()));
+        }
+        // Unknown dimensions (format not parsed) are sent as before.
+        if let Some((w, h)) = dimensions(bytes).filter(|&(w, h)| w.max(h) > MAX_SIDE) {
+            return Err(format!(
+                "[image omitted: {name} is {w}x{h}; the limit is {MAX_SIDE} px a side]"
+            ));
         }
         use base64::Engine;
         let data = base64::engine::general_purpose::STANDARD.encode(bytes);

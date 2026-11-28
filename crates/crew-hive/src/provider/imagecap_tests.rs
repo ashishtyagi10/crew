@@ -1,5 +1,5 @@
 //! The 20-picture cap on the request; the wires' own tests sit with them.
-use super::{capped, MAX_IN_REQUEST};
+use super::{capped, plan, KEEP_IN_REQUEST, MAX_BYTES};
 use crate::provider::image::fake_png;
 use crate::provider::{CompletionRequest, Image, ToolInvocation, ToolOutcome, Turn};
 use serde_json::{json, Value};
@@ -102,13 +102,17 @@ fn opening_pictures_go_only_after_every_tool_picture() {
     let Turn::ToolResults(r1) = &c.turns[3] else {
         panic!()
     };
-    assert_eq!(r1[0].images.len(), 2, "round 1 loses its first 3");
+    assert!(r1[0].images.is_empty(), "round 1 is gone too");
+    let Turn::ToolResults(r2) = &c.turns[5] else {
+        panic!()
+    };
+    assert_eq!(r2[0].images.len(), 3, "round 2 loses its first 2");
     let mut req = request("claude-sonnet-5-5", 0);
     req.images = (0..22).map(|i| pic(&format!("o{i}"))).collect();
     let c = capped(&req);
-    assert_eq!(c.images.len(), MAX_IN_REQUEST);
-    assert_eq!(c.images[0].name, "o2");
-    assert!(c.prompt.starts_with("look\n\n") && c.prompt.contains(&note("o1")));
+    assert_eq!(c.images.len(), KEEP_IN_REQUEST, "drops to 15, not 20");
+    assert_eq!(c.images[0].name, "o7");
+    assert!(c.prompt.starts_with("look\n\n") && c.prompt.contains(&note("o6")));
 }
 
 #[test]
@@ -118,4 +122,71 @@ fn a_stable_history_gives_a_stable_request() {
         format!("{:?}", capped(&req)),
         format!("{:?}", capped(&req.clone()))
     );
+}
+
+/// `n` more rounds of one picture each, `x<i>`.
+fn grow(mut req: CompletionRequest, n: usize) -> CompletionRequest {
+    let base = req.turns.len();
+    for i in 0..n {
+        req.turns.push(Turn::ToolResults(vec![ToolOutcome {
+            id: format!("x{i}"),
+            name: "sys__read_file".into(),
+            content: format!("extra {}", base + i),
+            is_error: false,
+            images: vec![pic(&format!("x{}", base + i))],
+        }]));
+    }
+    req
+}
+
+fn turns(r: &CompletionRequest) -> Vec<String> {
+    r.turns.iter().map(|t| format!("{t:?}")).collect()
+}
+
+#[test]
+fn one_more_picture_after_a_drop_rewrites_no_earlier_turn() {
+    let a = grow(request("claude-sonnet-5-5", 4), 0); // 25: dropped to 15 + the 4 rounds after
+    let (ca, cb) = (
+        capped(&a).into_owned(),
+        capped(&grow(a.clone(), 1)).into_owned(),
+    );
+    assert_eq!(
+        turns(&ca),
+        turns(&cb)[..turns(&ca).len()],
+        "no early turn moved"
+    );
+    assert_eq!(cb.images.len(), 5);
+    // the limit crossed again: now the oldest kept ones go
+    let cc = capped(&grow(a.clone(), 3)).into_owned();
+    assert_ne!(turns(&ca), turns(&cc)[..turns(&ca).len()]);
+}
+
+fn big(name: &str) -> Image {
+    // 1.5 MB of bytes is exactly 2 MB of base64
+    let mut b = fake_png(4, 4);
+    b.resize(1536 * 1024, 0);
+    Image::from_bytes(name, &b).unwrap()
+}
+
+#[test]
+fn the_byte_budget_drops_oldest_first_down_to_15_mb() {
+    let mut req = request("claude-sonnet-5-5", 0);
+    req.images = (0..11).map(|i| big(&format!("b{i}"))).collect(); // 22 MB, 11 pictures
+    let c = capped(&req);
+    assert_eq!(c.images.len(), 7, "7 x 2 MB = 14 MB is the most under 15");
+    assert_eq!(c.images[0].name, "b4");
+    assert!(c.prompt.contains(&note("b3")) && !c.prompt.contains("b4 "));
+    req.images.truncate(10); // exactly 20 MB: not over
+    assert!(matches!(capped(&req), std::borrow::Cow::Borrowed(_)));
+}
+
+#[test]
+fn plan_counts_bytes_and_pictures_both() {
+    let mb = 1024 * 1024;
+    // 9 tool pictures of 2 MB + 1 opening of 2 MB = 20 MB: fits
+    assert_eq!(plan(&[2 * mb; 9], &[2 * mb]), (vec![false; 9], 0));
+    // one more byte-heavy one crosses: oldest tools go to 15 MB (7 left)
+    let (gone, first) = plan(&[2 * mb; 10], &[2 * mb]);
+    assert_eq!((gone.iter().filter(|g| **g).count(), first), (4, 0));
+    assert!(MAX_BYTES > 15 * mb);
 }
