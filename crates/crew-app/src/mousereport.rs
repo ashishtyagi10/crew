@@ -70,6 +70,30 @@ pub(crate) fn report(code: u8, cell: (u16, u16), sgr: bool, press: bool) -> Vec<
     vec![0x1b, b'[', b'M', enc(btn.into()), enc(x), enc(y)]
 }
 
+/// One press, release or motion report under SGR-Pixels (DECSET 1016): the
+/// 1006 form, but `px` is the 1-based pixel position in the text area. It
+/// wins over every other encoding when the program set it, so a program
+/// that asked for pixels never gets cells under a name it reads as pixels.
+pub(crate) fn report_px(code: u8, px: (u32, u32), press: bool) -> Vec<u8> {
+    let end = if press { 'M' } else { 'm' };
+    format!("\x1b[<{code};{};{}{end}", px.0, px.1).into_bytes()
+}
+
+/// [`report`] or [`report_px`] by the program's modes: pixels when it set
+/// 1016 (and `px` is known), else cells in 1006 or X10 form.
+pub(crate) fn report_for(
+    m: &InputModes,
+    code: u8,
+    cell: (u16, u16),
+    px: Option<(u32, u32)>,
+    press: bool,
+) -> Vec<u8> {
+    match px {
+        Some(px) if m.pixel_mouse => report_px(code, px, press),
+        _ => report(code, cell, m.sgr_mouse, press),
+    }
+}
+
 #[cfg(test)]
 #[path = "mousereport_tests.rs"]
 mod tests;

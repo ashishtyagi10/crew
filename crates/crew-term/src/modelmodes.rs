@@ -14,6 +14,7 @@ impl TermCore {
             mouse_drag: m.contains(TermMode::MOUSE_DRAG),
             mouse_motion: m.contains(TermMode::MOUSE_MOTION),
             sgr_mouse: m.contains(TermMode::SGR_MOUSE),
+            pixel_mouse: self.pixel.on(),
             app_cursor: m.contains(TermMode::APP_CURSOR),
             alternate_scroll: m.contains(TermMode::ALTERNATE_SCROLL),
             focus_events: m.contains(TermMode::FOCUS_IN_OUT),

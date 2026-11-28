@@ -77,6 +77,8 @@ pub(crate) struct TermCore {
     osc7: crate::osc::OscScanner,
     /// Sniffs DECSET 2031 (color-scheme notifications), invisible to the parser.
     scheme: crate::schemenotify::SchemeNotify,
+    /// Sniffs DECSET 1016 (SGR-Pixels mouse), likewise invisible to the parser.
+    pub(crate) pixel: crate::pixelmouse::PixelMouse,
     /// Sniffs OSC 22 (the pointer shape a program asks for), invisible to the parser.
     pointer: crate::pointershape::PointerShape,
     /// DECRQSS, answered from the state at the request (`modelrqss`).
@@ -147,6 +149,7 @@ impl TermCore {
             events,
             osc7: crate::osc::OscScanner::default(),
             scheme: crate::schemenotify::SchemeNotify::default(),
+            pixel: Default::default(),
             pointer: Default::default(),
             rqss: Default::default(),
             sel_anchor: None,
@@ -202,6 +205,7 @@ impl TermCore {
             .mode()
             .contains(alacritty_terminal::term::TermMode::ALT_SCREEN);
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
+        replies.push_str(&self.pixel.feed(bytes));
         replies.push_str(&self.query_replies(bytes));
         if !replies.is_empty() {
             self.events.replies.lock().unwrap().push_str(&replies);
@@ -223,6 +227,11 @@ impl TermCore {
         if was_alt && !self.input_modes().alt_screen {
             self.pointer.clear();
         }
+    }
+
+    /// The cell size in pixels last published by [`Self::set_cell_px`].
+    pub(crate) fn cell_px(&self) -> (u32, u32) {
+        self.cell_px
     }
 
     /// Publish the frame's cell size (pictures' rows, size reports).

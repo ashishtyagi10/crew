@@ -89,3 +89,43 @@ fn moves_carry_the_motion_bit_only_where_asked() {
     // The held press's own Ctrl bit is replaced by the modifiers held now.
     assert_eq!(motion_code(&drag, Some(16), 0), Some(32));
 }
+
+#[test]
+fn sgr_pixels_press_and_release_carry_the_pixel_as_given() {
+    assert_eq!(report_px(0, (37, 43), true), b"\x1b[<0;37;43M");
+    assert_eq!(report_px(2, (1, 1), false), b"\x1b[<2;1;1m");
+    assert_eq!(report_px(32, (640, 480), true), b"\x1b[<32;640;480M");
+}
+
+#[test]
+fn pixels_win_over_sgr_and_x10_when_set_and_known() {
+    let cell = (4, 2);
+    let px = Some((37, 43));
+    for sgr in [false, true] {
+        let on = InputModes {
+            mouse: true,
+            pixel_mouse: true,
+            sgr_mouse: sgr,
+            ..InputModes::default()
+        };
+        assert_eq!(report_for(&on, 0, cell, px, true), b"\x1b[<0;37;43M");
+        // No pixel known (not over a terminal): fall back to the cell form.
+        assert_eq!(
+            report_for(&on, 0, cell, None, true),
+            report(0, cell, sgr, true)
+        );
+    }
+    let off = InputModes {
+        mouse: true,
+        sgr_mouse: true,
+        ..InputModes::default()
+    };
+    assert_eq!(report_for(&off, 0, cell, px, true), b"\x1b[<0;5;3M");
+}
+
+#[test]
+fn the_parser_sets_pixel_mouse_alongside_the_mouse_modes() {
+    let m = modes_after(b"\x1b[?1000h\x1b[?1016h");
+    assert!(m.mouse && m.pixel_mouse && !m.sgr_mouse);
+    assert!(!modes_after(b"\x1b[?1016h\x1b[?1016l").pixel_mouse);
+}

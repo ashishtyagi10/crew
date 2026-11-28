@@ -511,6 +511,7 @@ mod modelroute;
 mod modelsignin;
 mod modernring;
 mod motion;
+mod mousepixel;
 mod mousereport;
 mod mouseroute;
 mod navbar;
@@ -787,6 +788,7 @@ mod toosmall;
 #[cfg(test)]
 #[path = "transientshot_tests.rs"]
 mod transientshot_tests;
+mod wheelfwd;
 
 mod inbox;
 mod inkframe;

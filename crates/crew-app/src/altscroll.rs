@@ -28,6 +28,17 @@ pub fn wheel_bytes(m: &InputModes, lines: i32, cell: (u16, u16), mods: u8) -> Op
     }
 }
 
+/// [`wheel_bytes`] for a program that set SGR-Pixels (1016) with a mouse
+/// mode on: the same `n` wheel ticks, at the 1-based pixel position `px`.
+pub fn wheel_bytes_px(lines: i32, px: (u32, u32), mods: u8) -> Option<Vec<u8>> {
+    if lines == 0 {
+        return None;
+    }
+    let btn = u32::from(if lines > 0 { 64 } else { 65 } | mods);
+    let tick = format!("\x1b[<{btn};{};{}M", px.0, px.1).into_bytes();
+    Some(repeat(&tick, lines.unsigned_abs().min(MAX_TICKS) as usize))
+}
+
 /// Bytes for a page scroll (Shift+PageUp/Down) — a real PageUp/PageDown key, but
 /// only inside the alternate screen; otherwise `None` so Crew pages scrollback.
 pub fn page_bytes(m: &InputModes, up: bool) -> Option<Vec<u8>> {

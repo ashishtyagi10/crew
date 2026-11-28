@@ -4,7 +4,7 @@ use winit::event::MouseButton;
 use winit::keyboard::ModifiersState;
 
 #[path = "mouserig_tests.rs"]
-mod rig;
+pub(crate) mod rig;
 use rig::*;
 
 #[test]
