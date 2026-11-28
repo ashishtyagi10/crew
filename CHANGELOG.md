@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.30.31
+
+**Prompt hooks, moving pane cards and a steadier caret.**
+
+Hooks:
+- A new `prompt` hook in `hooks.json` (like Claude Code's UserPromptSubmit) runs once when your task arrives, before any model is called. Exit 2 or a block decision refuses the task with one line, `blocked by hook: <reason>`; any other output is added to what the model is given that turn.
+- Words you type into a task that is already running pass the same hook, so a guard can no longer be skipped by typing mid-task.
+- A task refused at once no longer leaves its pane looking busy forever.
+
+Agents:
+- When an agent is down to its last tool rounds, it is told how many are left, so it wraps up its work instead of being cut off. A small budget hears this once, just before its last round.
+
+Nav:
+- Cards in the PANES section now move: a pane's spine and state word flash briefly when its state changes, new words on the second line fade in, and a working pane's spine gently breathes. With motion off they stay still.
+- The Dash card's ticking cpu and memory readings no longer flicker as if they were news, and switching back to PANES no longer flashes every card that changed while you were elsewhere.
+
+Inbox:
+- The reply box now takes two fifths of the space from the first key instead of growing as you type; the mail keeps the rest.
+- When a mail or a reply is longer than its card, an accent scroll thumb shows on the card's right edge.
+
+Viewer:
+- The caret no longer vanishes while you type at the end of a line, including past a full-width row.
+
+Terminal:
+- Panes support in-band resize reports, so apps such as neovim learn their new size straight away and redraw without waiting for the resize signal.
+
 ## 0.30.30
 
 **An Add button in the Explorer opens more folders beside yours.**
