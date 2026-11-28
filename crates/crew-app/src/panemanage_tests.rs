@@ -190,8 +190,14 @@ fn minimizing_says_how_to_restore_in_words_the_rail_can_keep() {
     app.panes.push(far_pane("b"));
     app.minimize_pane(1);
     let s = app.status.as_ref().map(|s| s.0.clone()).unwrap_or_default();
+    // Alt is crew's key off a Mac (`winkeys`), and the status says so.
+    let chord = if cfg!(target_os = "macos") {
+        "Cmd+2"
+    } else {
+        "Alt+2"
+    };
     assert!(
-        s.contains("row in the nav") && s.contains("Cmd+2") && !s.contains("PANES"),
+        s.contains("row in the nav") && s.contains(chord) && !s.contains("PANES"),
         "{s}"
     );
 }
