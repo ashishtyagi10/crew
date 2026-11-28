@@ -54,6 +54,9 @@ mod chattrunk;
 mod chordglyph;
 mod codefield;
 mod commentread;
+mod execcli;
+mod execevent;
+mod execrun;
 mod hueapart;
 mod keyink;
 
@@ -912,6 +915,7 @@ usage:
   crew --no-detach         open it attached to this shell
   crew ask <agent> <task>  ask a RUNNING crew, print the reply
   crew panes               list a running crew's panes
+  crew exec \"<prompt>\"  one headless run: answer on stdout (--yes allows edits)
   crew todo                the /todo list: list, add, done, undone (crew todo help)
   crew daemon run          run the resident daemon (crew daemon status to check)
   crew ledger              print what crew did (--limit N)
@@ -988,6 +992,10 @@ fn main() -> anyhow::Result<()> {
     // `crew ledger` — read back the action ledger. A trail nobody can read is not an audit
     // trail, so the reader is a first-class subcommand rather than "cat this JSONL".
     if let Some(code) = ledgercli::dispatch_cli() {
+        std::process::exit(code);
+    }
+    // `crew exec "<prompt>"` — one headless agent run (answer on stdout, exit code).
+    if let Some(code) = execcli::dispatch_cli() {
         std::process::exit(code);
     }
     // `crew install-app` — create/refresh the OS app-menu entry (Spotlight /
