@@ -9,6 +9,12 @@
 //! - `CSI ? 2031 $ p` (DECRQM) — "do you support this?" → DECRPM reply
 //! - `CSI ? 996 n` — "what's the scheme right now?" → an immediate report
 //!
+//! DECSET 2048 (in-band resize notifications, the rockorager spec ghostty,
+//! kitty, foot and neovim 0.10 speak) rides the same scanner: `CSI ? 2048 h`
+//! / `l` and its DECRQM. Enabling asks for one immediate size report, which
+//! the model answers from the pty size (`modelsize`); the reports on each
+//! later resize come from `ptyinband`. RIS and DECSTR (`CSI ! p`) clear it.
+//!
 //! The report itself (`CSI ? 997 ; 1 n` dark / `; 2 n` light) is produced by
 //! [`scheme_report`]; the app pushes it to every enabled pane when the active
 //! theme's darkness flips (any switch path — OS flip, `/theme`, rotation).
@@ -38,6 +44,8 @@ enum State {
     Esc,
     /// Saw `ESC [`; waiting to learn whether it's private (`?`).
     Csi,
+    /// Saw `ESC [ !`: DECSTR if a `p` follows.
+    Bang,
     /// Inside `ESC [ ?` collecting parameter/intermediate bytes.
     Private {
         params: String,
@@ -50,12 +58,28 @@ enum State {
 pub(crate) struct SchemeNotify {
     state: State,
     enabled: bool,
+    /// DECSET 2048: the program wants a report on every resize.
+    inband: bool,
+    /// 2048 was set since the last [`Self::take_inband_ask`].
+    inband_ask: bool,
 }
 
 impl SchemeNotify {
     /// Whether the program asked for scheme-change notifications.
     pub(crate) fn enabled(&self) -> bool {
         self.enabled
+    }
+
+    /// Whether the program enabled DECSET 2048 (in-band resize reports).
+    pub(crate) fn inband(&self) -> bool {
+        self.inband
+    }
+
+    /// Whether 2048 was switched on since the last call and is on still: the
+    /// report owed now. Switched off again in the same read (or reset), the
+    /// shell that has the pane back must not be sent `ESC[48;…t`.
+    pub(crate) fn take_inband_ask(&mut self) -> bool {
+        std::mem::take(&mut self.inband_ask) && self.inband
     }
 
     /// Scan a chunk of PTY output. `dark` is the active scheme (for query
@@ -75,6 +99,7 @@ impl SchemeNotify {
                     // outlives the reset meant to clear it.
                     b'c' => {
                         self.enabled = false;
+                        self.inband = false;
                         State::Ground
                     }
                     0x1b => State::Esc,
@@ -85,11 +110,22 @@ impl SchemeNotify {
                         params: String::new(),
                         intermediate: None,
                     },
+                    b'!' => State::Bang,
                     // Not a private sequence — this scanner doesn't care.
                     // (A final byte right here also lands in Ground.)
                     0x1b => State::Esc,
                     _ => State::Ground,
                 },
+                State::Bang => {
+                    if b == b'p' {
+                        self.inband = false;
+                    }
+                    if b == 0x1b {
+                        State::Esc
+                    } else {
+                        State::Ground
+                    }
+                }
                 State::Private {
                     mut params,
                     intermediate,
@@ -128,7 +164,16 @@ impl SchemeNotify {
         replies: &mut String,
     ) {
         let has_2031 = params.split(';').any(|p| p == "2031");
+        let has_2048 = params.split(';').any(|p| p == "2048");
+        if intermediate.is_none() && has_2048 && matches!(final_byte, b'h' | b'l') {
+            self.inband = final_byte == b'h';
+            self.inband_ask |= self.inband;
+        }
         match (final_byte, intermediate) {
+            (b'p', Some(b'$')) if params == "2048" => {
+                let ps = if self.inband { 1 } else { 2 };
+                replies.push_str(&format!("\x1b[?2048;{ps}$y"));
+            }
             (b'h', None) if has_2031 => self.enabled = true,
             (b'l', None) if has_2031 => self.enabled = false,
             // DECRQM → DECRPM: 1 = set, 2 = reset (we always support the

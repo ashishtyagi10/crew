@@ -194,7 +194,7 @@ impl TermCore {
     fn feed_piece(&mut self, bytes: &[u8]) {
         // Scheme queries answer from the ACTIVE theme, like OSC 10/11.
         let mut replies = self.scheme.feed(bytes, crew_theme::theme().dark);
-        replies.push_str(&self.cellq.feed(bytes, self.cell_px));
+        replies.push_str(&self.query_replies(bytes));
         if !replies.is_empty() {
             self.events.replies.lock().unwrap().push_str(&replies);
         }

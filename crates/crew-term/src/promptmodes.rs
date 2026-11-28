@@ -48,12 +48,14 @@ use super::PtyTerm;
 
 /// Mouse tracking (clicks, drags, any motion), its UTF-8 and SGR encodings
 /// and focus reporting: every one of them the parser tracks, all reset; and
-/// 2031, which only crew's scheme scanner tracks (it sees the same feed);
+/// 2031 and 2048 (in-band resize: a killed neovim left `ESC [ 48 ; … t` for
+/// the shell on every resize), which only crew's scheme scanner tracks (same
+/// feed);
 /// then the cursor shown (DECTCEM).
-const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031l\x1b[?25h";
+const RESET: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031;2048l\x1b[?25h";
 
 /// [`RESET`], then every kitty keyboard push popped (`modelkitty::POP_ALL`).
-const RESET_KITTY: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031l\x1b[?25h\x1b[<65535u";
+const RESET_KITTY: &[u8] = b"\x1b[?1000;1002;1003;1005;1006;1004;2031;2048l\x1b[?25h\x1b[<65535u";
 
 /// The bytes that clear what a dead program left in `m`, or `None` when
 /// there is nothing to clear or a full-screen program may still own it.
@@ -95,7 +97,8 @@ impl PtyTerm {
     }
 
     fn release(&mut self, marked: bool) -> bool {
-        let scheme = self.core.scheme_notify_enabled();
+        // 2048 rides the scheme flag: both are scanner-only modes with one reset.
+        let scheme = self.core.scheme_notify_enabled() || self.core.inband_enabled();
         let hidden = self.core.cursor_hidden();
         let Some(reset) = leftover_reset(self.core.input_modes(), scheme, hidden, marked) else {
             return false;

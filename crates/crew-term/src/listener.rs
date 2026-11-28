@@ -13,6 +13,8 @@ pub(crate) type ColorAsk = (usize, usize, Arc<dyn Fn(Rgb) -> String + Sync + Sen
 
 /// alacritty's DECRPM for a mode it doesn't know, asked about 2031.
 const UNKNOWN_2031: &str = "\x1b[?2031;0$y";
+/// The same for 2048 (in-band resize), answered by the scanner too.
+const UNKNOWN_2048: &str = "\x1b[?2048;0$y";
 
 /// Shared state captured from terminal events (cloned into the alacritty `Term`).
 #[derive(Clone, Default)]
@@ -71,7 +73,7 @@ impl EventListener for TermEvents {
             // Not alacritty's "2031 unknown": crew's scheme scanner already
             // answered that DECRQM ("supported"), and a program reading the
             // last answer would turn its notifications off.
-            Event::PtyWrite(text) if text == UNKNOWN_2031 => {}
+            Event::PtyWrite(text) if text == UNKNOWN_2031 || text == UNKNOWN_2048 => {}
             // alacritty answers a kitty keyboard query with the flags pushed;
             // crew honours only "disambiguate" (0b1), so it says just that.
             Event::PtyWrite(text) => {

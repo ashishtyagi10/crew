@@ -5011,6 +5011,12 @@ crew has (`TN`, `Co`/`colors`, `RGB`, `Tc`, `setrgbf`/`setrgbb`, `Ms` for
 OSC 52, `Ss`/`Se` for the cursor shape, `Smulx` for curly and other
 underlines) and `DCS 0 + r <name> ST` for the rest, so neovim over ssh or
 inside tmux turns on 24-bit colour without waiting out its one-second probe.
+**In-band resize** (`CSI ? 2048 h` on, `l` off, DECRQM answered) sends
+`CSI 48 ; rows ; cols ; height px ; width px t` at once and after every
+resize, once the pty's own size (`TIOCGWINSZ`, same pixel numbers) is set, so
+neovim and libvaxis apps redraw without waiting for SIGWINCH. A program killed
+with it on is cleared when the shell is back, like the mouse; RIS and DECSTR
+clear it too.
 And what a setting is now: **DECRQSS** (`DCS $ q <setting> ST`) answers ` q`
 (the cursor's DECSCUSR shape, which vim asks at start-up) and `m` (the SGR new
 text gets, in xterm's form — `0;1;31;48:2::1:2:3`, the colon form nvim's

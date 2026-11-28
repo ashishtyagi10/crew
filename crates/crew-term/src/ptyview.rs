@@ -24,9 +24,7 @@ impl PtyTerm {
     pub fn set_cell_px(&mut self, w: u32, h: u32) {
         let before = self.core.pty_size();
         self.core.set_cell_px(w, h);
-        if self.core.pty_size() != before {
-            let _ = self.master.resize(self.core.pty_size());
-        }
+        self.sync_pty(before);
     }
 
     /// Lines of scrollback above the screen.
@@ -172,10 +170,12 @@ impl TermModel for PtyTerm {
     }
 
     fn resize(&mut self, size: GridSize) {
-        self.core.resize(size);
-        let _ = self.master.resize(self.core.pty_size());
+        self.resize_pty(size);
     }
 }
+
+#[path = "ptyinband.rs"]
+mod ptyinband;
 
 impl Drop for PtyTerm {
     /// Kill and reap the child explicitly — dropping the master only HUPs
