@@ -89,7 +89,7 @@ fn a_short_definition_only_selects() {
 #[test]
 fn unset_pixels_are_transparent_whatever_p2_says() {
     for p2 in ["0", "1", "2"] {
-        let img = dec(&format!("0;{p2};0q\"1;1;4;6#1@"));
+        let img = dec(&format!("0;{p2};0q\"1;1;4;6#1@!3?"));
         assert_eq!((img.0, img.1), (4, 6), "P2={p2}");
         assert_eq!(px(&img, 0, 0), [0x33, 0x33, 0xcc, 255]);
         assert_eq!(px(&img, 3, 0), [0, 0, 0, 0], "beyond the data");
@@ -99,7 +99,10 @@ fn unset_pixels_are_transparent_whatever_p2_says() {
 
 #[test]
 fn raster_attributes_give_the_size_when_present() {
-    assert_eq!(size(b"q\"1;1;30;12#1~"), Some((30, 12)));
+    assert_eq!(size(b"q\"1;1;30;12#1!30~-~"), Some((30, 12)));
+    // A raster is believed only as far as the data reaches: twenty bytes
+    // must not buy a 100 MB canvas.
+    assert_eq!(size(b"q\"1;1;5000;5000#1~"), Some((1, 6)));
     // A raster that says nothing falls back to the data.
     assert_eq!(size(b"q\"1;1;0;0#1!10~$!5~-~"), Some((10, 12)));
     // Where the raster is smaller than the data, the data is clipped to it.
@@ -123,9 +126,32 @@ fn the_extent_is_scanned_without_a_raster() {
 fn absurd_sizes_are_clamped_not_believed() {
     assert_eq!(size(b"q!999999999~"), Some((MAX_DIM, 6)));
     assert!(decode(b"q!999999999~").is_some_and(|i| i.2.len() == 240_000));
-    assert_eq!(size(b"q\"1;1;99999;99999~"), None, "100M pixels");
-    assert_eq!(size(b"q\"1;1;99999;10~"), Some((MAX_DIM, 10)));
+    let mut huge = b"q!10000~".to_vec();
+    for _ in 0..2000 {
+        huge.extend_from_slice(b"-!10000~");
+    }
+    assert_eq!(size(&huge), None, "10000 x 10000 is past MAX_PIXELS");
+    assert_eq!(size(b"q\"1;1;99999;10!99999~-~"), Some((MAX_DIM, 10)));
+    // `!0` is one, as in xterm and foot.
+    assert_eq!(size(b"q!0~~"), Some((2, 6)));
+    assert_eq!(px(&dec("q#1!0~"), 0, 0), [0x33, 0x33, 0xcc, 255]);
+    // Registers wrap, as in foot: 257 is 1.
+    assert_eq!(px(&dec("q#257~"), 0, 0), [0x33, 0x33, 0xcc, 255]);
     assert_eq!(size(b"q!99999999999999999999999~"), Some((MAX_DIM, 6)));
+}
+
+/// `$!10000~` over and over would repaint one row a billion times; the
+/// work budget stops it (break the budget and this test takes many seconds).
+#[test]
+fn endless_overprinting_is_cut_short() {
+    let mut body = b"q#1".to_vec();
+    for _ in 0..100_000 {
+        body.extend_from_slice(b"$!10000~");
+    }
+    let t = std::time::Instant::now();
+    let img = decode(&body).expect("decodes");
+    assert_eq!(px(&img, 9999, 5), [0x33, 0x33, 0xcc, 255]);
+    assert!(t.elapsed().as_secs() < 2, "took {:?}", t.elapsed());
 }
 
 #[test]

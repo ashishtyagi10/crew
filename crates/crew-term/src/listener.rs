@@ -81,11 +81,11 @@ impl EventListener for TermEvents {
             // last answer would turn its notifications off.
             Event::PtyWrite(text)
                 if text == UNKNOWN_2031 || text == UNKNOWN_2048 || text == UNKNOWN_1016 => {}
-            // A kitty keyboard query (`CSI ? u`) is answered with the flags
-            // alacritty holds, all five of which the app's encoder honours.
             Event::PtyWrite(text) if text == THEIR_DA1 => {
                 self.replies.lock().unwrap().push_str(OUR_DA1)
             }
+            // A kitty keyboard query (`CSI ? u`) is answered with the flags
+            // alacritty holds, all five of which the app's encoder honours.
             Event::PtyWrite(text) => self.replies.lock().unwrap().push_str(&text),
             // Color queries (OSC 4/10/11/12): held, with their place among
             // the other replies, for `TermCore` to answer from the palette.

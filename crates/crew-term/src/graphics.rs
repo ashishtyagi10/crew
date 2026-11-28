@@ -119,6 +119,12 @@ impl GraphicsScanner {
                 },
                 // BEL does not end a DCS, only ST does.
                 St::Sixel if b == ESC => self.st = St::SixelEsc,
+                // CAN / SUB cancel a control string (ECMA-48): drop the
+                // picture and let the parser have the byte.
+                St::Sixel if b == 0x18 || b == 0x1a => {
+                    (self.st, run) = (St::Ground, i);
+                    self.buf.clear();
+                }
                 St::Sixel if b != BEL => self.push(b),
                 St::Sixel => {}
                 St::SixelEsc if b == b'\\' => {
@@ -126,16 +132,15 @@ impl GraphicsScanner {
                     run = i + 1;
                 }
                 // `cat img.six` + Ctrl-C: the shell's next escape must not be
-                // swallowed. Drop the picture; the ESC (held back until now)
-                // and this byte go on to the parser.
+                // swallowed. Drop the picture and decide what the held ESC
+                // opens exactly as a chunk that starts after an ESC would —
+                // so a picture sent straight after the cut one still shows.
                 St::SixelEsc => {
-                    out.push(Seg::Held(vec![ESC]));
-                    self.st = St::Ground;
                     self.buf.clear();
+                    self.st = St::Esc;
+                    i += self.resume(&chunk[i..], &mut out);
                     run = i;
-                    if b == ESC {
-                        (self.st, esc_at) = (St::Esc, i);
-                    }
+                    continue;
                 }
                 St::Apc | St::Osc if b == ESC => {
                     self.st = match self.st {

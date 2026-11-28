@@ -52,14 +52,19 @@ fn a_sixel_decodes_to_the_colours_it_defined() {
     assert_eq!(at(5, 1)[3], 0, "P2=1: what no band touched stays clear");
 }
 
-/// Garbage after `q`, and a raster header claiming 100 megapixels, must be
-/// refused up front: not a panic, not a hang, not a worker.
+/// Garbage after `q` is refused up front: not a panic, not a hang, not a
+/// worker. A raster header claiming 100 megapixels over one sixel is placed
+/// at the size the data draws, one cell, not the size it claims.
 #[test]
 fn an_unsizable_sixel_is_never_placed() {
     use crew_term::TermModel;
     let mut term = crew_term::HeadlessTerm::new(crew_term::GridSize { cols: 40, rows: 12 });
-    term.feed(b"\x1bPq#;;;;;!!!!\x1b\\\x1bP0;0;0q\"1;1;99999;99999~\x1b\\");
+    term.feed(b"\x1bPq#;;;;;!!!!\x1b\\");
     let mut t = TermImages::default();
     t.sync(term.take_image_wipes(), term.take_images());
     assert!(t.shown.is_empty(), "no size, no placement, no worker");
+    term.feed(b"\x1bP0;0;0q\"1;1;99999;99999~\x1b\\");
+    let placed = term.take_images();
+    assert_eq!(placed.len(), 1);
+    assert_eq!(placed[0].cells, (1, 1), "the data's size, not the claim");
 }

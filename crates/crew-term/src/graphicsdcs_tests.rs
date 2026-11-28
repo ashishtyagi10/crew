@@ -94,6 +94,32 @@ fn an_escape_that_is_not_the_terminator_aborts_the_sixel() {
     assert_eq!(imgs.len(), 1);
 }
 
+/// The ESC that cuts a picture short may open the next one: a kitty, iTerm2
+/// or sixel picture sent straight after a truncated sixel still shows.
+#[test]
+fn the_escape_that_aborts_a_sixel_can_open_the_next_picture() {
+    let (text, imgs) = every_cut(b"\x1bPq~~\x1bPq@\x1b\\z");
+    assert_eq!((text.as_slice(), imgs.len()), (&b"z"[..], 1));
+    assert_eq!(imgs[0].data, b"q@");
+    let (text, imgs) = every_cut(b"\x1bPq~\x1b_Ga=T,f=100,i=7;\x1b\\z");
+    assert_eq!((text.as_slice(), imgs.len()), (&b"z"[..], 1));
+    assert!(!imgs[0].sixel && imgs[0].id == 7);
+    let (text, imgs) = every_cut(b"\x1bPq~\x1b]1337;File=inline=1:iVBO\x07z");
+    assert_eq!((text.as_slice(), imgs.len()), (&b"z"[..], 1));
+}
+
+/// CAN and SUB cancel a control string (ECMA-48): the picture is dropped and
+/// the byte, and everything after it, reach the parser.
+#[test]
+fn can_and_sub_cancel_a_sixel() {
+    for c in [0x18u8, 0x1a] {
+        let s = [&b"\x1bPq~~"[..], &[c], b"$ "].concat();
+        let (text, imgs) = every_cut(&s);
+        assert!(imgs.is_empty());
+        assert_eq!(text, [&[c][..], b"$ "].concat());
+    }
+}
+
 #[test]
 fn bel_does_not_end_a_sixel() {
     let (text, imgs) = every_cut(b"\x1bPq~\x07~\x1b\\x");

@@ -21,8 +21,9 @@ pub use dec::decode;
 /// Largest width or height taken seriously. A sender can claim any number in
 /// the raster attributes; nothing here believes more than this.
 pub const MAX_DIM: u32 = 10_000;
-/// Largest picture in pixels (128 MB of RGBA): `10000 × 10000` would be 400.
-pub const MAX_PIXELS: u64 = 32_000_000;
+/// Largest picture in pixels (64 MB of RGBA, a 5K screen's worth):
+/// `10000 × 10000` would be 400.
+pub const MAX_PIXELS: u64 = 16_000_000;
 
 /// The data after `P1;P2;P3 q`, and P2. `None` when the body is not a sixel
 /// header at all (anything but digits and `;` before the `q`).
@@ -102,7 +103,7 @@ fn scan(d: &[u8]) -> Scan {
                 nums(d, &mut i);
             }
             b'!' => {
-                let n = num(d, &mut i).min(MAX_DIM);
+                let n = num(d, &mut i).clamp(1, MAX_DIM);
                 if d.get(i).is_some_and(|c| (b'?'..=b'~').contains(c)) {
                     i += 1;
                     put(n, band, &mut x);
@@ -120,10 +121,14 @@ fn scan(d: &[u8]) -> Scan {
 
 /// The pixel size of the picture in `body` (params, `q`, data), without
 /// decoding it: the raster attributes when they carry a size, else the
-/// extent of the data itself.
+/// extent of the data itself. A raster is believed only as far as the data
+/// reaches: `"1;1;5000;5000` over one sixel would otherwise cost the worker
+/// 100 MB for twenty bytes of input.
 pub fn size(body: &[u8]) -> Option<(u32, u32)> {
     let s = scan(parts(body)?.1);
-    let (w, h) = s.raster.unwrap_or((s.w, s.h));
+    let (w, h) = s
+        .raster
+        .map_or((s.w, s.h), |(rw, rh)| (rw.min(s.w), rh.min(s.h)));
     let h = h.min(MAX_DIM);
     (w > 0 && h > 0 && u64::from(w) * u64::from(h) <= MAX_PIXELS).then_some((w, h))
 }

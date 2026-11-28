@@ -23,7 +23,12 @@ pub fn decode(body: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     let mut out = vec![0u8; (w as usize) * (h as usize) * 4];
     let mut pal = color::palette();
     let (mut cur, mut x, mut y, mut i) = (0usize, 0u32, 0u32, 0usize);
-    while i < d.len() {
+    // `$!10000~` over and over repaints the same row forever: past this many
+    // pixel writes (64 coats of the whole canvas — a 256-colour encoder's
+    // overprinting stays far under it) the rest of the stream is ignored.
+    let budget = 64 * u64::from(w) * u64::from(h);
+    let mut work = 0u64;
+    while i < d.len() && work <= budget {
         let c = d[i];
         i += 1;
         match c {
@@ -35,7 +40,7 @@ pub fn decode(body: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
                 // all five numbers (as foot), and a Pu that is not 1 or 2
                 // defines nothing.
                 let (v, n) = nums(d, &mut i);
-                cur = (v[0] as usize).min(255);
+                cur = v[0] as usize % 256;
                 if n == 5 {
                     if let Some(rgb) = color::define(v[1], v[2], v[3], v[4]) {
                         pal[cur] = rgb;
@@ -43,17 +48,18 @@ pub fn decode(body: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
                 }
             }
             b'!' => {
-                let n = num(d, &mut i).min(MAX_DIM);
+                // `!0` is one, as in xterm and foot.
+                let n = num(d, &mut i).clamp(1, MAX_DIM);
                 if let Some(&s) = d.get(i).filter(|s| (b'?'..=b'~').contains(s)) {
                     i += 1;
-                    paint(&mut out, (w, h), (x, y), s - b'?', n, pal[cur]);
+                    work += paint(&mut out, (w, h), (x, y), s - b'?', n, pal[cur]);
                     x = x.saturating_add(n).min(MAX_DIM);
                 }
             }
             b'$' => x = 0,
             b'-' => (x, y) = (0, y.saturating_add(6)),
             b'?'..=b'~' => {
-                paint(&mut out, (w, h), (x, y), c - b'?', 1, pal[cur]);
+                work += paint(&mut out, (w, h), (x, y), c - b'?', 1, pal[cur]);
                 x = x.saturating_add(1).min(MAX_DIM);
             }
             _ => {}
@@ -62,9 +68,21 @@ pub fn decode(body: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     Some((w, h, out))
 }
 
-/// Set the `bits` column (bit 0 on top) `n` pixels wide at `(x, y)`.
-fn paint(out: &mut [u8], (w, h): (u32, u32), (x, y): (u32, u32), bits: u8, n: u32, rgb: [u8; 3]) {
-    for dx in 0..n.min(w.saturating_sub(x)) {
+/// Set the `bits` column (bit 0 on top) `n` pixels wide at `(x, y)`; how
+/// many pixel columns it wrote. A blank sixel (`?`) writes none.
+fn paint(
+    out: &mut [u8],
+    (w, h): (u32, u32),
+    (x, y): (u32, u32),
+    bits: u8,
+    n: u32,
+    rgb: [u8; 3],
+) -> u64 {
+    if bits == 0 {
+        return 0;
+    }
+    let cols = n.min(w.saturating_sub(x));
+    for dx in 0..cols {
         for k in (0..6).filter(|k| bits >> k & 1 == 1) {
             let py = y.saturating_add(k);
             if py < h {
@@ -73,4 +91,5 @@ fn paint(out: &mut [u8], (w, h): (u32, u32), (x, y): (u32, u32), bits: u8, n: u3
             }
         }
     }
+    u64::from(cols)
 }

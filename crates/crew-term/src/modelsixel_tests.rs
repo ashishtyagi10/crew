@@ -67,21 +67,16 @@ fn the_colour_register_count_is_answered() {
     assert_eq!(t.take_replies(), None, "geometry is a documented gap");
 }
 
-/// The cursor follows what the data draws; the raster only reserves rows
-/// (foot: raster attributes "do *not* affect cursor positioning"). One band
-/// under a 60 px raster is one text row, but all three rows are made room.
+/// A raster is believed only as far as the data reaches (`sixel::size`): a
+/// 60 px raster over one band reserves the one row the band draws, and the
+/// cursor stays on it. (foot would reserve all three; the cap on what twenty
+/// bytes can make the worker allocate is worth two blank rows.)
 #[test]
-fn a_raster_taller_than_the_data_reserves_rows_but_the_cursor_follows_the_data() {
+fn a_raster_taller_than_the_data_reserves_only_what_is_drawn() {
     let mut t = term();
     t.feed(b"\x1b[11;1H\x1bPq\"1;1;20;60#1!20~\x1b\\\x1b[6n");
     let imgs = t.take_images();
-    assert_eq!(imgs[0].cells, (2, 3), "the raster reserves three rows");
-    // Row 11 + 2 line feeds scrolled the bottom (12 rows): the picture's
-    // first row is 10, and the cursor stays on it.
-    assert_eq!(t.take_replies().as_deref(), Some("\x1b[10;1R"));
-    assert_eq!(
-        t.history_lines(),
-        1,
-        "the grid still scrolled for the picture"
-    );
+    assert_eq!(imgs[0].cells, (2, 1));
+    assert_eq!(t.take_replies().as_deref(), Some("\x1b[11;1R"));
+    assert_eq!(t.history_lines(), 0, "nothing scrolled");
 }
