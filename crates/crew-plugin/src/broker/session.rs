@@ -610,7 +610,7 @@ impl super::toolcall::ToolRunner for SessionTools {
             self.todo.write(args)
         } else if server == "sys" && self.sys && super::sysbgtools::NAMES.contains(&tool) {
             // The task's own processes, so the surface that owns them answers.
-            super::sysbgtools::call(&self.bg, tool, args)
+            super::sysbgtools::call(&self.bg, tool, args, &self.cancel)
         } else if server == "sys" && self.sys {
             let out = self
                 .reads

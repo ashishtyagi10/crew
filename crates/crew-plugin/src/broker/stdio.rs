@@ -488,10 +488,11 @@ fn send(
             // …and what it DID to the files, measured from the snapshot: one
             // card for a stop or a failure that changed something (its head
             // says how it ended, `receipt::headline`), else the ✗ line alone.
+            // Whatever the task left running (`sys:spawn`) ends with it, first: the
+            // joins below can be slow and a dev server should not wait for them.
+            snap.bg.reap();
             let _ = ckpt.join();
             let changed = report_changes(&snap, id, &out_thread, ending.as_deref());
-            // Whatever the task left running (`sys:spawn`) ends with it.
-            snap.bg.reap();
             let done = match (ending.as_deref(), changed) {
                 (None, _) => None,
                 (Some("stopped"), true) => None,

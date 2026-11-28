@@ -127,6 +127,8 @@ mod swarm;
 mod sysbg;
 #[cfg(unix)]
 mod sysbgbuf;
+#[cfg(unix)]
+mod sysbgproc;
 mod sysbgtools;
 mod sysedit;
 mod sysexplore;

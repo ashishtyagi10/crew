@@ -33,7 +33,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
     vec![
         mk(
             "spawn",
-            "start a long-running command (dev server, watcher) in the background: {\"cmd\": \"npm run dev\", \"wait_for\": \"listening\"} returns an id and its first output; read it with sys:logs, stop it with sys:kill; at most 4 at once, all killed when the task ends",
+            "start a long-running command (dev server, watcher) in the background: {\"cmd\": \"npm run dev\", \"wait_for\": \"listening\"} returns an id and its first output; read it with sys:logs, stop it with sys:kill; at most 4 at once, all killed when the task ends (a program that detaches itself with setsid, as some daemons do, is not tracked)",
             serde_json::json!({"cmd": {"type": "string"}, "wait_for": wait, "timeout_ms": ms}),
             &["cmd"],
         ),
@@ -45,7 +45,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "kill",
-            "stop a background process and everything it started: {\"id\": 1} (TERM, then KILL after 2 s); says its exit status",
+            "stop a background process and the process group it started: {\"id\": 1} (TERM, then KILL after 2 s); says its exit status",
             serde_json::json!({"id": {"type": "integer"}}),
             &["id"],
         ),
@@ -53,12 +53,22 @@ pub(crate) fn tools() -> Vec<McpTool> {
 }
 
 #[cfg(not(unix))]
-pub(crate) fn call(_bg: &SysBg, tool: &str, _args: &str) -> Result<String, String> {
+pub(crate) fn call(
+    _bg: &SysBg,
+    tool: &str,
+    _args: &str,
+    _stop: &std::sync::atomic::AtomicBool,
+) -> Result<String, String> {
     Err(format!("sys:{tool} is only supported on Unix platforms"))
 }
 
 #[cfg(unix)]
-pub(crate) fn call(bg: &SysBg, tool: &str, args: &str) -> Result<String, String> {
+pub(crate) fn call(
+    bg: &SysBg,
+    tool: &str,
+    args: &str,
+    stop: &std::sync::atomic::AtomicBool,
+) -> Result<String, String> {
     use std::time::Duration;
     if let Some(blocked) = super::systools::read_only_block(tool, super::systools::read_only()) {
         return Err(blocked);
@@ -81,9 +91,16 @@ pub(crate) fn call(bg: &SysBg, tool: &str, args: &str) -> Result<String, String>
             let p = bg.spawn(super::systools::str_arg(&v, "cmd")?)?;
             // Without `wait_for`, a beat: enough for `command not found` to show.
             let how = match wait_for {
-                Some(w) => p.out.wait(Some(w), limit),
-                None => p.out.wait(None, Duration::from_millis(300)),
+                Some(w) => p.out.wait(Some(w), limit, stop),
+                None => p.out.wait(None, Duration::from_millis(300), stop),
             };
+            if how == super::sysbgbuf::Waited::Stopped {
+                return Ok(format!(
+                    "{{\"id\": {}}}\nstopped \u{2014} {}",
+                    p.id,
+                    show(&p, 20)
+                ));
+            }
             let said = match (how, wait_for) {
                 (super::sysbgbuf::Waited::Found, Some(w)) => format!("saw \u{201c}{w}\u{201d}"),
                 (super::sysbgbuf::Waited::Exited, _) => "exited while waiting".into(),
@@ -95,7 +112,9 @@ pub(crate) fn call(bg: &SysBg, tool: &str, args: &str) -> Result<String, String>
         "logs" => {
             let p = bg.get(id()?)?;
             if let Some(w) = wait_for {
-                p.out.wait(Some(w), limit);
+                if p.out.wait(Some(w), limit, stop) == super::sysbgbuf::Waited::Stopped {
+                    return Ok(format!("stopped \u{2014} {}", show(&p, 20)));
+                }
             }
             Ok(show(&p, num("tail").unwrap_or(50).clamp(1, 400) as usize))
         }
@@ -109,7 +128,7 @@ pub(crate) fn call(bg: &SysBg, tool: &str, args: &str) -> Result<String, String>
 
 /// Status line, then the last `tail` lines (cut to the shared result cap).
 #[cfg(unix)]
-fn show(p: &super::sysbg::Proc, tail: usize) -> String {
+fn show(p: &super::sysbgproc::Proc, tail: usize) -> String {
     let (text, dropped, exit) = p.out.read();
     let lines: Vec<&str> = text.lines().collect();
     let mut body = lines[lines.len().saturating_sub(tail)..].join("\n");

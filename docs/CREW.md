@@ -3559,11 +3559,13 @@ its first output, waiting up to `timeout_ms` (default 20 s, at most 60 s) for
 `wait_for` text to appear or the process to exit; `logs` gives the last `tail`
 lines (default 50, at most 400) of the 256 KB ring that holds stdout and stderr
 together, and whether it still runs or how it exited; `kill` sends TERM to the
-group and KILL after 2 s. Unix only; `spawn` is gated exactly like `sys:run`
+group and KILL after 2 s (a program that detaches itself with `setsid`, as some
+daemons do, leaves that group and is not tracked; a `/stop` ends a waiting
+`wait_for` at once). Unix only; `spawn` is gated exactly like `sys:run`
 (approval, refused in `CREW_SYS_MODE=readonly`), `logs` and `kill` reach only
 this task's own ids; at most 4 live per task, a fifth refused naming them; every
-process is killed, as a group, when the task ends however it ends, and when the
-broker exits), **`sys:todo`**, the
+process's group is killed when the task ends however it ends (new ones are then
+refused), and when the broker exits), **`sys:todo`**, the
 agent's own checklist for a task of three or more steps (whole list per call,
 at most 12 items and one in progress, shown back above every round's tool
 results, and an answer that ends with steps undone says which; the pane draws

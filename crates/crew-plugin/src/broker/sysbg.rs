@@ -13,12 +13,13 @@
 //! on drop as a backstop), and the broker exiting ([`reap_all`]).
 use std::os::unix::process::{CommandExt, ExitStatusExt};
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
 use super::sysbgbuf::{Buf, Shared, Waited};
-use super::sysrun::{kill_group, signal_group};
+pub(crate) use super::sysbgproc::reap_all;
+use super::sysbgproc::{register, sweep, Proc};
 
 /// Live processes per task. A fifth is almost always a leak, not a plan.
 pub(crate) const MAX_LIVE: usize = 4;
@@ -27,36 +28,13 @@ pub(crate) const RING: usize = 256 * 1024;
 /// Exited processes kept for `sys:logs` (the oldest go first).
 const KEEP_EXITED: usize = 8;
 
-pub(super) struct Proc {
-    pub(super) id: u32,
-    pgid: u32,
-    pub(super) cmd: String,
-    pub(super) out: Arc<Shared>,
-}
-
-/// Every pgid started and not yet reaped, process-wide, for [`reap_all`].
-static LIVE: Mutex<Vec<u32>> = Mutex::new(Vec::new());
-
-/// TERM every group, a beat for the polite, then KILL: `kill_group` for many.
-fn sweep(pgids: &[u32]) {
-    pgids.iter().for_each(|&g| signal_group("-TERM", g));
-    std::thread::sleep(Duration::from_millis(20));
-    pgids.iter().for_each(|&g| signal_group("-KILL", g));
-    LIVE.lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .retain(|g| !pgids.contains(g));
-}
-
-/// The broker is going away: nothing started here may outlive it.
-pub(crate) fn reap_all() {
-    let all: Vec<u32> = LIVE.lock().unwrap_or_else(|e| e.into_inner()).clone();
-    sweep(&all);
-}
-
 pub(crate) struct SysBg {
     procs: Mutex<Vec<Arc<Proc>>>,
     next: AtomicU32,
     cap: usize,
+    /// Set by `reap`: a process started after the task's end would never be
+    /// reaped, so `spawn` refuses once this is true.
+    closed: AtomicBool,
 }
 
 impl Default for SysBg {
@@ -71,6 +49,7 @@ impl SysBg {
             procs: Mutex::new(Vec::new()),
             next: AtomicU32::new(1),
             cap,
+            closed: AtomicBool::new(false),
         }
     }
 
@@ -96,6 +75,9 @@ impl SysBg {
     /// pgid, as `sys:run` does), refused past [`MAX_LIVE`] live ones.
     pub(super) fn spawn(&self, cmd: &str) -> Result<Arc<Proc>, String> {
         let mut procs = self.lock();
+        if self.closed.load(Ordering::SeqCst) {
+            return Err("this task has ended; nothing was started".into());
+        }
         let live: Vec<String> = procs
             .iter()
             .filter(|p| p.out.running())
@@ -116,7 +98,6 @@ impl SysBg {
             .spawn()
             .map_err(|e| format!("spawn /bin/sh: {e}"))?;
         let pgid = child.id();
-        LIVE.lock().unwrap_or_else(|e| e.into_inner()).push(pgid);
         let out = Arc::new(Shared {
             buf: Mutex::new(Buf {
                 open: 2,
@@ -127,12 +108,25 @@ impl SysBg {
         });
         out.reader(child.stdout.take().expect("piped"));
         out.reader(child.stderr.take().expect("piped"));
-        let me = Arc::clone(&out);
+        let p = Arc::new(Proc {
+            id: self.next.fetch_add(1, Ordering::Relaxed),
+            pgid,
+            cmd: cmd.into(),
+            out,
+            swept: AtomicBool::new(false),
+            signals: AtomicU32::new(0),
+        });
+        register(&p);
+        let me = Arc::clone(&p);
         std::thread::spawn(move || {
             let status = child.wait();
-            let mut b = me.buf.lock().unwrap_or_else(|e| e.into_inner());
+            // The leader is reaped: sweep what it left behind NOW, once, while
+            // the pgid cannot have been reused (see `sysbgproc`).
+            me.sweep();
+            let mut b = me.out.buf.lock().unwrap_or_else(|e| e.into_inner());
             // A descendant holding the pipe must not hold the exit back.
             b = me
+                .out
                 .cv
                 .wait_timeout_while(b, Duration::from_millis(300), |b| b.open > 0)
                 .unwrap_or_else(|e| e.into_inner())
@@ -145,13 +139,7 @@ impl SysBg {
                 },
                 Err(e) => format!("lost: {e}"),
             });
-            me.cv.notify_all();
-        });
-        let p = Arc::new(Proc {
-            id: self.next.fetch_add(1, Ordering::Relaxed),
-            pgid,
-            cmd: cmd.into(),
-            out,
+            me.out.cv.notify_all();
         });
         // Old finished ones make room; the live ones were counted above.
         while procs.len() >= MAX_LIVE + KEEP_EXITED {
@@ -165,22 +153,29 @@ impl SysBg {
     }
 
     /// TERM the group, KILL it if it ignores that for ~2 s; the exit status.
+    /// A group already swept (it exited on its own) is never signalled again.
     pub(super) fn kill(&self, id: u32) -> Result<String, String> {
         let p = self.get(id)?;
-        signal_group("-TERM", p.pgid);
-        if p.out.wait(None, Duration::from_secs(2)) == Waited::TimedOut {
-            kill_group(p.pgid);
-            p.out.wait(None, Duration::from_secs(2));
+        p.signal("-TERM");
+        let never = AtomicBool::new(false);
+        if p.out.wait(None, Duration::from_secs(2), &never) == Waited::TimedOut {
+            p.signal("-KILL");
+            p.out.wait(None, Duration::from_secs(2), &never);
         }
         // `sh` gone does not mean the group is: sweep what it backgrounded.
-        sweep(&[p.pgid]);
+        p.sweep();
         Ok(p.out.read().2.unwrap_or_else(|| "killed".into()))
     }
 
-    /// The task is over: kill every group it started, running or orphaned.
+    /// The task is over: kill every group it started, running or orphaned,
+    /// and refuse new ones.
     pub(crate) fn reap(&self) {
-        let pgids: Vec<u32> = self.lock().drain(..).map(|p| p.pgid).collect();
-        sweep(&pgids);
+        let procs: Vec<Arc<Proc>> = {
+            let mut l = self.lock();
+            self.closed.store(true, Ordering::SeqCst);
+            l.drain(..).collect()
+        };
+        sweep(&procs);
     }
 }
 

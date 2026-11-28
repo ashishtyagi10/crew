@@ -2,7 +2,12 @@
 use super::*;
 
 fn go(bg: &SysBg, tool: &str, args: serde_json::Value) -> Result<String, String> {
-    call(bg, tool, &args.to_string())
+    call(
+        bg,
+        tool,
+        &args.to_string(),
+        &std::sync::atomic::AtomicBool::new(false),
+    )
 }
 
 #[test]
@@ -71,6 +76,39 @@ fn another_tasks_id_is_unknown() {
         let why = go(&mine, tool, serde_json::json!({"id": 1})).unwrap_err();
         assert!(why.contains("no background process #1"), "{why}");
     }
+}
+
+#[test]
+fn a_stop_ends_a_wait_for_at_once_and_says_what_was_seen() {
+    use std::sync::{atomic::Ordering, Arc};
+    let bg = SysBg::default();
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let flag = Arc::clone(&stop);
+    let t = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        flag.store(true, Ordering::SeqCst);
+    });
+    let started = std::time::Instant::now();
+    let args = r#"{"cmd": "echo first; sleep 300", "wait_for": "never", "timeout_ms": 60000}"#;
+    let out = call(&bg, "spawn", args, &stop).unwrap();
+    assert!(started.elapsed().as_secs() < 5, "{:?}", started.elapsed());
+    assert!(
+        out.contains("stopped \u{2014} ") && out.contains("first"),
+        "{out}"
+    );
+    let out = call(
+        &bg,
+        "logs",
+        r#"{"id": 1, "wait_for": "never", "timeout_ms": 60000}"#,
+        &stop,
+    )
+    .unwrap();
+    assert!(
+        out.starts_with("stopped \u{2014} ") && out.contains("first"),
+        "{out}"
+    );
+    t.join().unwrap();
+    bg.reap();
 }
 
 /// Through the session's own surface: `logs` is a read, but its answer changes between two asks,
