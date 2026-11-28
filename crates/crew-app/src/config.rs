@@ -70,6 +70,10 @@ pub struct CrewConfig {
     /// notification fires — suppresses quick commands like `ls`/`cd`.
     #[serde(default = "default_notify_min_secs")]
     pub notify_min_secs: u64,
+    /// Also post an OS banner when a command or agent turn finishes while the
+    /// window is not focused (see `osnotify`). Needs `notify_agent_done`.
+    #[serde(default = "default_true")]
+    pub notify_os: bool,
     /// Case-insensitive substrings watched in pane output; a match notifies.
     #[serde(default)]
     pub notify_patterns: Vec<String>,
@@ -222,6 +226,7 @@ impl Default for CrewConfig {
             notify_bell: true,
             notify_exit: true,
             notify_min_secs: default_notify_min_secs(),
+            notify_os: true,
             notify_patterns: Vec::new(),
             theme: None,
             border_marks: true,

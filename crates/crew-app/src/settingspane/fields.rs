@@ -78,6 +78,7 @@ pub(crate) enum Field {
     Notify,
     NotifyAgentDone,
     NotifyBell,
+    NotifyOs,
     NotifyExit,
     NotifyMinSecs,
     NotifyPatterns,
@@ -91,7 +92,7 @@ pub(crate) enum Field {
 
 /// Every focusable field, for the coverage guards and as `tab_order`'s
 /// backstop — a field the layout does not place still has to be reachable.
-pub(crate) const FIELDS: [Field; 33] = [
+pub(crate) const FIELDS: [Field; 34] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -118,6 +119,7 @@ pub(crate) const FIELDS: [Field; 33] = [
     Field::Notify,
     Field::NotifyAgentDone,
     Field::NotifyBell,
+    Field::NotifyOs,
     Field::NotifyExit,
     Field::NotifyMinSecs,
     Field::NotifyPatterns,

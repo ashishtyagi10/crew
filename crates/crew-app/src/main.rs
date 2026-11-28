@@ -564,6 +564,7 @@ mod occlusion;
 mod openurl;
 mod openview;
 mod oscontrast;
+mod osnotify;
 mod palette;
 mod pane;
 mod panebtn;

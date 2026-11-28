@@ -134,6 +134,7 @@ fn round_trip() {
         notify_bell: true,
         notify_exit: false,
         notify_min_secs: 30,
+        notify_os: false,
         notify_patterns: vec!["error".to_string(), "done".to_string()],
         theme: Some("paper-light".to_string()),
         crt: Some(true),

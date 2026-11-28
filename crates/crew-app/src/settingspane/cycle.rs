@@ -18,6 +18,7 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::Notify => d.notify = !d.notify,
         Field::NotifyAgentDone => d.notify_agent_done = !d.notify_agent_done,
         Field::NotifyBell => d.notify_bell = !d.notify_bell,
+        Field::NotifyOs => d.notify_os = !d.notify_os,
         Field::NotifyExit => d.notify_exit = !d.notify_exit,
         Field::Smooth => d.font_smooth = crate::smoothlvl::cycle(d.font_smooth, back),
         Field::FontGamma => d.font_gamma = crate::gammalvl::cycle(d.font_gamma, back),
