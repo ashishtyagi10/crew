@@ -444,7 +444,16 @@ mod lsp {
             .filter(|s| s.server == "lsp")
             .map(|s| s.tool)
             .collect();
-        assert_eq!(names, ["hover", "definition", "references", "diagnostics"]);
+        assert_eq!(
+            names,
+            [
+                "hover",
+                "definition",
+                "references",
+                "diagnostics",
+                "symbols"
+            ]
+        );
         let hint = t.hint();
         assert!(hint.contains("lsp:diagnostics"), "{hint}");
         // …and not otherwise: a surface with no language table offers nothing it cannot serve.

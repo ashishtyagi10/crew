@@ -1,7 +1,7 @@
 //! Read-only language intelligence over the Language Server Protocol.
 //!
 //! Two consumers, one client: the swarm's agents get `lsp:*` tools (hover,
-//! definition, references, diagnostics) so they reason with real symbols
+//! definition, references, diagnostics, symbols) so they reason with real symbols
 //! rather than grep hits, and the file viewer shows a server's diagnostics
 //! beside the code. Nothing here EDITS anything — the viewer's design docs
 //! forbid code editing in the pane, and a diagnostic overlay is not editing.
@@ -28,9 +28,11 @@ pub mod ops;
 pub mod root;
 pub mod running;
 pub mod servers;
+pub mod symbols;
 pub mod types;
 pub mod uri;
 
 pub use client::Client;
 pub use demux::Notification;
+pub use symbols::Symbol;
 pub use types::{Diagnostic, Location, Position, Range, Severity};

@@ -583,7 +583,7 @@ it.
   whether it is set, every tool's tier.
 - **`/lsp`** lists the language servers crew knows (rust-analyzer, typescript-language-server,
   pyright, gopls, plus `~/.config/crew/lsp.json`), which are installed and which are running.
-  Agents get `lsp:hover` / `lsp:definition` / `lsp:references` / `lsp:diagnostics`, and the
+  Agents get `lsp:hover` / `lsp:definition` / `lsp:references` / `lsp:diagnostics` / `lsp:symbols` (find a symbol by name), and the
   viewer marks a code file's diagnostics in the margin. An edit an agent makes with `sys:edit` or
   `sys:write_file` says in its own result when it introduced an error (`diagnostics now: …`), so
   the agent fixes it in the next round; `CREW_LSP=0` turns the servers off.
