@@ -30,6 +30,10 @@ pub(crate) struct Motion {
     pub fold: Option<Fold>,
     /// Threads new since the last list, and when they landed.
     pub fresh: Option<(Vec<String>, u64)>,
+    /// The pointer's pane-local `(row, col)` at the last wheel notch: a
+    /// glided notch lands frames later, when only this says which card it
+    /// was over.
+    pub wheel_at: Option<(u16, u16)>,
 }
 
 /// How far a motion `dur_ms` long that began at `start` has got, `0..1`, or

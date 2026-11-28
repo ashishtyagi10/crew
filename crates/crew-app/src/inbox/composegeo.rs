@@ -76,7 +76,8 @@ pub(crate) fn caret_at(c: &mut Compose, g: &Geo, w: u16, (row, col): (u16, u16))
         On::Body if (g.words..g.words + g.room).contains(&row) => {
             let text = &c.body.text;
             let (now, _) = place(text, c.body.at, w);
-            let first = now.saturating_sub(usize::from(g.room).saturating_sub(1));
+            let total = super::draw::wrap(text, w).len();
+            let first = super::composeview::first(c, total, now, usize::from(g.room));
             let (line, col) = (
                 first + usize::from(row - g.words),
                 usize::from(col.saturating_sub(X)),

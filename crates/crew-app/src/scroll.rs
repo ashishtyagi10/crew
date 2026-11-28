@@ -78,7 +78,7 @@ pub(crate) fn scroll_pane(pane: &mut Pane, lines: i32) {
         | PaneContent::Dash(_) => {}
         PaneContent::View(v) => v.scroll_wheel(cols, rows, lines),
         PaneContent::Todo(t) => t.scroll_wheel(lines, cols, rows),
-        PaneContent::Inbox(i) => i.scroll_wheel(lines, cols, rows),
+        PaneContent::Inbox(i) => i.scroll_wheel(lines, cols, rows, i.motion.wheel_at),
     }
 }
 
@@ -151,8 +151,13 @@ impl CrewApp {
         };
         // The hovered cell positions forwarded mouse events; (0,0) when unknown.
         let cell = self.cursor_term_cell().map_or((0, 0), |(_, c, r)| (c, r));
+        // The inbox asks which of its cards the wheel is over.
+        let over = self.cursor_any_cell().map(|(_, c, r)| (r, c));
         let mods = crate::mousereport::wheel_mods(self.mods.state());
         if let Some(pane) = self.panes.get_mut(i) {
+            if let PaneContent::Inbox(p) = &mut pane.content {
+                p.motion.wheel_at = over;
+            }
             if !forward_wheel(pane, lines, cell, mods) {
                 match wheel {
                     true => crate::scrollglide::start(pane, lines),

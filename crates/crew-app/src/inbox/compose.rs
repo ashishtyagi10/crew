@@ -67,6 +67,8 @@ pub(crate) struct Compose {
     /// Sent (or being saved), and waiting for Gmail to say so: the box stays
     /// until it does.
     pub sending: bool,
+    /// Where the wheel left the words (`composeview`); none follows the caret.
+    pub view: Option<super::composeview::View>,
 }
 
 impl Compose {
@@ -177,6 +179,7 @@ impl Compose {
             draft: None,
             base: String::new(),
             sending: false,
+            view: None,
         }
     }
 }
