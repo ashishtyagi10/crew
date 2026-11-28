@@ -113,6 +113,8 @@ impl Broker {
                     self.timeout,
                 ),
             };
+        // Held at the task's spend cap before each call (`spendcap`).
+        let provider = super::spendcapwrap::wrap(provider, &model);
         // The advisor reads a failed check (`crew_hive::advisor`); what it
         // costs joins the thread's sums.
         let billed = Arc::clone(&tally);
@@ -201,3 +203,6 @@ mod effort_tests;
 #[cfg(test)]
 #[path = "hopfull_tests.rs"]
 mod full_tests;
+#[cfg(test)]
+#[path = "spendcaphop_tests.rs"]
+mod spend_tests;

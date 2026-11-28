@@ -115,6 +115,9 @@ mod skillchoice;
 mod skillframe;
 mod skills;
 pub(crate) mod specialists;
+mod spendcap;
+#[path = "spendcapwrap.rs"]
+mod spendcapwrap;
 mod spill;
 mod stalecallers;
 mod standing;

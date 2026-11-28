@@ -54,3 +54,19 @@ fn everything_the_form_produces_reads_back_as_itself() {
         );
     }
 }
+
+#[test]
+fn the_task_cap_reads_in_dollars_and_zero_is_a_value() {
+    assert_eq!(dollars(10.0), "10");
+    assert_eq!(dollars(2.5), "2.5");
+    assert_eq!(dollars(0.0), "0");
+    assert_eq!(commit_usd("0", 10.0), 0.0, "0 turns it off");
+    assert_eq!(commit_usd("2.5", 10.0), 2.5);
+    assert_eq!(commit_usd("", 10.0), 10.0, "not a number keeps the old one");
+    assert_eq!(commit_usd("-3", 10.0), 0.0, "never below off");
+    assert_eq!(
+        commit_usd("2.56", 2.555),
+        2.555,
+        "an unedited box rewrites nothing"
+    );
+}

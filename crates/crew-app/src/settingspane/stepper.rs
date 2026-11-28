@@ -20,7 +20,7 @@ pub(super) fn notch(f: Field) -> Option<f64> {
         Field::NavWidth => 10.0,
         Field::NotifyMinSecs => 1.0,
         Field::Scrollback => 1000.0,
-        Field::Budget5h | Field::Budget7d => 1.0,
+        Field::Budget5h | Field::Budget7d | Field::TaskBudget => 1.0,
         _ => return None,
     })
 }

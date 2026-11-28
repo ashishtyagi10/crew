@@ -63,6 +63,8 @@ pub struct SettingsPane {
     /// number typed is the number said rather than eight digits.
     pub(crate) budget5h_buf: String,
     pub(crate) budget7d_buf: String,
+    /// The per-task spend cap, in dollars as typed.
+    pub(crate) taskbudget_buf: String,
     /// The `scrollback` length, in lines.
     pub(crate) scrollback_buf: String,
     /// The width the form was last DRAWN at, so key handling can ask the
@@ -85,6 +87,7 @@ impl SettingsPane {
         let patterns_buf = cfg.notify_patterns.join("\n");
         let budget5h_buf = tokens::label(cfg.usage_budget_5h);
         let budget7d_buf = tokens::label(cfg.usage_budget_7d);
+        let taskbudget_buf = tokens::dollars(cfg.task_budget_usd);
         let scrollback_buf = format!("{}", cfg.scrollback);
         Self {
             draft: cfg,
@@ -100,6 +103,7 @@ impl SettingsPane {
             patterns_buf,
             budget5h_buf,
             budget7d_buf,
+            taskbudget_buf,
             scrollback_buf,
             cols: std::cell::Cell::new(0),
         }

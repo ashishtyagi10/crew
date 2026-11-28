@@ -181,6 +181,11 @@ pub struct CrewConfig {
     pub usage_budget_5h: u64,
     #[serde(default = "default_usage_budget_7d")]
     pub usage_budget_7d: u64,
+    /// Dollars one task may spend before its pane asks to go on; 0 = never
+    /// asks. Reaches a pane's broker as `CREW_TASK_BUDGET_USD` when the pane
+    /// opens (`chatspawn`), so a change applies to panes opened after it.
+    #[serde(default = "default_task_budget_usd")]
+    pub task_budget_usd: f64,
     /// Recently picked models, most recent first (cap 5) — the `/model`
     /// picker's shortcut section. Slugs only; unknown ones are skipped.
     #[serde(default)]
@@ -253,6 +258,7 @@ impl Default for CrewConfig {
             font_gamma: default_font_gamma(),
             usage_budget_5h: default_usage_budget_5h(),
             usage_budget_7d: default_usage_budget_7d(),
+            task_budget_usd: default_task_budget_usd(),
             model_recents: Vec::new(),
         }
     }

@@ -51,6 +51,10 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
             p.draft.usage_budget_7d =
                 super::tokens::commit(&p.budget7d_buf, p.draft.usage_budget_7d);
         }
+        Field::TaskBudget => {
+            p.draft.task_budget_usd =
+                super::tokens::commit_usd(&p.taskbudget_buf, p.draft.task_budget_usd);
+        }
         Field::NotifyPatterns => {
             p.draft.notify_patterns = p
                 .patterns_buf
@@ -88,6 +92,7 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
     p.patterns_buf = p.draft.notify_patterns.join("\n");
     p.budget5h_buf = super::tokens::label(p.draft.usage_budget_5h);
     p.budget7d_buf = super::tokens::label(p.draft.usage_budget_7d);
+    p.taskbudget_buf = super::tokens::dollars(p.draft.task_budget_usd);
     p.family_query = p
         .draft
         .font_family

@@ -4614,6 +4614,14 @@ thresholded, because a third column only helps while its cards are still wide
 enough to sit their fields in pairs. On a whole window that is three columns
 and no scrolling at all; on a narrow pane it is one column, stacked.
 
+The USAGE card also holds **Cap $/task (0=off)** (`task_budget_usd`, dollars,
+default 10, `0` = off): a task that reaches it pauses and asks before its next
+model call — Enter / `y` raises the cap by the same amount, Esc / `n` ends the
+task with `stopped at the spend cap ($10.40)`. One meter per task, so a swarm's
+agents spend into the same cap. The broker reads it as `CREW_TASK_BUDGET_USD`
+at pane spawn, so a change reaches panes opened afterwards. A model with no
+price counts $0 and never trips it.
+
 The cards are APPEARANCE (the typeface and the colours the page is made of),
 CANVAS (how crew draws them: glass, motion, density, line spacing, contrast,
 shape cues, gradient and the marks a card wears), NOTIFICATIONS, WINDOW and

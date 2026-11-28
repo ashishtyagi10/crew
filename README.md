@@ -785,6 +785,22 @@ file for `sys:read_file` and `sys:grep` to reach what was left out;
 directory and sandbox mode. An optional token budget
 (`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
 
+**Spend cap per task.** A task (a relay thread, or every agent of a swarm
+together) that has spent `task_budget_usd` dollars (default 10, `0` = off;
+the settings form's USAGE card, "Cap $/task (0=off)") pauses before its next
+model call and asks in the pane: `spent $10.40 of the $10 cap — continue?`.
+Enter or `y` raises that task's cap by the same amount and goes on; Esc, `n`,
+silence for five minutes, or `/stop` ends it with `stopped at the spend cap
+($10.40)`, settled and receipted as a stop is. It is checked between calls,
+never in the middle of a reply, so a task can overshoot by one call. Cost is
+what the provider reported or the price list estimates; a model with no
+price counts $0, so a tokens-only provider never reaches the cap, and the
+advisor's and `sys:explore`'s own calls are not counted. The setting reaches
+a pane's broker as `CREW_TASK_BUDGET_USD` when the pane opens, so a change
+applies to panes opened after it (a value set in the shell is used by brokers
+the app does not spawn, such as the daemon's). A swarm with the cap off keeps
+its older hard $1 `budget_governor` stop.
+
 Tool use shows in the transcript as its own voice: the call announces itself
 subject-first, the result card leads with `sys:run ✓ 1.2s` — outcome and
 duration, `✗` for a command that exited non-zero — and its output is folded
@@ -972,7 +988,8 @@ The engine is wired into the app through two commands, each opening a live
 
 Real-LLM `/goal` and `/batch` runs are capped by the `budget_governor` (default
 $1.00); the pane shows a "budget exceeded — swarm cancelled" notice if the cap
-trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+trips. With a per-task spend cap on (`task_budget_usd`, below) a swarm asks at
+that cap instead of being cancelled at $1. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [docs/superpowers/specs/2026-06-27-crew-agent-swarm-design.md](docs/superpowers/specs/2026-06-27-crew-agent-swarm-design.md).
 
 ## Settings

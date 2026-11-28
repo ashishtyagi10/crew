@@ -120,7 +120,8 @@ pub(super) fn usage(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u
     let (ix, iw) = inner(x, w);
     let cy = y + 1;
     let rows = pair(rects, ix, iw, cy, Field::Budget5h, Field::Budget7d);
-    cy + rows + 1 - y
+    lone(rects, ix, iw, cy + rows, Field::TaskBudget);
+    cy + rows + 3 + 1 - y
 }
 
 /// Content inset inside a card border: x + 2, width − 4.

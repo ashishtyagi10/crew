@@ -40,6 +40,7 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
         Field::Scrollback => Some(&mut p.scrollback_buf),
         Field::Budget5h => Some(&mut p.budget5h_buf),
         Field::Budget7d => Some(&mut p.budget7d_buf),
+        Field::TaskBudget => Some(&mut p.taskbudget_buf),
         Field::NotifyPatterns => Some(&mut p.patterns_buf),
         _ => None,
     }
@@ -51,7 +52,9 @@ pub(super) fn allowed(f: Field, buf: &str, c: char) -> bool {
         Field::FontSize | Field::NavWidth | Field::NotifyMinSecs | Field::Scrollback => {
             c.is_ascii_digit()
         }
-        Field::Budget5h | Field::Budget7d => c.is_ascii_digit() || (c == '.' && !buf.contains('.')),
+        Field::Budget5h | Field::Budget7d | Field::TaskBudget => {
+            c.is_ascii_digit() || (c == '.' && !buf.contains('.'))
+        }
         Field::Accent => (c == '#' || c.is_ascii_hexdigit()) && buf.len() < 7,
         Field::NotifyPatterns => !c.is_control(),
         _ => false,

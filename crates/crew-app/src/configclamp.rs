@@ -80,6 +80,11 @@ impl CrewConfig {
             font_gamma: self.font_gamma,
             usage_budget_5h: self.usage_budget_5h.max(10_000),
             usage_budget_7d: self.usage_budget_7d.max(10_000),
+            // Dollars; a negative or unreadable cap is "off", never a refund.
+            task_budget_usd: match self.task_budget_usd {
+                v if v.is_finite() && v >= 0.0 => v,
+                _ => 0.0,
+            },
             model_recents: self.model_recents,
             // Two values, failing closed: anything but `allow` reads as `deny`.
             clipboard_read,
