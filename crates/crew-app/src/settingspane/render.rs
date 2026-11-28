@@ -72,6 +72,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
         Field::Notify => check(buf, d.notify),
         Field::NotifyAgentDone => check(buf, d.notify_agent_done),
         Field::NotifyBell => check(buf, d.notify_bell),
+        Field::NotifyOs => check(buf, d.notify_os),
         Field::NotifyExit => check(buf, d.notify_exit),
         Field::NotifyPatterns => form::text_area(buf, r, label_of(f), &p.patterns_buf, focused),
         Field::Save | Field::Cancel => {}

@@ -39,6 +39,7 @@ impl CrewConfig {
             notify: self.notify,
             notify_agent_done: self.notify_agent_done,
             notify_bell: self.notify_bell,
+            notify_os: self.notify_os,
             notify_exit: self.notify_exit,
             notify_min_secs: self.notify_min_secs.clamp(1, 3600),
             notify_patterns: self

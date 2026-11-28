@@ -38,6 +38,8 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         // Commands AND agent turns since 0.25.32: "cmd done" undersold it.
         Field::NotifyAgentDone => "Notify: done",
         Field::NotifyBell => "Notify: bell",
+        // Short: the card is narrow. It is the OS banner when crew is not in front.
+        Field::NotifyOs => "Notify: banner",
         Field::NotifyExit => "Notify: pane exit",
         Field::NotifyMinSecs => "Min secs",
         // "Patterns (one per line)" is 23 columns and needs 29 with its
@@ -133,6 +135,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::Notify => (onoff(p.draft.notify), false),
         Field::NotifyAgentDone => (onoff(p.draft.notify_agent_done), false),
         Field::NotifyBell => (onoff(p.draft.notify_bell), false),
+        Field::NotifyOs => (onoff(p.draft.notify_os), false),
         Field::NotifyExit => (onoff(p.draft.notify_exit), false),
         Field::NotifyMinSecs => (p.minsecs_buf.clone(), true),
         Field::Scrollback => (p.scrollback_buf.clone(), true),

@@ -67,8 +67,8 @@ impl CrewApp {
 
     /// Surface a pane event through the notification system: gated by the config
     /// toggles, throttled by the [`crate::notify::Notifier`], then flashed on the
-    /// input bar and appended to the LOG (via [`Self::set_status`]). In-app only —
-    /// no OS notifications.
+    /// input bar and appended to the LOG (via [`Self::set_status`]). A finish while
+    /// the window is unfocused also posts an OS banner (`osnotify`).
     pub(crate) fn notify(&mut self, kind: crate::notify::NotifyKind, pane: String, detail: String) {
         use crate::notify::NotifyKind;
         if !self.config.notify {
@@ -98,6 +98,7 @@ impl CrewApp {
         // reaped in the same tick, so a card offering to open it would be
         // offering something that no longer exists.
         let target = (kind != NotifyKind::Exited).then(|| pane.clone());
+        let (pane_for_banner, detail_for_banner) = (pane.clone(), detail.clone());
         if let Some(msg) = self
             .notifier
             .record(kind, pane, detail, std::time::Instant::now())
@@ -125,6 +126,8 @@ impl CrewApp {
                 self.toasts
                     .push_for(msg.clone(), legend, alert, crate::anim::now_ms(), target);
             }
+            // The OS banner, for a finish while the window is out of sight.
+            self.os_banner(kind, &pane_for_banner, &detail_for_banner);
             self.set_status(msg);
             // Away from crew altogether: the Dock icon bounces once for news
             // that wants you back — done, failed, waiting, or asked for.

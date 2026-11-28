@@ -97,6 +97,7 @@ pub(super) fn notifications(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u
         Field::Notify,
         Field::NotifyAgentDone,
         Field::NotifyBell,
+        Field::NotifyOs,
         Field::NotifyExit,
     ] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));
