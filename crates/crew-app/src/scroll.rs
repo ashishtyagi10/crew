@@ -139,7 +139,9 @@ impl CrewApp {
         // The inbox asks which of its cards the wheel is over.
         let over = self.cursor_any_cell().map(|(_, c, r)| (r, c));
         let mods = crate::mousereport::wheel_mods(self.mods.state());
-        let px = self.cursor_term_cell().and_then(|_| self.pane_px(i));
+        let px = (self.pixel_mouse_at(Some((i, 0, 0))) && self.cursor_term_cell().is_some())
+            .then(|| self.pane_px(i))
+            .flatten();
         if let Some(pane) = self.panes.get_mut(i) {
             if let PaneContent::Inbox(p) = &mut pane.content {
                 p.motion.wheel_at = over;

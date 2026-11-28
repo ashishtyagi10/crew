@@ -117,8 +117,13 @@ impl CrewApp {
         let here = self.term_content_cell();
         let key = here.map(|(i, col, row)| (i, (col, row)));
         // Under SGR-Pixels a move inside one cell is still news.
-        let px = here.and_then(|(i, ..)| Some((i, self.pane_px(i)?)));
-        let moved_px = px != self.mouse.last_px && self.pixel_mouse_at(here);
+        // Only where a program asked for pixels: the conversion walks the
+        // pane rects, and a fast mouse over a cell-mode terminal pays nothing.
+        let on = self.pixel_mouse_at(here);
+        let px = here
+            .filter(|_| on)
+            .and_then(|(i, ..)| Some((i, self.pane_px(i)?)));
+        let moved_px = on && px != self.mouse.last_px;
         if key == self.mouse.last && !moved_px {
             return false;
         }
@@ -150,7 +155,7 @@ impl CrewApp {
 
     /// Whether the pane under the pointer has SGR-Pixels (1016) on, so a
     /// move within one cell must still be reported.
-    fn pixel_mouse_at(&self, here: Option<(usize, u16, u16)>) -> bool {
+    pub(crate) fn pixel_mouse_at(&self, here: Option<(usize, u16, u16)>) -> bool {
         let Some((i, ..)) = here else {
             return false;
         };
