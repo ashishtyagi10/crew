@@ -118,3 +118,16 @@ fn a_text_only_fallback_is_rendered_its_own_request() {
         "q\n\n[image omitted: a.png, this model reads text only]"
     );
 }
+
+#[test]
+fn openrouter_wire_carries_exactly_twenty_with_notes_in_place() {
+    let m = build_messages(&crate::provider::imagecap::tests::request("gpt-4o", 4));
+    let v = serde_json::Value::Array(m.clone());
+    assert_eq!(crate::provider::imagecap::tests::count(&v, "image_url"), 20);
+    let tool = m.iter().find(|x| x["role"] == "tool").unwrap();
+    assert!(tool["content"]
+        .as_str()
+        .unwrap()
+        .contains(&crate::provider::imagecap::tests::note("r0_0")));
+    assert!(!v.to_string().contains("image dropped: r1_0"));
+}

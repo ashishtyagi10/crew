@@ -10,12 +10,12 @@ use std::sync::Arc;
 /// Pictures one request carries from a task's text, and one tool round adds.
 pub const MAX_IMAGES: usize = 5;
 
-/// The most one picture may weigh ON THE WIRE (its base64 text), Anthropic's
-/// per-image limit. Measured encoded rather than raw because that is the size
+/// The most one picture may weigh ON THE WIRE (its base64 text). Anthropic's
+/// docs allow 10 MB base64 on the Claude API but 5 MB on Amazon Bedrock and
+/// Google-managed Vertex, so 5 MB is the cap that works on every route. Measured encoded rather than raw because that is the size
 /// the API reads, so a file the API would refuse is refused here, with a note
-/// the model can use, instead of failing the turn with a 400. (Unverified:
-/// whether the API counts the encoded or the decoded bytes; encoded is the
-/// stricter reading.)
+/// the model can use, instead of failing the turn with a 400. (The docs say
+/// base64-encoded.) See `imagecap` for the per-request limits.
 pub const MAX_WIRE: usize = 5 * 1024 * 1024;
 
 /// One image: its bytes already base64, because every request resends it and

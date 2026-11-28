@@ -21,6 +21,7 @@ mod fellback;
 mod hint;
 mod hintmatch;
 pub(crate) mod image;
+mod imagecap;
 mod imagetask;
 mod imagevision;
 mod io;

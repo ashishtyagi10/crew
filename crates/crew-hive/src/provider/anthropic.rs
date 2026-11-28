@@ -215,6 +215,7 @@ impl AnthropicProvider {
 /// assistant turn is rejected outright — so the conversation is rebuilt in
 /// full on every request rather than sending only the newest exchange.
 pub(crate) fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
+    let req = &*super::imagecap::capped(req);
     let first = super::anthropicimage::user_content(&req.model, &req.prompt, &req.images);
     let mut messages = vec![serde_json::json!({"role": "user", "content": first})];
     for turn in &req.turns {

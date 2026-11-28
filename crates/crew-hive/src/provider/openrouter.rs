@@ -41,6 +41,7 @@ pub struct OpenRouterProvider {
 /// OpenAI shape pairs them by that id, so one message per result, never one
 /// message carrying several.
 fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
+    let req = &*super::imagecap::capped(req);
     let mut messages = Vec::new();
     if let Some(sys) = &req.system {
         messages.push(serde_json::json!({"role": "system", "content": sys}));
