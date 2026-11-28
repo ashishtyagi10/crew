@@ -297,7 +297,7 @@ the command palette write each chord the way that machine presses it.
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Ctrl+I ≠ Tab, Esc ≠ Alt, Shift+Enter ≠ Enter for nvim, helix, fish 4, Claude Code | automatic: crew speaks the kitty keyboard protocol's disambiguate flag (`CSI … u`) to a program that asks |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
-| Meta (M-b, M-f, M-d, M-.) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
+| Meta (M-r, M-.; on a Mac also M-b, M-f, M-d) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
 | An accented letter (é, ñ, ü) in a terminal | the layout's dead key, then the letter (on a Mac: **Option+e** then **e**, while Option is not Meta) |
 | Japanese, Chinese or Korean in a terminal or the input bar | your Mac input source as usual: the text being composed shows underlined at the cursor, and the candidate list opens beside it |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
@@ -342,7 +342,8 @@ Ctrl, by where the focus is:
 | Focus | Ctrl keys |
 |---|---|
 | Terminal | Every Ctrl key goes to the program, with two exceptions taken from Windows Terminal: `Ctrl+C copies when text is selected` (and sends ^C otherwise), and `Ctrl+V pastes`. |
-| Editor, input bar, settings fields, inbox compose | Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save, Ctrl+A select all, Ctrl+C / X / V, Ctrl+F find, Ctrl+B / I bold and italic in markdown. |
+| Editor (a viewer pane being edited) | Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save, Ctrl+A select all, Ctrl+C / X / V, Ctrl+F find, Ctrl+B / I bold and italic in markdown. |
+| Input bar, settings fields, inbox compose | Ctrl+V paste; Ctrl+S saves the settings form or the inbox draft. |
 | Anywhere | Ctrl+Tab / Ctrl+Shift+Tab step panes, Ctrl+PgUp / PgDn step tabs, Ctrl+1 … 9 go to tab N. Ctrl+Click and Ctrl+wheel stand in for Cmd+Click and Cmd+wheel. |
 
 What Alt gives up: `Alt as Meta in a terminal.` Alt+letter used to send

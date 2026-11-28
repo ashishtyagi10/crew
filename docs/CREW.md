@@ -428,7 +428,7 @@ the command palette write each chord the way that machine presses it.
 | Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Jump / delete a word in a terminal | **Option+←/→** / **Option+Backspace** |
-| Meta (M-b, M-f, M-d, M-.) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
+| Meta (M-r, M-.; on a Mac also M-b, M-f, M-d) in a terminal | **Alt+key** (on a Mac: **Option+key** with Settings → **Option key is Meta**) |
 | An accented letter (é, ñ, ü) in a terminal | the layout's dead key, then the letter (on a Mac: **Option+e** then **e**, while Option is not Meta) |
 | Japanese, Chinese or Korean in a terminal or the input bar | your Mac input source as usual: the text being composed shows underlined at the cursor, and the candidate list opens beside it |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
@@ -706,9 +706,10 @@ Terminal.app sends them), **F1–F12** send xterm's sequences (htop, mc, vim
 mappings), and a program that switches the cursor keys to application mode gets
 `ESC O A`-style arrows. Ctrl+Space and Ctrl+2 send NUL (set-mark, a C-Space
 tmux prefix), Ctrl+/ sends `0x1f` (emacs/nano undo), and Ctrl+3…8 send xterm's
-ESC, FS, GS, RS, US and DEL. **Alt+key** is Meta: `ESC` then the key, so
-readline's M-b, M-f, M-d and M-. (last argument) and emacs's M-x work (Ctrl+Alt
-is AltGr on Windows and still types `@` or `{`). On a Mac Option types
+ESC, FS, GS, RS, US and DEL. **Alt+key** is Meta: `ESC` then the key — off a
+Mac only for the Alt keys crew leaves free (R and the unused punctuation, so
+M-r and M-. (last argument) work; M-b, M-f, M-d and M-x are crew's there, see
+Windows and Linux keys). Ctrl+Alt is AltGr on Windows and still types `@` or `{`. On a Mac Option types
 characters (`∫`, `™`), so Meta there is the Settings switch **Option key is
 Meta**, off by default. Shells launch as your `$SHELL` login shell, so
 your full config and plugins load.
@@ -772,7 +773,8 @@ Ctrl, by where the focus is:
 | Focus | Ctrl keys |
 |---|---|
 | Terminal | Every Ctrl key goes to the program, with two exceptions taken from Windows Terminal: `Ctrl+C copies when text is selected` (and sends ^C otherwise), and `Ctrl+V pastes`. |
-| Editor, input bar, settings fields, inbox compose | Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save, Ctrl+A select all, Ctrl+C / X / V, Ctrl+F find, Ctrl+B / I bold and italic in markdown. |
+| Editor (a viewer pane being edited) | Ctrl+Z undo, Ctrl+Y redo, Ctrl+S save, Ctrl+A select all, Ctrl+C / X / V, Ctrl+F find, Ctrl+B / I bold and italic in markdown. |
+| Input bar, settings fields, inbox compose | Ctrl+V paste; Ctrl+S saves the settings form or the inbox draft. |
 | Anywhere | Ctrl+Tab / Ctrl+Shift+Tab step panes, Ctrl+PgUp / PgDn step tabs, Ctrl+1 … 9 go to tab N. Ctrl+Click and Ctrl+wheel stand in for Cmd+Click and Cmd+wheel. |
 
 What Alt gives up: `Alt as Meta in a terminal.` Alt+letter used to send
