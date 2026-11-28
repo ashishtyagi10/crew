@@ -45,8 +45,11 @@ impl Run {
         let mut r = Reaction::default();
         match ev {
             // Ours is the first task the broker announces; its end is the run's end.
-            PluginEvent::Task { id, running, .. } => {
-                if running && self.task.is_none() {
+            // `seq` 1 is the one Send exec makes, so a task some other door started is not ours.
+            PluginEvent::Task {
+                id, running, seq, ..
+            } => {
+                if running && self.task.is_none() && seq == 1 {
                     self.task = Some(id);
                 } else if !running && self.task == Some(id) {
                     self.done = true;
@@ -56,7 +59,16 @@ impl Run {
                 sender, text, meta, ..
             } if meta.starts_with("task:") => {
                 if sender == "agent smith" {
+                    // The broker says a task failed or was stopped ONLY in smith's words — a
+                    // `✗` line, or the changed-files card headed "task #N failed|stopped ·" —
+                    // never as an `Error` event; missing it exits 0 on a partial answer.
+                    if ended_badly(&text) {
+                        self.errors.push(first_line(&text).to_string());
+                    }
                     r.log.push(text); // routing / plan notes: progress, not the answer
+                } else if crew_plugin::metatag::has(&meta, crew_plugin::metatag::SUB) {
+                    // One sub-agent's card, "not the answer to the user" (metatag::SUB).
+                    r.log.push(format!("[{sender}] {}", first_line(&text)));
                 } else {
                     r.log.push(format!("[{sender}] {}", first_line(&text)));
                     self.answer = Some(text);
@@ -107,6 +119,16 @@ impl Run {
             EXIT_OK
         }
     }
+}
+
+/// Smith's end-of-task words for a failure or a stop (`broker::stdio`, `receipt::headline`).
+fn ended_badly(text: &str) -> bool {
+    let head = first_line(text);
+    head.starts_with('\u{2717}')
+        || head.strip_prefix("task #").is_some_and(|r| {
+            let r = r.trim_start_matches(|c: char| c.is_ascii_digit());
+            r.starts_with(" failed \u{b7}") || r.starts_with(" stopped \u{b7}")
+        })
 }
 
 fn first_line(s: &str) -> &str {

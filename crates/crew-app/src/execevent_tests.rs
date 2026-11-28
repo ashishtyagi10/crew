@@ -100,3 +100,58 @@ fn another_tasks_end_does_not_end_ours() {
     run.absorb(task(1, false));
     assert!(!run.done);
 }
+
+#[test]
+fn a_failed_or_stopped_task_fails_the_run_even_with_an_answer() {
+    for end in [
+        "\u{2717} task #1: provider timed out",
+        "\u{2717} task #1 stopped \u{2014} no file changed",
+        "task #1 failed \u{b7} edited 2 files (+3 \u{2212}1): a.rs, b.rs",
+        "task #12 stopped \u{b7} edited 1 file: a.rs",
+    ] {
+        let mut run = Run::new(false);
+        run.absorb(task(1, true));
+        run.absorb(msg("leaf-0", "half an answer", "task:1"));
+        run.absorb(msg("agent smith", end, "task:1"));
+        run.absorb(task(1, false));
+        assert_eq!(run.exit_code(), EXIT_FAILED, "{end}");
+    }
+    let mut run = Run::new(false);
+    run.absorb(task(1, true));
+    run.absorb(msg("agent smith", "task #1: edited 1 file: a.rs", "task:1"));
+    run.absorb(msg("merge", "done", "task:1"));
+    assert_eq!(run.exit_code(), EXIT_OK, "a clean receipt is not a failure");
+}
+
+#[test]
+fn a_sub_agents_card_is_never_the_answer() {
+    let mut run = Run::new(false);
+    run.absorb(task(1, true));
+    run.absorb(msg(
+        "leaf-3",
+        "one worker's notes",
+        "task:1 \u{b7} sub \u{b7} 2.1s",
+    ));
+    run.absorb(task(1, false));
+    assert_eq!(run.answer, None);
+    assert_eq!(run.exit_code(), EXIT_FAILED);
+}
+
+#[test]
+fn a_task_another_send_started_is_not_ours() {
+    let mut run = Run::new(false);
+    run.absorb(PluginEvent::Task {
+        id: 9,
+        label: String::new(),
+        running: true,
+        seq: 0,
+    });
+    run.absorb(task(1, true));
+    run.absorb(PluginEvent::Task {
+        id: 9,
+        label: String::new(),
+        running: false,
+        seq: 0,
+    });
+    assert!(!run.done);
+}

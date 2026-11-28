@@ -14,7 +14,8 @@ fn a_prompt_argument_is_used_and_stdin_is_left_alone() {
         o,
         Opts {
             prompt: "fix the typo".into(),
-            allow: false
+            allow: false,
+            timeout: None,
         }
     );
 }
@@ -47,4 +48,18 @@ fn an_unknown_flag_is_a_usage_error_but_after_dashdash_it_is_prompt() {
         parse(&s(&["--", "--bogus"]), never).unwrap().prompt,
         "--bogus"
     );
+}
+
+#[test]
+fn timeout_takes_whole_seconds_and_refuses_anything_else() {
+    let o = parse(&s(&["--timeout", "90", "go"]), never).unwrap();
+    assert_eq!(o.timeout, Some(std::time::Duration::from_secs(90)));
+    assert_eq!(o.prompt, "go");
+    for bad in [
+        &["--timeout"][..],
+        &["--timeout", "soon", "go"],
+        &["--timeout", "0", "go"],
+    ] {
+        assert!(parse(&s(bad), never).is_err(), "{bad:?}");
+    }
 }

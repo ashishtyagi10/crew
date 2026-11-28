@@ -8,6 +8,9 @@ fn crew(dir: &std::path::Path, args: &[&str]) -> std::process::Output {
         .current_dir(dir)
         .env("CREW_BROKER_MOCK_REPLY", "hello from the mock")
         .env("CREW_PROJECT_DIR", dir)
+        // Hermetic, as `crew-plugin/tests/common`: no login-shell probe, no real ~/.crew.
+        .env("CREW_SHELL_ENV", "0")
+        .env("HOME", dir)
         .stdin(std::process::Stdio::null())
         .output()
         .unwrap()

@@ -22,6 +22,9 @@ pub(crate) fn run(opts: &Opts) -> i32 {
     // stderr is inherited so the broker's own diagnostics stay on the caller's stderr.
     let mut cmd = Command::new(exe);
     no_console_window(&mut cmd);
+    // The settings the pane's and the daemon's brokers get (the spend cap), so a headless run
+    // honours the user's `task_budget_usd` too.
+    cmd.envs(crate::config::CrewConfig::load().broker_env());
     let spawned = cmd
         .arg("--broker-plugin")
         .stdin(Stdio::piped())
@@ -57,11 +60,26 @@ pub(crate) fn run(opts: &Opts) -> i32 {
         return fail("the broker closed its input".into());
     }
     let mut state = Run::new(opts.allow);
+    let deadline = opts.timeout.map(|t| Instant::now() + t);
     // A closed channel means the broker's output ended before the task did.
     while !state.done {
-        let Ok(ev) = rx.recv() else {
-            reap(&mut child);
-            return fail("the broker exited before the task finished".into());
+        let left = deadline.map(|d| d.saturating_duration_since(Instant::now()));
+        let ev = match left {
+            Some(l) => rx
+                .recv_timeout(l)
+                .map_err(|e| e == mpsc::RecvTimeoutError::Timeout),
+            None => rx.recv().map_err(|_| false),
+        };
+        let ev = match ev {
+            Ok(ev) => ev,
+            Err(timed_out) => {
+                let _ = child.kill(); // a stuck run is not waited on for its grace period
+                reap(&mut child);
+                return fail(match timed_out {
+                    true => "timed out (--timeout)".into(),
+                    false => "the broker exited before the task finished".into(),
+                });
+            }
         };
         let r = state.absorb(ev);
         r.log.iter().for_each(|l| eprintln!("{l}"));
