@@ -29,6 +29,10 @@ pub struct Usage {
     /// lifted out of the answer and said as smith's row under it, like
     /// `refused`, so the raw `@tool` line is not drawn as the agent's words.
     pub not_run: String,
+    /// `? unsure: calc.py was never run` when the thread's final answer
+    /// ended in the model's own `Unsure:` line (`unsure::split_unsure`):
+    /// lifted out and said as smith's row under the answer, like `not_run`.
+    pub unsure: String,
     /// `gpt-5 retires Dec 11 — gpt-6.1-sol next` when the model asked for
     /// (or, failing that, the one that answered) is within
     /// `sunset::WARN_DAYS` of its vendor's shutdown, or past it; empty
@@ -53,6 +57,7 @@ impl Usage {
             context_window: 0,
             refused: String::new(),
             not_run: String::new(),
+            unsure: String::new(),
             retiring: crate::broker::sunsetsaid::retiring(
                 requested,
                 &c.model,

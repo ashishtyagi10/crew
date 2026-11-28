@@ -166,3 +166,13 @@ fn edits_left_by_a_spent_budget_say_the_budget_stopped_them() {
         "the trailing call is cut: {answer}"
     );
 }
+
+/// The model's closing `Unsure:` line leaves the answer before the
+/// checklist's line lands under it, and comes back as smith's row.
+#[test]
+fn a_closing_unsure_line_is_lifted_into_smiths_row() {
+    let (text, note, unsure) =
+        crate::broker::toolround::finished(None, "Done.\nUnsure: edge cases".into());
+    assert_eq!((text.as_str(), note.as_str()), ("Done.", ""));
+    assert_eq!(unsure, "? unsure: edge cases");
+}

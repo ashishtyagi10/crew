@@ -4,7 +4,7 @@
 //! the answer is everything above the final control line, which is `@next
 //! <agent>` (hand off) or `@done` (finish). A missing/garbled directive safely
 //! ends the thread rather than mis-routing.
-use super::Envelope;
+use super::{unsure::asking, Envelope};
 
 /// What the broker does with an agent's reply.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,13 +78,13 @@ pub fn repair_prompt(peers: &[String], prev: &str) -> String {
     } else {
         peers.join(", ")
     };
-    format!(
+    asking(format!(
         "Your previous reply was missing the required final control line:\n\n\
          {prev}\n\n\
          Reply again with your answer, then make the FINAL line exactly one of:\n\
          - `@next <agent>` to hand off to a peer (only from: {peer_list})\n\
          - `@done` if the task is complete.",
-    )
+    ))
 }
 
 /// Cap on the task text interpolated into every hop's prompt (see [`frame`]).
@@ -141,7 +141,7 @@ pub fn frame(
     // system prompt says none). Alone it is "in full", not "in full but
     // without padding": replayed, the padding clause cut the samples that
     // read the repo before answering from 16 of 16 to 10–13.
-    let how = if alone {
+    let how = asking(if alone {
         "HOW TO REPLY: this turn is yours alone \u{2014} do the work, answer in \
          full, then end your answer with the line `@done`."
             .to_string()
@@ -153,7 +153,7 @@ pub fn frame(
              - `@done` if the task is complete and no further reply is needed.",
             names.join(", ")
         )
-    };
+    });
     // "You are first — no replies yet" told an agent alone on its turn that
     // replies were coming. With peers it is true, and it stays.
     let convo = match (transcript.trim().is_empty(), alone) {
