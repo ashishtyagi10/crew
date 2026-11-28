@@ -37,19 +37,24 @@ fn sel(pane: usize) -> Option<CellSel> {
 }
 
 #[test]
-fn the_selection_in_any_pane_is_what_a_middle_click_pastes() {
+fn the_focused_panes_selection_is_what_a_middle_click_pastes() {
     let _g = crate::app::theme_test_guard();
     let mut app = CrewApp::default();
-    assert_eq!(app.selection_anywhere(), None, "no panes, nothing selected");
+    assert_eq!(app.selection_here(), None, "no panes, nothing selected");
     app.panes.push(far());
     app.panes.push(far());
-    app.focused = 0;
-    assert_eq!(app.selection_anywhere(), None);
     app.cell_sel = sel(1);
+    app.focused = 0;
+    assert_eq!(
+        app.selection_here(),
+        None,
+        "a selection elsewhere is not pasted"
+    );
+    app.focused = 1;
     let want = app.pane_selection_text(1);
     assert!(want.is_some(), "the far pane draws text to select");
-    assert_eq!(app.selection_anywhere(), want, "another pane's selection");
+    assert_eq!(app.selection_here(), want);
     app.input.focused = true;
-    app.paste_text(want.clone().unwrap());
+    app.paste_text(want.unwrap());
     assert!(!app.input.text.is_empty(), "the bar took it");
 }

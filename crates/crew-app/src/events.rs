@@ -210,7 +210,7 @@ impl CrewApp {
                 ..
             } => {
                 // Right-click pastes into the surface under the cursor, and a
-                // middle click the last selection (`middlepaste`), unless the
+                // middle click the focused pane's selection (`middlepaste`), unless the
                 // program there asked for the mouse.
                 if !self.report_press(b) {
                     self.middle_or_right_paste(b == MouseButton::Middle);
