@@ -1,0 +1,48 @@
+//! The "rounds are running low" line a native tool result carries.
+//!
+//! The budget used to reach the model only once it was spent (`toolloop`'s
+//! budget note), so an agent mid-edit was cut off instead of wrapping up. This
+//! tells it over the budget's last fifth, while a verify step still fits.
+//!
+//! It is appended to the provider-bound [`ToolOutcome`]s only, AFTER the batch
+//! published its per-call `ToolResult` events (the pane's transcript) from
+//! their own text, so the host never sees it. It lives in the newest
+//! `Turn::ToolResults` and is never rewritten by it, which keeps the provider's
+//! prompt-cache prefix stable (stubbing old results is `stubs`' own trade), and
+//! every wire (Anthropic `tool_result`, OpenAI-style `tool` messages) renders
+//! those same outcomes, so none needs its own copy.
+
+use crate::provider::ToolOutcome;
+
+/// The line for a round with `left` rounds remaining after it, in a budget of
+/// `total`, or none while there is room. Low is the last fifth of the budget,
+/// and at least the last round: an ordinary solo task's 4 rounds hear it once,
+/// ahead of the last — told at 2 of 4 it wrapped up with half its budget
+/// unused. A budget of three or fewer is all low, so says nothing.
+/// Not at 0: the line is the warning ahead of the last round, and the spent
+/// budget has its own note (`toolloop::with_budget_note`).
+pub(super) fn line(left: u32, total: u32) -> Option<String> {
+    if total <= 3 || left == 0 || left > 1.max(total / 5) {
+        return None;
+    }
+    let s = if left == 1 { "" } else { "s" };
+    Some(format!(
+        "[{left} tool round{s} left \u{2014} finish and verify the change, or say plainly what is left undone.]"
+    ))
+}
+
+/// `content` without a reminder at its end: the last word's transcript
+/// (`lastword`) is read when no round is left, and an old "1 left" there lies.
+pub(super) fn strip(content: &str) -> &str {
+    match content.rsplit_once("\n\n[") {
+        Some((body, tail)) if tail.contains(" left \u{2014} finish and verify") => body,
+        _ => content,
+    }
+}
+
+/// Add the reminder (if any) to the last outcome of the round just run.
+pub(super) fn append(results: &mut [ToolOutcome], left: u32, total: u32) {
+    if let (Some(line), Some(last)) = (line(left, total), results.last_mut()) {
+        last.content = format!("{}\n\n{line}", last.content.trim_end());
+    }
+}

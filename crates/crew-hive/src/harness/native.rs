@@ -13,6 +13,9 @@ mod calls_tests;
 #[path = "nativekit_tests.rs"]
 mod kit;
 #[cfg(test)]
+#[path = "reminder_tests.rs"]
+mod reminder_tests;
+#[cfg(test)]
 #[path = "native_tests.rs"]
 mod tests;
 
@@ -137,13 +140,16 @@ pub(super) async fn run(
         // budget, its edits and its check are what the answer stands on.
         let drawn = ctx.take_round(round);
         let wrote = tools.checklist().map(todo::Checklist::writes);
-        let results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion, round).await;
+        let mut results = batch::run(&ctx, &tools, &catalog, &mut seen, &completion, round).await;
         let ran = ran_of(&completion.calls, &results, &catalog);
         let said = completion.text.clone();
         turns.push(Turn::Assistant {
             text: completion.text,
             calls: completion.calls,
         });
+        if let Some(left) = drawn {
+            super::reminder::append(&mut results, left, ctx.budget.allowance());
+        }
         turns.push(Turn::ToolResults(results));
 
         if drawn.is_none() {

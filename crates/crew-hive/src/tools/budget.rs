@@ -85,6 +85,14 @@ impl ToolBudget {
         self.total
     }
 
+    /// The most rounds one agent can draw: its own cap, or the run's whole
+    /// pool when that is smaller. What "low" is measured against for one agent
+    /// (`harness::reminder`) — the pool of a nine-task run is 36, and a fifth
+    /// of it said "7 left" to an agent that could never draw more than 8.
+    pub fn allowance(&self) -> u32 {
+        self.total.min(self.per_agent)
+    }
+
     /// Rounds nobody has taken yet.
     pub fn left(&self) -> u32 {
         self.left.load(Ordering::Acquire)
