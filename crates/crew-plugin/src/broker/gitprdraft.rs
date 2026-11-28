@@ -154,10 +154,15 @@ pub(crate) fn draft(
         true => free_branch(&dir, &branch_name(&title)),
         false => r.branch.clone(),
     };
+    let head = match super::gitpr::git(&dir, &["rev-parse", "HEAD"]) {
+        Ok(h) => h,
+        Err(e) => return emit(say(format!("pull request: {e}"))),
+    };
     let p = PendingPr {
         branch,
         create_branch,
         base: r.base,
+        head,
         title,
         body,
     };

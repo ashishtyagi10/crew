@@ -159,6 +159,7 @@ pub(crate) fn handle(
     super::clauderesume::Resume::shared().forget();
     super::steer::clear();
     *session.plan.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    super::gitpr::drop_pr(session);
     *super::undo::lock(&session.undo) = None;
     lock(&session.rewind).drop_from(task);
     emit(emit_one(task, Some((&rep, true)), pin, String::new()))

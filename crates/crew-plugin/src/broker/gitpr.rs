@@ -19,6 +19,10 @@ pub(crate) struct PendingPr {
     /// create `branch` from HEAD. The base itself is never pushed.
     pub create_branch: bool,
     pub base: String,
+    /// The commit the title and body describe. Apply refuses if HEAD moved:
+    /// a commit made after the draft would be pushed under a description
+    /// written without it.
+    pub head: String,
     pub title: String,
     pub body: String,
 }
@@ -33,6 +37,22 @@ pub(crate) fn pending(session: &Session) -> bool {
         .lock()
         .unwrap_or_else(|e| e.into_inner())
         .is_some()
+}
+
+/// Forget a drafted pull request (`/clear`, rewind, a new plan).
+pub(crate) fn drop_pr(session: &Session) {
+    session.pr.lock().unwrap_or_else(|e| e.into_inner()).take();
+}
+
+/// The confirm that opens a pull request: "apply" alone, never the looser
+/// "yes" / "do it" the commit and plan accept — this one writes to a remote,
+/// and a "yes" answering some other question must not.
+pub(crate) fn opens_pr(task: &str) -> bool {
+    let t = task.trim().trim_end_matches(['.', '!']).to_lowercase();
+    matches!(
+        t.as_str(),
+        "apply" | "apply it" | "yes apply" | "yes, apply"
+    )
 }
 
 /// Store a drafted commit, dropping any pending PR: one pending thing at a

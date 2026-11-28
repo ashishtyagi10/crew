@@ -23,8 +23,9 @@ fn exists(dir: &Path, r: &str) -> bool {
     git(dir, &["rev-parse", "--verify", "--quiet", r]).is_ok()
 }
 
-/// The remote's default branch: `origin/HEAD`, else a `main` / `master` that
-/// exists (remote first, then local).
+/// The remote's default branch: `origin/HEAD`, else the ONE of `main` /
+/// `master` that exists (remote or local). Both and no `origin/HEAD` is
+/// refused: guessing `main` on a `master` repo would push the real base.
 fn default_base(dir: &Path) -> Option<String> {
     if let Ok(h) = git(
         dir,
@@ -34,13 +35,17 @@ fn default_base(dir: &Path) -> Option<String> {
             return Some(b.to_string());
         }
     }
-    ["main", "master"]
+    let found: Vec<&str> = ["main", "master"]
         .into_iter()
-        .find(|b| {
+        .filter(|b| {
             exists(dir, &format!("refs/remotes/origin/{b}"))
                 || exists(dir, &format!("refs/heads/{b}"))
         })
-        .map(str::to_string)
+        .collect();
+    match found.as_slice() {
+        [one] => Some(one.to_string()),
+        _ => None,
+    }
 }
 
 /// Check every precondition, in order; `Err` is the status line to show.
@@ -75,7 +80,9 @@ pub(crate) fn ready(dir: &Path) -> Result<Ready, String> {
         return Err("detached HEAD — check out a branch first".into());
     }
     let Some(base) = default_base(dir) else {
-        return Err("no default branch found (origin/HEAD, main or master)".into());
+        return Err(
+            "can't tell the default branch — run `git remote set-head origin --auto`".into(),
+        );
     };
     let remote = format!("origin/{base}");
     let base_ref = if exists(dir, &format!("refs/remotes/{remote}")) {

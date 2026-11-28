@@ -17,9 +17,42 @@ fn take(pr: &SharedPr) -> Option<PendingPr> {
 fn open(p: &PendingPr) -> Result<String, String> {
     let dir = super::gitmsg::project_dir()?;
     let r = ready(&dir)?;
-    if p.branch == p.base {
-        return Err(format!("refusing to push the base branch {}", p.base));
+    if p.branch == p.base || p.branch == r.base {
+        return Err(format!("refusing to push the base branch {}", r.base));
     }
+    if r.base != p.base {
+        return Err(format!(
+            "the base changed to {} since the draft — ask again",
+            r.base
+        ));
+    }
+    if git(&dir, &["rev-parse", "HEAD"])? != p.head {
+        return Err("new commits since the draft — ask again so the PR describes them".into());
+    }
+    // Written before anything moves: a failure here leaves nothing behind.
+    let file = std::env::temp_dir().join(format!(
+        "crew-pr-{}-{}.md",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    std::fs::write(&file, &p.body).map_err(|e| format!("body file: {e}"))?;
+    let out = push_and_open(&dir, p, &r, &file);
+    let _ = std::fs::remove_file(&file);
+    out
+}
+
+/// Make the branch if proposed, push it, open the PR. A push that fails
+/// after the branch was made puts the user back where they were: on the
+/// base, with the new branch (same commit, nothing lost) deleted.
+fn push_and_open(
+    dir: &std::path::Path,
+    p: &PendingPr,
+    r: &super::gitprcheck::Ready,
+    file: &std::path::Path,
+) -> Result<String, String> {
     match p.create_branch {
         true if r.branch != r.base => {
             return Err(format!(
@@ -34,22 +67,19 @@ fn open(p: &PendingPr) -> Result<String, String> {
             ))
         }
         true => {
-            git(&dir, &["checkout", "-b", &p.branch]).map_err(|e| format!("branch failed: {e}"))?;
+            git(dir, &["checkout", "-b", &p.branch]).map_err(|e| format!("branch failed: {e}"))?;
         }
         false => {}
     }
-    git(&dir, &["push", "-u", "origin", &p.branch]).map_err(|e| format!("push failed: {e}"))?;
-    let file = std::env::temp_dir().join(format!(
-        "crew-pr-{}-{}.md",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0)
-    ));
-    std::fs::write(&file, &p.body).map_err(|e| format!("body file: {e}"))?;
+    if let Err(e) = git(dir, &["push", "-u", "origin", &p.branch]) {
+        if p.create_branch {
+            let _ = git(dir, &["checkout", &r.base]);
+            let _ = git(dir, &["branch", "-d", &p.branch]);
+        }
+        return Err(format!("push failed: {e}"));
+    }
     let out = gh(
-        &dir,
+        dir,
         &[
             "pr",
             "create",
@@ -63,7 +93,6 @@ fn open(p: &PendingPr) -> Result<String, String> {
             &file.to_string_lossy(),
         ],
     );
-    let _ = std::fs::remove_file(&file);
     let out = out.map_err(|e| format!("gh pr create failed: {e}"))?;
     let url = out
         .lines()

@@ -29,6 +29,8 @@ mod plangate;
 mod pr;
 #[cfg(unix)]
 mod pr_more;
+#[cfg(unix)]
+mod pr_safe;
 mod remembers;
 mod replypick;
 mod routereval;

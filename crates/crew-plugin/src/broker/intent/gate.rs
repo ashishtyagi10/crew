@@ -46,7 +46,7 @@ pub(crate) fn human_gates(
     if confirms_apply(task) && pending_commit(session) {
         return Some(crate::broker::gitmsg::commit_cmd(session, "apply", emit));
     }
-    if confirms_apply(task) && crate::broker::gitpr::pending(session) {
+    if crate::broker::gitpr::opens_pr(task) && crate::broker::gitpr::pending(session) {
         return Some(crate::broker::gitprapply::apply(session, emit));
     }
     if pending_plan(session) {

@@ -100,6 +100,9 @@ pub(crate) fn plan_cmd(
         ));
     }
     emit(msg(&format!("{author} \u{2192} user"), plan.clone()))?;
+    // One pending thing at a time: a "yes" meant for this plan must not
+    // open a pull request drafted earlier (`gitpr`).
+    super::gitpr::drop_pr(session);
     *lock(&session.plan) = Some(PendingPlan { task, plan, verify });
     // The host turns this into the decision affordance. The message stays for
     // hosts that render text only (the broker is driven over stdio by more
