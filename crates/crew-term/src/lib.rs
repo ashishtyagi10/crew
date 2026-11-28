@@ -19,7 +19,9 @@ mod schemenotify;
 mod testtheme;
 mod wipescan;
 pub use graphicscmd::ImageCmd;
-pub use model::{ClipboardAsk, GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel};
+pub use model::{
+    ClipboardAsk, FindSpan, GridSize, HeadlessTerm, PlacedImage, RenderCell, TermModel, FIND_CAP,
+};
 pub use modes::InputModes;
 pub use osc::{Progress, ShellMark};
 pub use pty::PtyTerm;

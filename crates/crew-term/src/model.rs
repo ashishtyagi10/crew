@@ -281,6 +281,9 @@ mod modelclip;
 mod modelcolor;
 #[path = "modelevict.rs"]
 mod modelevict;
+#[path = "modelfind.rs"]
+mod modelfind;
+pub use modelfind::{FindSpan, FIND_CAP};
 #[path = "modelimage.rs"]
 mod modelimage;
 #[path = "modellast.rs"]

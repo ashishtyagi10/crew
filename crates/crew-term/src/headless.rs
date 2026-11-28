@@ -104,6 +104,11 @@ impl HeadlessTerm {
         self.core.find_back(from, hit)
     }
 
+    /// Every match of `query` in the buffer, newest first (see `modelfind`).
+    pub fn find_all(&self, query: &str) -> Vec<crate::FindSpan> {
+        self.core.find_all(query)
+    }
+
     /// The DEC private modes the program has on (wheel, keys, focus).
     pub fn input_modes(&self) -> crate::modes::InputModes {
         self.core.input_modes()

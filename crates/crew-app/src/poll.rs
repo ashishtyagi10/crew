@@ -199,7 +199,7 @@ impl CrewApp {
             let mut matches: Vec<String> = Vec::new();
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => {
-                    let n = t.pty.try_read() > 0;
+                    let n = crate::termfind::read(t);
                     more_pending |= t.pty.has_pending();
                     // Pictures the program sent, off to a worker to be
                     // decoded; `poll` lands them a frame or two later.

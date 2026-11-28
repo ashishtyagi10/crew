@@ -111,7 +111,7 @@ impl CrewApp {
             self.input.text.push_str(&text);
             self.input.menu_sel = 0;
             self.input.hist_pos = None;
-        } else {
+        } else if !self.term_find_text(&text) {
             self.write_to_terminals(text.as_bytes());
         }
         self.redraw();

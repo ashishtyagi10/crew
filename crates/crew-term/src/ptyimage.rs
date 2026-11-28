@@ -23,6 +23,11 @@ impl PtyTerm {
         self.core.find_back(from, hit)
     }
 
+    /// Every match of `query` in the buffer, newest first (see `modelfind`).
+    pub fn find_all(&self, query: &str) -> Vec<crate::FindSpan> {
+        self.core.find_all(query)
+    }
+
     /// The line just under the viewport, as row `rows` (one past the last);
     /// `None` at the live bottom. See `modelscroll`.
     pub fn row_below(&mut self, focused: bool) -> Option<Vec<RenderCell>> {

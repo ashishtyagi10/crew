@@ -425,6 +425,7 @@ fn typing_clears_a_terminal_selection() {
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            find: None,
             images: Default::default(),
         })),
         grid: GridSize { cols: 40, rows: 10 },

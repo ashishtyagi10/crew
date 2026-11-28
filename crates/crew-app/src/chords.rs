@@ -121,11 +121,9 @@ impl CrewApp {
                     c.palette = None;
                     c.mention = None;
                     c.find = Some(crate::chatfind::ChatFind::default());
-                } else {
-                    // Everywhere else, Cmd+F did nothing at all — in the pane
-                    // kind crew has most of. The bar's `/find` is the search
-                    // a terminal pane has; the chord now opens it, typed and
-                    // waiting, rather than being a key that silently misses.
+                } else if !self.term_find_open() {
+                    // Not a terminal either: the bar's `/find`, typed and
+                    // waiting, rather than a chord that silently misses.
                     self.input.prefill("/find ");
                 }
             }
@@ -166,7 +164,7 @@ impl CrewApp {
             "s" => {
                 self.save_focused_settings();
             }
-            "v" => self.paste(),
+            "v" => self.paste_or_find(),
             // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.
             "=" | "+" => self.set_font(self.config.font_size + 1.0),
             "-" | "_" => self.set_font(self.config.font_size - 1.0),

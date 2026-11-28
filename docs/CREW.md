@@ -404,7 +404,7 @@ the command palette write each chord the way that machine presses it.
 | Scroll a terminal to the previous / next command you ran in it | **Cmd+Opt+↑↓** |
 | Focus the input bar | **Cmd+I** |
 | Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
-| Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
+| Find: in a chat transcript or a terminal's scrollback (a find bar on the pane), or `/find` in the bar | **Cmd+F** |
 | New tab with a shell | **Cmd+T** |
 | New shell pane in this tab | **Cmd+D** |
 | Settings | **Cmd+,** |
@@ -2475,6 +2475,15 @@ a word a soft wrap splits across two rows still matches (smart case:
 case-insensitive unless the term has an uppercase letter), **highlights every match** in the
 viewport with an amber wash, and reports the in-view match count on the status
 line (a miss reports too). Returning to the live bottom clears the highlight.
+**Cmd+F on a terminal pane** (Alt+F off a Mac) opens a **find bar** over the pane's top
+row instead: typing filters live, every match in the whole scrollback is tinted (the
+current one stronger), the bar shows `3/17` counted from the newest (or `no matches`
+in the theme's bell colour), **Enter** steps to the next older match and
+**Shift+Enter** (or Down) to the newer one, both wrapping, and the view scrolls to keep
+the current match on screen. Search is smart-case and literal (no regex), and output
+that arrives while the bar is open updates the count. While the bar is open it owns the
+keyboard (nothing typed reaches the program; Cmd+V pastes into the query); **Esc**
+closes it and leaves the view where it is, as Ghostty does. `/find` works as before.
 **`/find all <text>`** searches **every terminal pane's full scrollback**
 (hidden panes included, read in one pass without moving any view), focuses the first matching pane
 (restoring it if minimized), scrolls it to the most recent match, and reports

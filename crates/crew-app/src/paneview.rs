@@ -164,11 +164,7 @@ pub(crate) fn push_pane_scenes(
     crate::linkhover::mark(&mut cells, pane);
     // Wash search matches in the focused terminal while viewing a /find
     // result (scrolled back); it self-clears on return to the bottom.
-    if foc && is_term && scroll > 0 {
-        if let Some(term) = find {
-            crate::findhl::highlight(&mut cells, term, p.grid.cols, p.grid.rows);
-        }
-    }
+    crate::termfindview::wash_pane(&mut cells, p, foc && is_term, scroll, find);
     // Wash a generic mouse selection over a non-terminal pane (terminals carry
     // their selection in the cell data already).
     if let Some(s) = sel {

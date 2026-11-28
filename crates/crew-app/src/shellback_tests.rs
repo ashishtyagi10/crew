@@ -18,6 +18,7 @@ fn the_shell_back_clears_the_mouse_a_dead_program_left_on() {
         read_at: 0,
         spans: Default::default(),
         trail: Default::default(),
+        find: None,
         images: Default::default(),
     };
     let mut w = t.pty.writer();

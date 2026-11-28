@@ -38,6 +38,13 @@ impl CrewApp {
             }
         }
 
+        // The terminal find bar, while open, owns every key that is not a
+        // crew chord — before the scroll keys, which a full-screen program
+        // would otherwise receive as its own.
+        if self.term_find_key(event, mstate) {
+            return;
+        }
+
         // Shift+PageUp/Down page and Shift+Home/End jump the scrollback
         // (`shiftscroll`), or reach a full-screen program as its own keys.
         if self.view_edit_key(event, mstate) || self.shift_scroll_key(event, mstate) {
