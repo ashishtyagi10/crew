@@ -32,6 +32,9 @@ pub(crate) enum Over {
     /// modifier away from opening a browser or a viewer, and until now
     /// wearing the same I-beam as the prose beside it.
     Link,
+    /// A program asked for this shape with OSC 22 and nothing of crew's own
+    /// is under the pointer ([`self::prog`]).
+    Program(CursorIcon),
     /// Text: a pane's content, or the input bar.
     Text,
     /// The page itself.
@@ -51,6 +54,7 @@ pub(crate) fn icon(over: Over) -> CursorIcon {
         // you press it", and inventing a third shape for the distinction
         // would be a shape nobody has learned.
         Over::Link => CursorIcon::Pointer,
+        Over::Program(shape) => shape,
         Over::Text => CursorIcon::Text,
         Over::Page => CursorIcon::Default,
     }
@@ -100,7 +104,12 @@ impl CrewApp {
             {
                 Over::Link
             }
-            (Some(_), Some(_)) => Over::Text,
+            // Crew's own targets above won; below them the program under the
+            // pointer decides (OSC 22), unless a selection drag is on.
+            (Some(i), Some(_)) => match self.program_pointer(i) {
+                Some(shape) => Over::Program(shape),
+                None => Over::Text,
+            },
             (Some(_), None) => Over::Handle,
             // The bar's palette rows: the hand, before the bar's I-beam.
             (None, _) if self.bar_popup_hover_on() => Over::Link,
@@ -147,6 +156,9 @@ impl CrewApp {
         }
     }
 }
+
+#[path = "pointerprog.rs"]
+mod prog;
 
 #[cfg(test)]
 #[path = "pointer_tests.rs"]

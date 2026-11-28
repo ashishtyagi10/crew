@@ -10,6 +10,7 @@ mod model;
 mod modelinverse;
 mod modes;
 mod osc;
+mod pointershape;
 mod pty;
 mod ptyident;
 mod ptylocale;
