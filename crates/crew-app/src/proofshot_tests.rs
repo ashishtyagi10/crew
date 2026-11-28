@@ -150,3 +150,46 @@ fn nofix_shot() {
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
+
+/// A receipt head with the turn's time strip (`chatreceiptstrip`): a
+/// thinking-heavy turn, a slow test run, and a five-file turn, light and dark.
+///
+/// `CREW_SHOT_DIR=<dir> cargo test -p crew-app --bin crew strip_shot -- --ignored`
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn strip_shot() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let many = "task #7: 3 files changed (+9 \u{2212}3): ~ src/a.rs, + src/b.rs, ~ src/c.rs \u{b7} reaches 6 callers in 3 files\n```diff\ndiff --git a/src/a.rs b/src/a.rs\n+x\n-z\n```";
+    let with = |text: &str, ms: [u64; 4]| Message {
+        meta: crate::chatstrip::stamp("task:3", ms),
+        ..smith(text)
+    };
+    for (name, id) in [
+        ("strip-light", crew_theme::ThemeId::PaperLight),
+        ("strip-dark", crew_theme::ThemeId::PaperDark),
+        ("strip-soft", crew_theme::ThemeId::Porcelain),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let mut p = live_pane();
+        p.messages.truncate(1);
+        p.messages
+            .push(with(RECEIPT, [20_000, 10_000, 2_000, 10_000]));
+        p.messages
+            .push(with(RECEIPT, [4_000, 3_000, 1_500, 95_000]));
+        p.messages.push(with(many, [9_000, 12_000, 6_000, 3_000]));
+        for w in [470, 700] {
+            let shot = format!("{name}-{w}");
+            if shot_at(&shot, w, 520, 13.0, "crew", |cols, rows, aspect| {
+                crate::chatview::art(&p, cols, rows, aspect)
+            })
+            .is_none()
+            {
+                eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+                return;
+            }
+        }
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}

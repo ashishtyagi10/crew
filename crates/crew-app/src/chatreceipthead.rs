@@ -140,6 +140,9 @@ pub(crate) fn body(
     let Some(mut out) = rows(&m.text, cols, fg) else {
         return whole();
     };
+    if let Some(ms) = crate::chatstrip::read(&m.meta) {
+        crate::chatreceiptstrip::strip_on(&mut out, ms, cols);
+    }
     if let Some((_, rest)) = shown.split_once('\n').filter(|(_, r)| !r.trim().is_empty()) {
         out.extend(crate::chatbody::body_lines_at(
             rest, cols, fg, false, view.cwd,

@@ -68,6 +68,14 @@ impl crate::chat::ChatPane {
                 .map(|(_, tok_in, tok_out, cost)| (tok_in, tok_out, cost)),
             _ => None,
         };
+        // A receipt carries where the turn's time went (`chatstrip`).
+        let meta = match (sender == "agent smith" && text.starts_with("task #"))
+            .then(|| self.watch.strip.snapshot(crate::anim::now_ms()))
+            .flatten()
+        {
+            Some(ms) => crate::chatstrip::stamp(&meta, ms),
+            None => meta,
+        };
         // A later note of a turn that changed files joins its receipt.
         if self.file_in_receipt(&sender, &text) {
             return;
