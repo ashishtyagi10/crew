@@ -79,8 +79,12 @@ impl CrewApp {
                 None => return,
             },
         };
-        // A held paste is answered by the next Cmd+V — the same key, which is
-        // the one people press when they mean "yes, that one".
+        self.paste_text(text);
+    }
+
+    /// Paste `text` as Cmd+V would, its run-many-lines check included.
+    pub(crate) fn paste_text(&mut self, text: String) {
+        // A held paste is answered by the next paste: "yes, that one".
         if let Some(held) = self.held_paste.take(std::time::Instant::now()) {
             self.insert_paste(&held);
             return;

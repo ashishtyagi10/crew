@@ -209,11 +209,11 @@ impl CrewApp {
                 button: b @ (MouseButton::Right | MouseButton::Middle),
                 ..
             } => {
-                // Right-click pastes into the surface under the cursor, unless
-                // the program there asked for the mouse.
-                if !self.report_press(b) && b == MouseButton::Right {
-                    self.focus_at_cursor();
-                    self.paste();
+                // Right-click pastes into the surface under the cursor, and a
+                // middle click the last selection (`middlepaste`), unless the
+                // program there asked for the mouse.
+                if !self.report_press(b) {
+                    self.middle_or_right_paste(b == MouseButton::Middle);
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
