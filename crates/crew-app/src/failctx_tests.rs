@@ -124,10 +124,12 @@ fn the_folder_is_written_with_a_tilde() {
         &spans(0, 1, Some(1), None),
         "x\n",
         1,
-        Some(&home.join("code/crew")),
+        Some(&home.join("code").join("crew")),
     )
     .unwrap();
-    assert_eq!(f.cwd.as_deref(), Some("~/code/crew"));
+    // The platform's own separator: `~/code/crew`, or `~\code\crew` on Windows.
+    let sep = std::path::MAIN_SEPARATOR;
+    assert_eq!(f.cwd, Some(format!("~{sep}code{sep}crew")));
 }
 
 #[test]
