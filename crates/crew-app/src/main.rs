@@ -838,6 +838,7 @@ mod winexe;
 // — step 2 of the plan routes key presses through it.
 #[allow(dead_code)]
 mod winkeys;
+mod winnav;
 mod wording;
 mod wrapidx;
 

@@ -174,13 +174,14 @@ fn a_waiting_agent_badges_but_never_takes_the_screen_from_the_inbox() {
 }
 
 #[test]
-fn the_screen_chord_is_cmd_opt_on_a_mac_and_ctrl_alt_off_it() {
+fn the_screen_arrows_are_cmd_opt_on_a_mac_and_none_off_it() {
     use crate::chordglyph::{mac, offmac};
     use crate::ctrlchord::{grid_held, screen_held};
     use winit::keyboard::ModifiersState as M;
     assert!(screen_held(M::SUPER | M::ALT, true));
     assert!(!screen_held(M::CONTROL | M::ALT, true), "Spaces");
-    assert!(screen_held(M::CONTROL | M::ALT, false));
+    assert!(!screen_held(M::CONTROL | M::ALT, false), "AltGr types");
+    assert!(!screen_held(M::SUPER | M::ALT, false));
     assert!(!grid_held(M::CONTROL | M::ALT, false), "never both");
     let chord = "Cmd+Opt+\u{2190}\u{2192}";
     assert_eq!(offmac(chord), "Ctrl+Alt+\u{2190}\u{2192}");

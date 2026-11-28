@@ -161,7 +161,8 @@ impl CrewApp {
     }
 }
 
-/// Cmd+Opt+1…9 (Ctrl+Alt+1…9 off a Mac): the tab number it names.
+/// Cmd+Opt+1…9: the tab number it names. Off a Mac this is never one:
+/// Ctrl+1…9 is [`crate::winnav`]'s.
 pub(crate) fn tab_digit(
     event: &winit::event::KeyEvent,
     mods: winit::keyboard::ModifiersState,

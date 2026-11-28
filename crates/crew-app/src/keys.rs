@@ -20,10 +20,10 @@ impl CrewApp {
         // A Cmd chord is a command, not a keystroke for the filter box. Every
         // one of them used to be typed into the search instead: with the
         // overlay up, Cmd+T put a "t" in the filter and opened no shell. A
-        // held super key closes the overlay and lets the chord through —
+        // held crew key (Cmd, Alt off a Mac) closes the overlay and lets the chord through —
         // except Cmd+/, which IS this overlay, and so simply puts it away.
         if self.help_open && event.state.is_pressed() {
-            if mstate.super_key() {
+            if crate::ctrlchord::cmd_held(mstate, cfg!(target_os = "macos")) {
                 self.close_help();
                 let toggled = matches!(&event.logical_key,
                     Key::Character(s) if s.as_str() == "/" || s.as_str() == "?");
@@ -90,8 +90,15 @@ impl CrewApp {
             return;
         }
 
-        // Cmd+Opt+1…9 (Ctrl+Alt off a Mac) brings tab N on: read off the
-        // physical key, since Opt turns the digit into another character.
+        // Off a Mac: Ctrl+PgUp/PgDn tabs, Ctrl+1…9 tab N, Alt+Home/End
+        // screens, Alt+PgUp/PgDn command jumps, F11 maximize (`winnav`).
+        if event.state.is_pressed() && self.win_nav_key(event, mstate) {
+            self.redraw();
+            return;
+        }
+
+        // Cmd+Opt+1…9 brings tab N on: read off the physical key, since Opt
+        // turns the digit into another character.
         if let Some(n) = crate::tablines::tab_digit(event, mstate) {
             self.goto_tab(n);
             self.redraw();
@@ -107,9 +114,11 @@ impl CrewApp {
             return;
         }
 
-        // Alt+S saves a focused settings form (physical key: macOS Option+S
-        // produces 'ß' as the logical key). Other panes see Alt+S as normal.
-        if event.state.is_pressed()
+        // Option+S saves a focused settings form (physical key: macOS Option+S
+        // produces 'ß' as the logical key). Other panes see it as normal. Off
+        // a Mac Alt+S is a chord (`cmd_chord`: "s") and never gets here.
+        if cfg!(target_os = "macos")
+            && event.state.is_pressed()
             && mstate.alt_key()
             && matches!(event.physical_key, PhysicalKey::Code(KeyCode::KeyS))
             && self.save_focused_settings()
