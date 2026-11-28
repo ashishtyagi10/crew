@@ -143,6 +143,8 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
     // stdin closed (pane gone / EOF): let running tasks finish streaming
     // rather than truncating their output mid-line.
     tasks.join_all();
+    // Nothing a task started may outlive the broker.
+    super::sysbgtools::reap_all();
     Ok(())
 }
 
@@ -364,6 +366,7 @@ fn send(
     // as the broker lives: a summarizer that panicked mid-swarm left one
     // "running" for an hour (2026-10-03). It is caught, named and ended.
     let crash_out = Arc::clone(&out_thread);
+    let crash_bg = Arc::clone(&snap.bg);
     // The start goes out before the worker exists: a task its prompt hook refuses at once
     // ends in microseconds, and an end that beat its start left the pane "running" forever.
     emit(
@@ -487,6 +490,8 @@ fn send(
             // says how it ended, `receipt::headline`), else the ✗ line alone.
             let _ = ckpt.join();
             let changed = report_changes(&snap, id, &out_thread, ending.as_deref());
+            // Whatever the task left running (`sys:spawn`) ends with it.
+            snap.bg.reap();
             let done = match (ending.as_deref(), changed) {
                 (None, _) => None,
                 (Some("stopped"), true) => None,
@@ -515,6 +520,7 @@ fn send(
             );
         }));
         if let Err(why) = ran {
+            crash_bg.reap();
             announce_crash(&crash_out, id, why.as_ref());
         }
     });

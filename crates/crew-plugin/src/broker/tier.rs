@@ -74,6 +74,12 @@ pub fn sys_tier(tool: &str) -> Option<Tier> {
         // undo the other.
         "edit" => Tier::Reversible,
         "run" => Tier::Irreversible,
+        // The same blank cheque as `run`, only kept alive: it asks, and
+        // read-only mode refuses it.
+        "spawn" => Tier::Irreversible,
+        // Looking at, and stopping, a process this task itself started
+        // (`sysbg` only knows the task's own ids), so neither asks.
+        "logs" | "kill" => Tier::Read,
         _ => return None,
     })
 }

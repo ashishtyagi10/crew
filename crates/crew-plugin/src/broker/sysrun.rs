@@ -147,19 +147,20 @@ pub(crate) fn run_with(cmd: &str, timeout: Duration) -> Result<String, String> {
 /// both are best-effort since the group may already be empty.
 #[cfg(unix)]
 pub(super) fn kill_group(pgid: u32) {
-    let target = format!("-{pgid}");
-    // An already-empty group makes `/bin/kill` print "No such process" — that
-    // is expected (the command finished with no survivors), so silence its
-    // stderr rather than leak it to the broker's output.
-    for sig in ["-TERM", "-KILL"] {
-        let _ = Command::new("/bin/kill")
-            .args([sig, "--", &target])
-            .stderr(Stdio::null())
-            .status();
-        if sig == "-TERM" {
-            std::thread::sleep(Duration::from_millis(20));
-        }
-    }
+    signal_group("-TERM", pgid);
+    std::thread::sleep(Duration::from_millis(20));
+    signal_group("-KILL", pgid);
+}
+
+/// One signal to a whole group — also what `sys:kill` uses to send TERM alone
+/// and give the process its grace before the KILL (`sysbg`).
+#[cfg(unix)]
+pub(super) fn signal_group(sig: &str, pgid: u32) {
+    // An already-empty group prints "No such process"; expected, so silenced.
+    let _ = Command::new("/bin/kill")
+        .args([sig, "--", &format!("-{pgid}")])
+        .stderr(Stdio::null())
+        .status();
 }
 
 /// Drain a pipe fully on a thread, keeping at most [`CAP`] bytes, and send

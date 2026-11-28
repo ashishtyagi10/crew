@@ -19,11 +19,11 @@ fn every_built_in_tool_is_classified() {
     );
     assert_eq!(
         systools::tools().len(),
-        14,
-        "the sys surface is fourteen tools: five that act on this machine, `grep` and \
+        17,
+        "the sys surface is seventeen tools: five that act on this machine, `grep` and \
          `glob` to find code in it, `outline` to see a file's shape, `git` to read \
          its history, `fetch` and `search` for the world outside it, `find_tools` \
-         to reach the rest, `todo` for the task's own checklist, and `explore` to hand a search to a read-only agent"
+         to reach the rest, `todo` for the task's own checklist, `explore` to hand a search to a read-only agent, and `spawn`, `logs` and `kill` for background processes"
     );
 }
 
@@ -91,5 +91,17 @@ fn every_lsp_tool_is_a_read() {
     for tool in ["hover", "definition", "references", "diagnostics"] {
         assert_eq!(tier_of("lsp", tool), Tier::Read, "lsp:{tool}");
         assert!(!tier_of("lsp", tool).needs_approval());
+    }
+}
+
+/// `spawn` is the shell kept alive, so it asks and read-only mode refuses it; `logs` and `kill`
+/// only ever reach this task's own processes, so they do neither.
+#[test]
+fn spawn_is_gated_like_run_and_its_companions_are_not() {
+    assert_eq!(tier_of("sys", "spawn"), Tier::Irreversible);
+    assert!(blocked_by_read_only("spawn"));
+    for t in ["logs", "kill"] {
+        assert_eq!(tier_of("sys", t), Tier::Read);
+        assert!(!blocked_by_read_only(t));
     }
 }

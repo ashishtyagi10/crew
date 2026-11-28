@@ -52,6 +52,9 @@ pub(crate) struct Session {
     /// — fresh in every task's snapshot, like `reads`, and shared by every
     /// surface built from it, so each hop of a relay sees the same list.
     pub todo: Arc<crew_hive::tools::todo::Checklist>,
+    /// The background processes this task started (`sys:spawn`) — fresh in
+    /// every task's snapshot; the task's end kills them (`stdio::send`).
+    pub bg: Arc<super::sysbgtools::SysBg>,
     /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
     /// a worker-thread draft reaches the inline `/reject`.
     pub plan: super::plan::SharedPlan,
@@ -127,6 +130,7 @@ impl Default for Session {
             warm: super::lspwarm::WarmOnWrite::over(&lsp),
             reads: super::readset::ReadSet::new(),
             todo: crew_hive::tools::todo::Checklist::new(),
+            bg: Default::default(),
             lsp,
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
@@ -172,6 +176,7 @@ impl Session {
             warm: self.warm.fresh(),
             reads: super::readset::ReadSet::new(),
             todo: crew_hive::tools::todo::Checklist::new(),
+            bg: Default::default(),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             plan_first: Arc::clone(&self.plan_first),
@@ -252,6 +257,7 @@ impl Session {
         Some(Arc::new(SessionTools {
             reads: Arc::clone(&self.reads),
             todo: Arc::clone(&self.todo),
+            bg: Arc::clone(&self.bg),
             cancel: Arc::clone(&self.cancel),
             ..SessionTools::new(
                 Arc::clone(&self.mcp),
@@ -319,6 +325,8 @@ struct SessionTools {
     /// The task's checklist (`sys:todo`): the session's per-task list, like
     /// `reads`, and one of its own when built bare.
     todo: Arc<crew_hive::tools::todo::Checklist>,
+    /// The task's background processes (`sys:spawn`), like `todo`.
+    bg: Arc<super::sysbgtools::SysBg>,
     /// Asked about every write that succeeded, so an edit that broke the
     /// build says so in its own result (see `editdiag`): the session's
     /// language servers, or a fake under test.
@@ -361,6 +369,7 @@ impl SessionTools {
             warm,
             reads: super::readset::ReadSet::new(),
             todo: crew_hive::tools::todo::Checklist::new(),
+            bg: Default::default(),
             cancel: Arc::new(AtomicBool::new(false)),
             hooks: (!cfg!(test)).then(hooks::Source::live).flatten(),
             explored: Default::default(),
@@ -493,9 +502,13 @@ impl super::toolcall::ToolRunner for SessionTools {
     ///
     /// Nor the checklist: it is classified a read because it touches nothing outside the task,
     /// but a second `sys:todo` is a new list, and two in one reply must land in the order sent.
+    /// Nor `sys:logs`/`sys:kill`: a process's output changes between two asks, which is the point.
     fn repeatable(&self, server: &str, tool: &str) -> bool {
         self.tier_for(server, tool) == super::tier::Tier::Read
-            && !matches!((server, tool), ("lsp", "diagnostics") | ("sys", "todo"))
+            && !matches!(
+                (server, tool),
+                ("lsp", "diagnostics") | ("sys", "todo" | "logs" | "kill")
+            )
     }
 
     fn take_spent(&self) -> crew_hive::Spent {
@@ -595,6 +608,9 @@ impl super::toolcall::ToolRunner for SessionTools {
         } else if server == "sys" && tool == "todo" && self.sys {
             // Kept here rather than in `systools`: the list is the task's, and this surface is.
             self.todo.write(args)
+        } else if server == "sys" && self.sys && super::sysbgtools::NAMES.contains(&tool) {
+            // The task's own processes, so the surface that owns them answers.
+            super::sysbgtools::call(&self.bg, tool, args)
         } else if server == "sys" && self.sys {
             let out = self
                 .reads
