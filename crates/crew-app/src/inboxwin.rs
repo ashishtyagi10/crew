@@ -131,7 +131,7 @@ impl CrewApp {
             // As the grid's wheel: a slow trackpad's fractions add up.
             WindowEvent::MouseWheel { delta, .. } => {
                 let lines = crate::inboxwinkeys::wheel_lines(&mut m.scroll, delta);
-                p.scroll_wheel(lines, grid.cols, grid.rows);
+                p.scroll_wheel(lines, grid.cols, grid.rows, m.cell_at());
                 changed = true;
             }
             WindowEvent::KeyboardInput { event, .. } => {

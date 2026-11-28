@@ -67,6 +67,8 @@ pub(crate) struct Compose {
     /// Sent (or being saved), and waiting for Gmail to say so: the box stays
     /// until it does.
     pub sending: bool,
+    /// Where the wheel left the words (`composeview`); none follows the caret.
+    pub view: Option<super::composeview::View>,
 }
 
 impl Compose {
@@ -141,6 +143,7 @@ impl InboxPane {
         let Some(answer) = answer else {
             return "nothing in this thread to reply to";
         };
+        self.motion.wheel_at = None;
         self.compose = Some(Compose::of(kind, answer, forward));
         ""
     }
@@ -149,6 +152,7 @@ impl InboxPane {
     /// line.
     pub(crate) fn open_new(&mut self) {
         if self.compose.is_none() && self.todo.is_none() {
+            self.motion.wheel_at = None;
             self.compose = Some(Compose::of(Kind::New, Answer::default(), None));
         }
     }
@@ -177,6 +181,7 @@ impl Compose {
             draft: None,
             base: String::new(),
             sending: false,
+            view: None,
         }
     }
 }

@@ -12,11 +12,11 @@ fn the_wheel_scrolls_the_mail_while_a_reply_keeps_its_caret() {
     }
     typed(&mut p, "r");
     typed(&mut p, "Yes");
-    p.scroll_wheel(-3, 80, 30);
+    p.scroll_wheel(-3, 80, 30, None);
     assert_eq!(p.reading.as_ref().unwrap().scroll, 3, "the mail moved");
     assert_eq!(on(&p), On::Body, "the caret stayed in the words");
     assert_eq!(p.compose.as_ref().unwrap().body.text, "Yes");
-    p.scroll_wheel(10, 80, 30);
+    p.scroll_wheel(10, 80, 30, None);
     assert_eq!(
         p.reading.as_ref().unwrap().scroll,
         0,
@@ -72,7 +72,7 @@ fn a_reply_box_keeps_the_end_of_the_mail_it_answers_in_view() {
     if let Some(m) = p.reading.as_mut().and_then(|r| r.mails.as_mut()) {
         m[0].text = (1..=40).map(|n| format!("line {n}\n\n")).collect();
     }
-    p.scroll_wheel(-200, 80, 30);
+    p.scroll_wheel(-200, 80, 30, None);
     let shown = |p: &InboxPane| {
         let mail = p.cards(80, 30).mail.unwrap();
         p.cells(80, 30)
@@ -103,7 +103,7 @@ fn a_reply_box_keeps_the_end_of_the_mail_it_answers_in_view() {
         "the box grew, the end still shows"
     );
     p.compose = None;
-    p.scroll_wheel(200, 80, 30);
+    p.scroll_wheel(200, 80, 30, None);
     typed(&mut p, "r");
     assert_eq!(
         p.reading.as_ref().unwrap().scroll,
@@ -122,7 +122,7 @@ fn folding_a_long_mail_never_leaves_it_scrolled_past_its_end() {
         m[0].rich = crate::inbox::rich::Rich::of_plain(&text, None);
     }
     typed(&mut p, "q");
-    p.scroll_wheel(-500, 80, 30);
+    p.scroll_wheel(-500, 80, 30, None);
     assert!(
         p.reading.as_ref().unwrap().scroll > 20,
         "far down the quote"

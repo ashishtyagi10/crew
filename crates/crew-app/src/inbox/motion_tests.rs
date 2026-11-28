@@ -20,6 +20,7 @@ fn each_motion_runs_its_course_and_motion_off_draws_only_the_end() {
             start: 1_000,
         }),
         fresh: Some((vec!["n".into()], 1_000)),
+        ..Motion::default()
     };
     assert!(m.live(1_000));
     let (from, k) = m.glide(1_070).expect("halfway");

@@ -1,5 +1,4 @@
 //! `/inbox` — a light Gmail inbox in a pane (goal 2026-10-20-inbox).
-//!
 //! The list, Gmail's search, a thread read, filed and answered, the browser a
 //! key away for more. Only the grant (`grant`) and a reopened draft's files go
 //! to disk; the rows live in memory, the network on a thread (`worker`).
@@ -19,6 +18,7 @@ mod composegeo;
 mod composehead;
 pub(crate) mod composekeys;
 mod composesend;
+mod composeview;
 pub(crate) mod days;
 pub(crate) mod draft;
 pub(crate) mod drafts;

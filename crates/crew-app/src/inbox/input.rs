@@ -23,8 +23,17 @@ impl InboxPane {
 impl InboxPane {
     /// The wheel moves the selection in the list and scrolls the open mail,
     /// a reply being written or not: it is not a key, so it never reaches
-    /// the reply box (where an arrow moves the caret to the `to` line).
-    pub fn scroll_wheel(&mut self, lines: i32, cols: u16, rows: u16) {
+    /// the reply box (where an arrow moves the caret to the `to` line). Over
+    /// the reply box's card (`at`, the pointer's pane-local row and column)
+    /// it scrolls the reply's words instead; with no position it is the
+    /// mail's, as it always was.
+    pub fn scroll_wheel(&mut self, lines: i32, cols: u16, rows: u16, at: Option<(u16, u16)>) {
+        let over = at.zip(self.cards(cols, rows).reply);
+        if over.is_some_and(|((r, c), b)| b.local(r, c).is_some())
+            && self.wheel_reply(lines, cols, rows)
+        {
+            return;
+        }
         let (up, n) = (lines > 0, lines.unsigned_abs() as usize);
         let page = usize::from(self.reader_rows(cols, rows)).saturating_sub(1);
         let width = self.reader_box(cols).1;

@@ -85,8 +85,8 @@ impl InboxPane {
         let room = usize::from(g.room);
         let lines = wrap(&c.body.text, usize::from(tw));
         let (row, col) = place(&c.body.text, c.body.at, usize::from(tw));
-        // The last rows of long words, with the caret's row in them.
-        let first = row.saturating_sub(room.saturating_sub(1));
+        // The caret's rows, or where the wheel left the words.
+        let first = super::composeview::first(c, lines.len(), row, room, usize::from(tw));
         for (i, line) in lines.iter().enumerate().skip(first).take(room) {
             cv.text(g.words + (i - first) as u16, X, end, line, t.ink, false);
         }
@@ -95,7 +95,7 @@ impl InboxPane {
             let hint = super::composehead::hint(c, On::Body);
             cv.text(g.words, at, end, hint, t.text_muted, false);
         }
-        if c.on == On::Body && g.room > 0 {
+        if c.on == On::Body && (first..first + room).contains(&row) {
             let at = (g.words + (row - first) as u16, X + col as u16);
             super::composehead::caret(cv, c, at, end);
         }

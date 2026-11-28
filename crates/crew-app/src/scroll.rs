@@ -78,7 +78,7 @@ pub(crate) fn scroll_pane(pane: &mut Pane, lines: i32) {
         | PaneContent::Dash(_) => {}
         PaneContent::View(v) => v.scroll_wheel(cols, rows, lines),
         PaneContent::Todo(t) => t.scroll_wheel(lines, cols, rows),
-        PaneContent::Inbox(i) => i.scroll_wheel(lines, cols, rows),
+        PaneContent::Inbox(i) => i.scroll_wheel(lines, cols, rows, i.motion.wheel_at),
     }
 }
 
@@ -151,8 +151,13 @@ impl CrewApp {
         };
         // The hovered cell positions forwarded mouse events; (0,0) when unknown.
         let cell = self.cursor_term_cell().map_or((0, 0), |(_, c, r)| (c, r));
+        // The inbox asks which of its cards the wheel is over.
+        let over = self.cursor_any_cell().map(|(_, c, r)| (r, c));
         let mods = crate::mousereport::wheel_mods(self.mods.state());
         if let Some(pane) = self.panes.get_mut(i) {
+            if let PaneContent::Inbox(p) = &mut pane.content {
+                p.motion.wheel_at = over;
+            }
             if !forward_wheel(pane, lines, cell, mods) {
                 match wheel {
                     true => crate::scrollglide::start(pane, lines),
@@ -168,6 +173,7 @@ impl CrewApp {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_key(pane, |m| crate::altscroll::page_bytes(m, up)) {
                 let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
+                crate::scrollglide::forget_wheel(pane);
                 crate::scrollglide::start(pane, if up { page } else { -page });
             }
             self.redraw();
@@ -179,6 +185,7 @@ impl CrewApp {
     pub(crate) fn scroll_focused_end(&mut self, to_top: bool) {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_key(pane, |m| crate::altscroll::end_bytes(m, to_top)) {
+                crate::scrollglide::forget_wheel(pane);
                 crate::scrollglide::start_end(pane, to_top);
             }
             self.redraw();

@@ -160,4 +160,4 @@ mod tests;
 
 #[cfg(test)]
 #[path = "gridselinbox_tests.rs"]
-mod inbox_tests;
+pub(crate) mod inbox_tests;

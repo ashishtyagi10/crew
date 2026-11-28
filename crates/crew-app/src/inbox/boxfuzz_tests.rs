@@ -129,7 +129,7 @@ fn the_pane_survives_any_keys_at_any_size() {
                     );
                 }
                 2 => {
-                    p.scroll_wheel(((r >> 8) % 7) as i32 - 3, cols, rows);
+                    p.scroll_wheel(((r >> 8) % 7) as i32 - 3, cols, rows, None);
                 }
                 _ => {
                     let k = &keys[((r >> 8) % keys.len() as u64) as usize];
