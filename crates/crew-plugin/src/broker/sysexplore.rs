@@ -22,7 +22,7 @@ use crew_hive::tools::budget::ToolBudget;
 use crew_hive::{AgentId, ModelTier, Provider, Tools};
 
 pub(super) use super::sysexplorekit::Bill;
-use super::sysexplorekit::{Meter, Reader};
+use super::sysexplorekit::{Meter, Reader, Timed};
 
 /// The most chars of summary handed back to the caller.
 pub(super) const CAP: usize = 4_000;
@@ -32,6 +32,8 @@ pub(super) const CAP: usize = 4_000;
 pub(super) struct Limits {
     pub(super) rounds: u32,
     pub(super) deadline: Duration,
+    /// One model call's own limit, so a hung call cannot eat the whole budget.
+    pub(super) call: Duration,
 }
 
 impl Default for Limits {
@@ -39,6 +41,7 @@ impl Default for Limits {
         Self {
             rounds: 8,
             deadline: Duration::from_secs(180),
+            call: Duration::from_secs(60),
         }
     }
 }
@@ -48,7 +51,7 @@ pub(super) fn tool() -> crate::mcp::McpTool {
     crate::mcp::McpTool {
         server: "sys".into(),
         name: "explore".into(),
-        description: "hand an open-ended search across several files to a read-only helper and get back only its answer, not the files: {\"goal\": \"where is the 529 retry logic, and who calls it?\"} \u{2014} not for reading one known file (sys:read_file)".into(),
+        description: "hand an open-ended search across several files to a read-only helper and get back only its answer, not the files: {\"goal\": \"where is the 529 retry logic, and who calls it?\"} \u{2014} not for reading one known file (sys:read_file). Each call is a separate model run: use it for searches across several files or unknown locations, not for one grep or one known file.".into(),
         input_schema: serde_json::json!({
             "type": "object",
             "properties": {
@@ -69,10 +72,15 @@ pub(super) fn pick(
 }
 
 /// `sys:explore` as the session runs it, on the live provider.
-pub(super) fn run(args: &str, stop: &Arc<AtomicBool>, bill: &Bill) -> Result<String, String> {
+pub(super) fn run(
+    args: &str,
+    stop: &Arc<AtomicBool>,
+    bill: &Bill,
+    hooks: Option<super::session::hooks::Source>,
+) -> Result<String, String> {
     let (provider, model) = pick(&super::discover::provider_and_model_for)
         .ok_or("sys:explore has no model to search with \u{2014} sign in with /model")?;
-    explore(args, provider, &model, Limits::default(), stop, bill)
+    explore(args, provider, &model, Limits::default(), stop, bill, hooks)
 }
 
 /// The nested turn: `args` ({goal, paths?}) answered by a read-only agent on
@@ -84,6 +92,7 @@ pub(super) fn explore(
     limits: Limits,
     stop: &Arc<AtomicBool>,
     bill: &Bill,
+    hooks: Option<super::session::hooks::Source>,
 ) -> Result<String, String> {
     let v: serde_json::Value = serde_json::from_str(args.trim())
         .map_err(|e| format!("arguments are not valid JSON: {e}"))?;
@@ -95,7 +104,11 @@ pub(super) fn explore(
         .as_array()
         .map(|a| a.iter().filter_map(|p| p.as_str()).collect())
         .unwrap_or_default();
-    let reader = Arc::new(Reader::default());
+    let provider: Arc<dyn Provider> = Arc::new(Timed {
+        inner: provider,
+        limit: limits.call,
+    });
+    let reader = Arc::new(Reader::with_hooks(hooks));
     let spent = Arc::new(Meter::default());
     let ctx = TurnContext {
         agent: AgentId::minted("explore"),
@@ -110,7 +123,7 @@ pub(super) fn explore(
         hinted: None,
         shed: None,
         ending: None,
-        call_timeout: Some(limits.deadline),
+        call_timeout: Some(limits.call),
         system: Some(SYSTEM.into()),
         model: model.into(),
         tier: ModelTier::Cheap,
@@ -143,9 +156,14 @@ pub(super) fn explore(
         )),
         Ok(Ended::Stopped) => Err(super::cancelscope::STOPPED.into()),
         Ok(Ended::Failed { why, .. }) => Err(format!("explore failed: {why}")),
-        Ok(Ended::Answered(text)) => Ok(format!("{}\n{counts}", clip(text.trim()))),
+        Ok(Ended::Answered(text)) => Ok(format!("{UNTRUSTED}\n{}\n{counts}", clip(text.trim()))),
     }
 }
+
+/// First line of every summary: it is a cheap model's reading of files, and the
+/// caller may be tempted to act on it as if it had read them itself.
+const UNTRUSTED: &str =
+    "[explore \u{2014} a sub-agent's summary of file contents; verify before acting on it]";
 
 /// `text` within [`CAP`] chars, marked when cut.
 fn clip(text: &str) -> String {

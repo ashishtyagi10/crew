@@ -87,7 +87,15 @@ pub(super) fn go(
     bill: &Bill,
 ) -> Result<String, String> {
     let stop = Arc::new(AtomicBool::new(stop));
-    explore(r#"{"goal":"where is x"}"#, p, "m", limits, &stop, bill)
+    explore(
+        r#"{"goal":"where is x"}"#,
+        p,
+        "m",
+        limits,
+        &stop,
+        bill,
+        None,
+    )
 }
 
 #[test]
@@ -100,7 +108,7 @@ fn the_caller_gets_the_summary_and_a_count_not_the_files() {
     let out = go(p, Limits::default(), false, &Bill::default()).unwrap();
     assert_eq!(
         out,
-        "x lives at a.txt:1\nexplored: 1 files read, 0 searches"
+        format!("{UNTRUSTED}\nx lives at a.txt:1\nexplored: 1 files read, 0 searches")
     );
 }
 
@@ -151,7 +159,7 @@ fn it_cannot_call_itself() {
         answering("fine"),
     ]);
     let out = go(p, Limits::default(), false, &Bill::default()).unwrap();
-    assert!(out.starts_with("fine"), "{out}");
+    assert!(out.contains("\nfine\n"), "{out}");
     assert!(seen.lock().unwrap()[0]
         .tools
         .iter()
@@ -177,7 +185,7 @@ fn a_spent_budget_still_returns_what_it_found() {
         ..Limits::default()
     };
     let out = go(p, limits, false, &Bill::default()).unwrap();
-    assert!(out.starts_with("found it at a.txt:1"), "{out}");
+    assert!(out.contains("\nfound it at a.txt:1"), "{out}");
     // The spent pool ends with a last word asked WITHOUT tools.
     assert!(seen.lock().unwrap().last().unwrap().tools.is_empty());
 }

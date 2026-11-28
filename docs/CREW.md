@@ -3548,7 +3548,7 @@ the file every hit or path was saved to (below)
 — **`sys:outline`**, which shows one file's shape (below), **`sys:explore`**
 (an open-ended search handed to a fresh read-only agent — `read_file`,
 `list_dir`, `grep`, `glob`, `outline` and read-only `git` only, never itself —
-on the cheap tier with 8 tool rounds and a 3-minute deadline, honouring `/stop`;
+on the cheap tier (else the standard one) with 8 tool rounds, a 60-second limit per model call and a 3-minute deadline, honouring `/stop`; a run cut off by the deadline returns no findings, only the counts;
 the caller gets its summary, at most 4,000 characters citing `path:line`, and
 `explored: N files read, M searches`, never its transcript; several in one
 reply run together, the pane shows one tool line, and its tokens are billed to

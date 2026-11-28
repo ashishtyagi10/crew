@@ -498,11 +498,11 @@ impl super::toolcall::ToolRunner for SessionTools {
             && !matches!((server, tool), ("lsp", "diagnostics") | ("sys", "todo"))
     }
 
-    /// The task's checklist, while the `sys` surface that writes it is on.
     fn take_spent(&self) -> crew_hive::Spent {
         self.explored.take()
     }
 
+    /// The task's checklist, while the `sys` surface that writes it is on.
     fn checklist(&self) -> Option<&crew_hive::tools::todo::Checklist> {
         self.sys.then_some(self.todo.as_ref())
     }
@@ -591,7 +591,7 @@ impl super::toolcall::ToolRunner for SessionTools {
             ))
         } else if server == "sys" && tool == "explore" && self.sys {
             // Kept here: it needs this task's stop flag and bills the turn that asked.
-            super::sysexplore::run(args, &self.cancel, &self.explored)
+            super::sysexplore::run(args, &self.cancel, &self.explored, self.hooks.clone())
         } else if server == "sys" && tool == "todo" && self.sys {
             // Kept here rather than in `systools`: the list is the task's, and this surface is.
             self.todo.write(args)

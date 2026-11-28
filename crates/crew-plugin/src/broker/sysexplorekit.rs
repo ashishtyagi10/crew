@@ -54,13 +54,24 @@ impl Events for Meter {
 /// The nested agent's whole tool surface: [`ALLOWED`] `sys` tools, run
 /// through `systools::call` (so `CREW_SYS_MODE` and the workspace fence still
 /// apply), with a count of what it looked at.
+///
+/// It carries the session's hooks because a nested call is still the user's
+/// agent reading their files: a `pre_tool` hook that refuses `.env*` must
+/// refuse this reader too, or `sys:explore` is a way around every guard.
 #[derive(Default)]
 pub(super) struct Reader {
     files: AtomicU32,
     searches: AtomicU32,
+    hooks: Option<super::session::hooks::Source>,
 }
 
 impl Reader {
+    pub(super) fn with_hooks(hooks: Option<super::session::hooks::Source>) -> Self {
+        Self {
+            hooks,
+            ..Self::default()
+        }
+    }
     pub(super) fn counts(&self) -> String {
         format!(
             "explored: {} files read, {} searches",
@@ -95,13 +106,23 @@ impl Tools for Reader {
                 ALLOWED.join(", ")
             ));
         }
+        // Read per call, like the session's own calls, so one hooks.json edit lands at once.
+        let hooks = self.hooks.as_ref().map(|s| s.load());
+        let name = format!("{server}:{tool}");
+        if let Some(why) = hooks.as_ref().and_then(|h| h.pre(&name, args).err()) {
+            return Err(why);
+        }
         let n = if tool == "read_file" {
             &self.files
         } else {
             &self.searches
         };
         n.fetch_add(1, Ordering::Relaxed);
-        super::systools::call(tool, args)
+        let out = super::systools::call(tool, args);
+        match hooks {
+            Some(h) => out.map(|t| h.post(&name, args, t)),
+            None => out,
+        }
     }
 }
 
@@ -110,5 +131,52 @@ impl Reader {
         let mut all = super::systools::tools();
         all.retain(|t| ALLOWED.contains(&t.name.as_str()));
         all
+    }
+}
+
+/// `inner` with each model call cut off after `limit`.
+///
+/// WHY here: the harness's `call_timeout` only bounds the extra calls a reply
+/// needs (continuations, resumes), never the first request, so a hung first
+/// request would sit until the whole-turn deadline and take every round with it.
+pub(super) struct Timed {
+    pub(super) inner: std::sync::Arc<dyn crew_hive::Provider>,
+    pub(super) limit: std::time::Duration,
+}
+
+type Call = std::pin::Pin<
+    Box<
+        dyn std::future::Future<Output = Result<crew_hive::Completion, crew_hive::ProviderError>>
+            + Send,
+    >,
+>;
+
+impl Timed {
+    fn bound(&self, call: Call) -> Call {
+        let limit = self.limit;
+        Box::pin(async move {
+            tokio::time::timeout(limit, call).await.unwrap_or_else(|_| {
+                Err(crew_hive::ProviderError::Http(format!(
+                    "no answer from the model in {}s",
+                    limit.as_secs().max(1)
+                )))
+            })
+        })
+    }
+}
+
+impl crew_hive::Provider for Timed {
+    fn supports_tools(&self) -> bool {
+        self.inner.supports_tools()
+    }
+    fn complete(&self, req: crew_hive::CompletionRequest) -> Call {
+        self.bound(self.inner.complete(req))
+    }
+    fn complete_streaming(
+        &self,
+        req: crew_hive::CompletionRequest,
+        on_chunk: crew_hive::ChunkFn,
+    ) -> Call {
+        self.bound(self.inner.complete_streaming(req, on_chunk))
     }
 }
