@@ -195,4 +195,4 @@ pub(crate) fn frame(cv: &mut Canvas, b: Rect, name: &str, right: &str, keys: boo
 
 #[cfg(test)]
 #[path = "cards_tests.rs"]
-mod tests;
+pub(crate) mod tests;

@@ -28,3 +28,7 @@ pub(crate) fn draw(cv: &mut Canvas, b: Rect, total: usize, room: usize, first: u
         cv.text(row, col, col + 1, "\u{2503}", fg, false);
     }
 }
+
+#[cfg(test)]
+#[path = "thumb_tests.rs"]
+mod tests;

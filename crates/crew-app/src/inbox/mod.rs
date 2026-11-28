@@ -1,9 +1,8 @@
 //! `/inbox` — a light Gmail inbox in a pane (goal 2026-10-20-inbox).
 //!
-//! The list, Gmail's own search, a thread read, filed and answered, and the
-//! browser one key away for anything more. Nothing is stored on disk but the
-//! grant (`grant`) and a reopened draft's files; the rows live in memory. The
-//! network is a thread of its own (`worker`); the pane drains what it says.
+//! The list, Gmail's search, a thread read, filed and answered, the browser a
+//! key away for more. Only the grant (`grant`) and a reopened draft's files go
+//! to disk; the rows live in memory, the network on a thread (`worker`).
 mod addr;
 mod advance;
 pub(crate) mod age;
