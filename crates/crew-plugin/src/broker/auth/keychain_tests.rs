@@ -41,12 +41,26 @@ esac
         dir = dir.display(),
     );
     let bin = dir.join("security");
-    std::fs::write(&bin, script).unwrap();
+    // Through `cp`, not written in place: a test thread forking while this
+    // process holds the script open for writing hands the child that fd, and
+    // exec'ing the script fails with ETXTBSY — the keychain then looks absent
+    // and the file fallback runs (Coverage red 2026-11-28). The same fix as
+    // `claudeagent_tests::put`.
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let src = dir.join("security.src");
+        std::fs::write(&src, script).unwrap();
+        std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let cp = std::process::Command::new("cp")
+            .arg("-p")
+            .arg(&src)
+            .arg(&bin)
+            .status();
+        assert!(cp.unwrap().success(), "cp {src:?}");
     }
+    #[cfg(not(unix))]
+    std::fs::write(&bin, script).unwrap();
     (bin, dir)
 }
 
