@@ -106,7 +106,7 @@ fn named_bytes(n: NamedKey) -> Option<Vec<u8>> {
 /// the keys that type NUL, ESC and FS…US need Shift on most layouts: Ctrl+2 is
 /// NUL (tmux/emacs set-mark), Ctrl+3…7 are ESC, FS, GS, RS, US, Ctrl+8 is DEL,
 /// and Ctrl+/ is US (emacs/nano undo). They sent the bare digit or slash.
-fn ctrl_byte(c: char) -> Option<u8> {
+pub(crate) fn ctrl_byte(c: char) -> Option<u8> {
     match c {
         '2' => return Some(0),
         '3'..='7' => return Some(c as u8 - b'3' + 0x1b),

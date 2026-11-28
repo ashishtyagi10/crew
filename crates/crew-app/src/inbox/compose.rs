@@ -111,10 +111,6 @@ impl Compose {
 }
 
 impl InboxPane {
-    pub(crate) fn composing(&self) -> bool {
-        self.carded()
-    }
-
     /// `r` or `f`: the box, for the open thread. The line to say.
     pub(crate) fn open_compose(&mut self, kind: Kind) -> &'static str {
         let Some(r) = self.reading.as_ref() else {

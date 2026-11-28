@@ -39,14 +39,12 @@ fn a_command_with_no_chord_has_no_hint() {
 #[test]
 fn every_chord_is_one_the_dispatch_actually_handles() {
     // Cmd chords are `handle_super_chord`'s arms (`"k" =>`, `"/" | "?" =>`);
-    // the Ctrl+Shift walks are tested key by key in `keys.rs`.
-    let (cmd_arms, ctrl_keys) = (include_str!("chords.rs"), include_str!("keys.rs"));
+    // the Ctrl+Shift walks are `keychord::special`'s arms.
+    let (cmd_arms, ctrl_keys) = (include_str!("chords.rs"), include_str!("keychord.rs"));
     for (cmd, chord) in KEYS {
         let key = chord.rsplit('+').next().expect("a chord ends in its key");
         let handled = match chord.starts_with("Ctrl+") {
-            true => {
-                ctrl_keys.contains(&format!("eq_ignore_ascii_case(\"{}\")", key.to_lowercase()))
-            }
+            true => ctrl_keys.contains(&format!("\"{}\" =>", key.to_lowercase())),
             // `Cmd+Shift+T` is its own shifted arm (`"T" =>`); a plain
             // letter's arm is lower-case.
             false => [key.to_string(), key.to_lowercase()].iter().any(|k| {
