@@ -411,11 +411,11 @@ fn a_failed_follow_up_never_leaves_the_raw_call_as_the_answer() {
 #[test]
 fn an_answer_still_holding_a_call_hands_back_the_line_it_never_ran() {
     let a = "@done\n\nWe will look at history:\n```json\n@tool sys:git {\"cmd\":\"log\"}\n```\nThen fix it.";
-    let (text, note) = crate::broker::toolround::finished(None, a.to_string());
+    let (text, note, _) = crate::broker::toolround::finished(None, a.to_string());
     assert_eq!(text, "@done\n\nWe will look at history:\nThen fix it.");
     assert_eq!(note, "! not run: sys:git log \u{2014} the turn ended first");
     let done = crate::broker::toolround::finished(None, "Done.".into());
-    assert_eq!(done, ("Done.".to_string(), String::new()));
+    assert_eq!(done, ("Done.".to_string(), String::new(), String::new()));
 }
 
 /// Crew's own tools are listed whole on the text path: clipped at 100,

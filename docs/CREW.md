@@ -2914,6 +2914,13 @@ one; a still-missing directive ends the thread rather than mis-routing. This
 proves out as `A→B` (claude hands to codex), `B→A` (codex relays back), and a
 **3-way relay** (claude → codex → opencode, answer relayed back to claude).
 
+**Unsure.** A working agent is asked to end an answer that rests on something
+it did not verify, or an assumption it made, with one `Unsure: <what>` line
+(left out when nothing is uncertain). The broker lifts that line out of the
+answer and smith says it as its own quiet row under it, `? unsure: <what>`,
+beside `! not checked` (which says what no tool proved, not what the model
+doubts).
+
 **Loop guard & timeouts.** Every message carries a hop counter; once it passes
 the limit (default 6) the broker drops the thread and logs that it stopped, so a
 relay can never loop forever. Each agent call has a timeout (default 180s) — a

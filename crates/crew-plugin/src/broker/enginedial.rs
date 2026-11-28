@@ -55,9 +55,14 @@ impl Broker {
     /// turn's final answer is made, so the checklist's line lands under every
     /// answer however the thread ended (`toolround::finished`).
     pub(super) fn done(&self, env: &Envelope, answer: String, usage: Usage) -> Hop {
-        let (answer, not_run) = crate::broker::toolround::finished(self.tools.as_deref(), answer);
+        let (answer, not_run, unsure) =
+            crate::broker::toolround::finished(self.tools.as_deref(), answer);
         Hop {
-            usage: Usage { not_run, ..usage },
+            usage: Usage {
+                not_run,
+                unsure,
+                ..usage
+            },
             ..back(env, HopKind::Done, answer)
         }
     }

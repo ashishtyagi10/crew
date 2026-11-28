@@ -125,9 +125,10 @@ impl Broker {
             }
             match parse_routing(&reply) {
                 Routing::Relay { to: next, body } => {
-                    // A hand-off to nobody on the roster — an agent alone on a
-                    // routed reply, or a name remembered from another turn — is
-                    // the answer, not an error card.
+                    let body = super::unsure::strip(body); // asked of `@done` only
+                                                           // A hand-off to nobody on the roster — an agent alone on a
+                                                           // routed reply, or a name remembered from another turn — is
+                                                           // the answer, not an error card.
                     if next.eq_ignore_ascii_case(&env.to) || self.registry.get(&next).is_none() {
                         sink(self.done(&env, body, usage)); // self-hand-off → finish
                         return stats;

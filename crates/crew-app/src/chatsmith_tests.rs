@@ -96,3 +96,18 @@ fn a_closing_call_that_fails_mid_stream_still_settles_the_live_card() {
     );
     assert!(p.streaming.is_empty(), "the live card was left behind");
 }
+
+/// What the answer was unsure of is smith's own quiet row under it — the
+/// `! not checked` family, with a `?` — never the answer's ink.
+#[test]
+fn what_the_answer_was_unsure_of_is_a_quiet_row_of_smiths() {
+    let _g = crate::app::theme_test_guard();
+    let t = crew_theme::theme();
+    let m = msg("agent smith", "? unsure: calc.py was never run");
+    let (ink, text) = crate::chatvoice::body_voice(&m);
+    assert_eq!(ink, t.text_muted, "quiet, as the other verdict rows");
+    assert_eq!(text, "? unsure: calc.py was never run");
+    let cells = message_cells(&[&m], 60, 10, 0, 0, View::default());
+    let all: String = (0..4).map(|r| card_row(&cells, r)).collect();
+    assert!(all.contains("? unsure: calc.py was never run"), "{all}");
+}

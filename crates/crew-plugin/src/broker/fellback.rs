@@ -38,7 +38,8 @@ impl Told {
     /// Smith's line for `agent`'s reply usage `u` — `fell back to qwen-flash
     /// · qwen-max: <why>` — the first time `agent` falls back this turn,
     /// then every refusal the reply met (`Usage::refused`), each call's own,
-    /// then the calls its final answer never ran (`Usage::not_run`), then a
+    /// then the calls its final answer never ran (`Usage::not_run`), then what
+    /// it said it was unsure of (`Usage::unsure`), then a
     /// served model's shutdown date the first time this session (`Usage::
     /// retiring`); `None`
     /// when none has anything to say.
@@ -54,6 +55,9 @@ impl Told {
         }
         if !u.not_run.is_empty() {
             rows.push(u.not_run.clone());
+        }
+        if !u.unsure.is_empty() {
+            rows.push(u.unsure.clone());
         }
         if super::sunsetsaid::first_in_session(&u.retiring) {
             rows.push(u.retiring.clone());
