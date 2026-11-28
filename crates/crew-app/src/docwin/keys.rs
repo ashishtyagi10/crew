@@ -57,6 +57,13 @@ pub(crate) fn edit_for(
     if !pressed {
         return None;
     }
+    // Off a Mac, Alt+Home/End/PgUp/PgDn are crew's screens and command jumps
+    // (`winnav`); an editor taking them as caret moves left no way there.
+    let nav = matches!(key, Key::Named(NamedKey::Home | NamedKey::End))
+        || matches!(key, Key::Named(NamedKey::PageUp | NamedKey::PageDown));
+    if nav && mods.alt_key() && !cfg!(target_os = "macos") {
+        return None;
+    }
     let cmd = mods.super_key() || mods.control_key();
     let moved = |s: Step| match mods.shift_key() {
         true => Some(Edit::Select(s)),

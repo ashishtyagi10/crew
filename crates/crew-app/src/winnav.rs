@@ -52,6 +52,9 @@ impl CrewApp {
             return false;
         };
         match chord {
+            // Held, F11 would flip the window (and save the config) at the
+            // key-repeat rate.
+            WinChord::Maximize if event.repeat => {}
             WinChord::Tab(d) => self.step_tab(d),
             WinChord::TabN(n) => self.goto_tab(n),
             WinChord::Screen(d) => self.step_screen(d),
