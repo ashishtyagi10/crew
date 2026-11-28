@@ -28,8 +28,13 @@ pub struct InputModes {
     /// Focus reporting (DECSET 1004): the program wants `CSI I` / `CSI O`
     /// when its pane gains or loses keyboard focus (see `focusreport`).
     pub focus_events: bool,
-    /// The kitty keyboard protocol's "disambiguate escape codes" flag (0b1)
-    /// is on: Esc, Ctrl/Alt chords and modified Enter/Tab/Backspace go as
-    /// `CSI … u` (the app's `keykitty`). Its other flags are not honoured.
+    /// Any kitty keyboard protocol flag is on (`kitty_flags != 0`): the
+    /// program wants keys as `CSI … u`, and a killed one left that behind
+    /// (`promptmodes`).
     pub kitty_keys: bool,
+    /// The active kitty keyboard flags, alacritty's stack top: 1 disambiguate
+    /// escape codes, 2 report event types (press/repeat/release), 4 report
+    /// alternate keys, 8 report all keys as escape codes, 16 report
+    /// associated text. The app's `keykitty` / `kittyreport` encode by them.
+    pub kitty_flags: u8,
 }

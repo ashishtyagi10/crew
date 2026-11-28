@@ -93,3 +93,18 @@ fn the_prompt_marks_reset_keeps_the_shells_own_kitty_flags() {
     let m = term.input_modes();
     assert!(m.kitty_keys && !m.mouse, "{m:?}");
 }
+
+/// Flags 2, 4, 8 and 16 are the protocol on too: a killed Helix's `1|2|8`
+/// (set with `CSI = 11 u`) is a leftover the reset pops, not only flag 1.
+#[test]
+fn every_flag_alone_is_a_leftover() {
+    for flags in [2u8, 4, 8, 16, 11] {
+        let mut core = TermCore::new(GridSize { cols: 20, rows: 3 });
+        core.feed(format!("\x1b[={flags};1u").as_bytes());
+        let m = core.input_modes();
+        assert_eq!(m.kitty_flags, flags);
+        let reset = leftover_reset(m, false, false, false).expect("a leftover");
+        core.feed(reset);
+        assert_eq!(core.input_modes().kitty_flags, 0, "flags {flags}");
+    }
+}

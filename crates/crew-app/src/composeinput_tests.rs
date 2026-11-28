@@ -149,3 +149,43 @@ fn moving_focus_carries_the_composition() {
     let owner = a.ime.preedit.as_ref().map(|p| p.owner);
     assert_eq!(owner, Some(crate::imepreedit::Owner::Pane(1)));
 }
+
+/// A program that asked for every kitty flag (a Neovim's `1|2|8|16`) still
+/// gets a composed letter: the IME commit is text, never an escape code.
+#[cfg(unix)]
+#[test]
+fn a_commit_still_types_under_every_kitty_flag() {
+    let sink = Sink::default();
+    let mut pane = shell(&sink);
+    let grid = GridSize { cols: 40, rows: 8 };
+    let script = "printf '\\033[>27u'; exec cat";
+    let pty = PtyTerm::spawn_in(
+        grid,
+        "/bin/sh",
+        &["-c".to_string(), script.to_string()],
+        None,
+    )
+    .unwrap();
+    if let PaneContent::Terminal(t) = &mut pane.content {
+        t.pty = pty;
+    }
+    let mut a = CrewApp {
+        panes: vec![pane],
+        focused: 0,
+        ..Default::default()
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let flags = |a: &mut CrewApp| match &mut a.panes[0].content {
+        PaneContent::Terminal(t) => {
+            t.pty.try_read();
+            t.pty.input_modes().kitty_flags
+        }
+        _ => 0,
+    };
+    while flags(&mut a) != 27 && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    assert_eq!(flags(&mut a), 27, "the program's push reached the pane");
+    a.on_ime(commit("é"));
+    assert_eq!(*sink.0.lock().unwrap(), [0xc3, 0xa9]);
+}

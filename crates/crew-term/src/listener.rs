@@ -53,11 +53,6 @@ impl TermEvents {
     }
 }
 
-/// The flags in a kitty keyboard query answer (`ESC [ ? flags u`).
-fn kitty_flags(text: &str) -> Option<u32> {
-    text.strip_prefix("\x1b[?")?.strip_suffix('u')?.parse().ok()
-}
-
 impl EventListener for TermEvents {
     fn send_event(&self, event: Event) {
         match event {
@@ -78,15 +73,9 @@ impl EventListener for TermEvents {
             // last answer would turn its notifications off.
             Event::PtyWrite(text)
                 if text == UNKNOWN_2031 || text == UNKNOWN_2048 || text == UNKNOWN_1016 => {}
-            // alacritty answers a kitty keyboard query with the flags pushed;
-            // crew honours only "disambiguate" (0b1), so it says just that.
-            Event::PtyWrite(text) => {
-                let text = match kitty_flags(&text) {
-                    Some(flags) => format!("\x1b[?{}u", flags & 1),
-                    None => text,
-                };
-                self.replies.lock().unwrap().push_str(&text);
-            }
+            // A kitty keyboard query (`CSI ? u`) is answered with the flags
+            // alacritty holds, all five of which the app's encoder honours.
+            Event::PtyWrite(text) => self.replies.lock().unwrap().push_str(&text),
             // Color queries (OSC 4/10/11/12): held, with their place among
             // the other replies, for `TermCore` to answer from the palette.
             Event::ColorRequest(index, format) => {

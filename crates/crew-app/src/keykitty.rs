@@ -23,7 +23,6 @@
 //! reports AltGr: those type their text, as in `altmeta`. Crew's own chords
 //! (Cmd+…, Ctrl+Tab, Ctrl+Q) are taken before a key gets here.
 use crate::keyenc::Mods;
-use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
 /// xterm's (and kitty's) modifier parameter.
@@ -66,7 +65,7 @@ pub(crate) fn named(n: NamedKey, m: Mods) -> Option<Vec<u8>> {
 }
 
 /// The `CSI n ~` number of the keys that have one.
-fn tilde(n: NamedKey) -> Option<u8> {
+pub(crate) fn tilde(n: NamedKey) -> Option<u8> {
     use NamedKey::*;
     Some(match n {
         Insert => 2,
@@ -134,30 +133,6 @@ fn printable(s: &str) -> bool {
 /// instead (nvim and Claude Code take those too).
 pub(crate) fn armed(kitty_keys: bool, broadcast: bool) -> bool {
     kitty_keys && !broadcast
-}
-
-/// [`encode`] for a winit key press.
-pub(crate) fn key_event(
-    event: &KeyEvent,
-    m: Mods,
-    kitty: bool,
-    option_as_meta: bool,
-) -> Option<Vec<u8>> {
-    use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
-    if !kitty || !event.state.is_pressed() {
-        return None;
-    }
-    let bare = event.key_without_modifiers();
-    let mac = cfg!(target_os = "macos");
-    encode(
-        &event.logical_key,
-        &bare,
-        event.text.as_deref(),
-        m,
-        kitty,
-        mac,
-        option_as_meta,
-    )
 }
 
 /// [`named`] / [`text`] for a key: `logical` as pressed, `bare` without its
